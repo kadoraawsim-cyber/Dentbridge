@@ -17,9 +17,11 @@ export default function PatientRequestPage() {
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
-    setMessage('')
+    setMessage('Submitting...')
 
-    const { error } = await supabase.from('patient_requests').insert([
+    console.log('Submitting form...')
+
+    const { data, error } = await supabase.from('patient_requests').insert([
       {
         full_name: fullName,
         phone,
@@ -31,14 +33,15 @@ export default function PatientRequestPage() {
       },
     ])
 
+    console.log('Supabase result:', { data, error })
+
     if (error) {
-      setMessage('Something went wrong. Please try again.')
+      setMessage(`Error: ${error.message}`)
       setLoading(false)
       return
     }
 
     setMessage('Your request was submitted successfully.')
-
     setFullName('')
     setPhone('')
     setCity('')
