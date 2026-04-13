@@ -12,7 +12,6 @@ import {
   ClipboardList,
   FileText,
   HeartPulse,
-  Info,
   ScanLine,
   ShieldCheck,
   ShieldPlus,
@@ -165,9 +164,9 @@ export default function HomePage() {
             </div>
           </Link>
 
-          <nav className="hidden items-center gap-8 text-sm text-slate-600 md:flex">
+          <nav className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
             <Link href="/patient/request" className="hover:text-slate-900">
-              Patient Access
+              Request Treatment
             </Link>
             <Link href="/student/dashboard" className="hover:text-slate-900">
               Student Portal
@@ -306,16 +305,12 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="relative">
+          <div>
             <img
               src="https://images.unsplash.com/photo-1629909613654-28e377c37b09?q=80&w=1200&auto=format&fit=crop"
               alt="Modern dental clinic"
               className="h-[320px] w-full rounded-3xl object-cover"
             />
-            <div className="absolute -bottom-4 left-6 rounded-2xl bg-white px-4 py-3 shadow-lg">
-              <p className="text-sm font-semibold text-slate-900">Online Appointment</p>
-              <p className="text-xs text-slate-500">Fast and easy coordination</p>
-            </div>
           </div>
         </div>
       </section>
@@ -415,7 +410,7 @@ export default function HomePage() {
               href="/patient/request"
               className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
             >
-              Submit Request <ArrowRight className="h-4 w-4" />
+              Submit Treatment Request <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
         </div>
@@ -457,14 +452,10 @@ export default function HomePage() {
                 </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-white">
-                  Affordable Care Information
-                </a>
+                <span className="cursor-default text-slate-600">Affordable Care Information</span>
               </li>
               <li>
-                <a href="#" className="hover:text-white">
-                  FAQ
-                </a>
+                <span className="cursor-default text-slate-600">FAQ</span>
               </li>
             </ul>
           </div>
@@ -488,9 +479,7 @@ export default function HomePage() {
                 </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-white">
-                  Clinical Requirements
-                </a>
+                <span className="cursor-default text-slate-600">Clinical Requirements</span>
               </li>
             </ul>
           </div>

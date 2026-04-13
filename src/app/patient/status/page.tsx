@@ -15,6 +15,72 @@ type PatientRequest = {
   assigned_department: string | null
 }
 
+const STATUS_FLOW = [
+  { key: 'submitted', label: 'Submitted' },
+  { key: 'under_review', label: 'Under Review' },
+  { key: 'matched', label: 'Matched' },
+  { key: 'contacted', label: 'Contacted' },
+  { key: 'completed', label: 'Completed' },
+]
+
+function StatusStepper({ status }: { status: string }) {
+  const normalised = (status || '').toLowerCase()
+  const isRejected = normalised === 'rejected'
+  const currentIndex = STATUS_FLOW.findIndex((s) => s.key === normalised)
+
+  return (
+    <div>
+      {isRejected && (
+        <p className="mb-3 text-xs font-semibold text-rose-600">
+          Case marked as out of scope — no further steps required
+        </p>
+      )}
+      <div className="flex items-center">
+        {STATUS_FLOW.map((step, i) => {
+          const isDone = !isRejected && i < currentIndex
+          const isCurrent = !isRejected && i === currentIndex
+          return (
+            <React.Fragment key={step.key}>
+              <div
+                className={`h-2.5 w-2.5 shrink-0 rounded-full transition-colors ${
+                  isDone
+                    ? 'bg-teal-500'
+                    : isCurrent
+                    ? 'border-2 border-teal-500 bg-white'
+                    : 'bg-slate-200'
+                }`}
+              />
+              {i < STATUS_FLOW.length - 1 && (
+                <div
+                  className={`h-px flex-1 transition-colors ${
+                    isDone ? 'bg-teal-400' : 'bg-slate-200'
+                  }`}
+                />
+              )}
+            </React.Fragment>
+          )
+        })}
+      </div>
+      <div className="mt-2 flex justify-between">
+        {STATUS_FLOW.map((step, i) => {
+          const isDone = !isRejected && i < currentIndex
+          const isCurrent = !isRejected && i === currentIndex
+          return (
+            <span
+              key={step.key}
+              className={`text-[10px] font-medium leading-tight ${
+                isCurrent ? 'text-teal-700' : isDone ? 'text-slate-500' : 'text-slate-400'
+              }`}
+            >
+              {step.label}
+            </span>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function getStatusBadgeClass(status: string) {
   switch ((status || '').toLowerCase()) {
     case 'submitted':
@@ -221,22 +287,21 @@ export default function PatientStatusPage() {
           </div>
         </form>
 
-        {loading && (
-          <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm">
-            Looking up your request...
-          </div>
-        )}
-
         {!loading && searched && !result && !errorMessage && (
-          <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm font-medium text-slate-700">No request found</p>
-            <p className="mt-1 text-sm text-slate-500">
-              We could not find a submitted request for that phone number. Please check the number and try again, or{' '}
-              <Link href="/patient/request" className="text-teal-600 hover:underline">
-                submit a new request
-              </Link>
-              .
-            </p>
+          <div className="mt-6 rounded-2xl border border-slate-100 bg-slate-50 p-6">
+            <div className="flex items-start gap-3">
+              <Search className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
+              <div>
+                <p className="text-sm font-semibold text-slate-700">No request found</p>
+                <p className="mt-1 text-sm text-slate-500">
+                  We could not find a submitted request for that phone number. Please check the number and try again, or{' '}
+                  <Link href="/patient/request" className="text-teal-600 hover:underline">
+                    submit a new request
+                  </Link>
+                  .
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
@@ -245,7 +310,7 @@ export default function PatientStatusPage() {
             <div className="border-b border-slate-100 bg-slate-50/70 px-6 py-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="font-mono text-xs font-bold text-slate-500">
-                  ID: {result.id.slice(0, 8)}
+                  Ref: {result.id.slice(0, 8)}
                 </p>
                 <span
                   className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold tracking-wide ${getStatusBadgeClass(
@@ -263,6 +328,10 @@ export default function PatientStatusPage() {
                   Patient Name
                 </p>
                 <p className="text-2xl font-bold text-slate-900">{result.full_name}</p>
+              </div>
+
+              <div className="pt-1 pb-2">
+                <StatusStepper status={result.status} />
               </div>
 
               <div className="grid grid-cols-2 gap-x-8 gap-y-5">
@@ -340,14 +409,10 @@ export default function PatientStatusPage() {
                 </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-white">
-                  Affordable Care Information
-                </a>
+                <span className="cursor-default text-slate-600">Affordable Care Information</span>
               </li>
               <li>
-                <a href="#" className="hover:text-white">
-                  FAQ
-                </a>
+                <span className="cursor-default text-slate-600">FAQ</span>
               </li>
             </ul>
           </div>
@@ -371,9 +436,7 @@ export default function PatientStatusPage() {
                 </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-white">
-                  Clinical Requirements
-                </a>
+                <span className="cursor-default text-slate-600">Clinical Requirements</span>
               </li>
             </ul>
           </div>

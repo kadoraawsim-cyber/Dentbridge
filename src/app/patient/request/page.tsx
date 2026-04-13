@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { ArrowLeft, Info, UploadCloud } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Info, UploadCloud } from 'lucide-react'
 
 const treatmentOptions = [
   'Initial Examination / Consultation',
@@ -46,7 +46,7 @@ export default function PatientRequestPage() {
   const [successMessage, setSuccessMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
     setSuccessMessage('')
     setErrorMessage('')
@@ -210,11 +210,41 @@ export default function PatientRequestPage() {
           </p>
         </div>
 
+        {successMessage && (
+          <div className="overflow-hidden rounded-3xl border border-emerald-200 bg-white shadow-sm">
+            <div className="px-6 py-12 text-center sm:px-10">
+              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50">
+                <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-slate-900">Request Submitted</h2>
+              <p className="mx-auto mt-3 max-w-sm text-slate-600">
+                Your treatment request has been received. Our faculty team will review it and contact you.
+              </p>
+              <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+                <Link
+                  href="/patient/status"
+                  className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-700"
+                >
+                  Check My Request Status
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setSuccessMessage('')}
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  Submit Another Request
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!successMessage && (
         <form
           onSubmit={handleSubmit}
           className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
         >
-          <div className="space-y-10 p-6 sm:p-8">
+          <div className="space-y-8 p-6 sm:p-8">
             <section>
               <div className="mb-5 flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-teal-500" />
@@ -266,7 +296,7 @@ export default function PatientRequestPage() {
 
                 <div>
                   <label className="mb-2 block text-sm font-medium text-slate-700">
-                    Preferred Language
+                    Preferred Language <span className="font-normal text-slate-400">(optional)</span>
                   </label>
                   <select
                     value={preferredLanguage}
@@ -281,7 +311,7 @@ export default function PatientRequestPage() {
 
                 <div>
                   <label className="mb-2 block text-sm font-medium text-slate-700">
-                    City
+                    City <span className="font-normal text-slate-400">(optional)</span>
                   </label>
                   <input
                     type="text"
@@ -294,7 +324,7 @@ export default function PatientRequestPage() {
 
                 <div>
                   <label className="mb-2 block text-sm font-medium text-slate-700">
-                    Preferred University / Clinic
+                    Preferred University / Clinic <span className="font-normal text-slate-400">(optional)</span>
                   </label>
                   <input
                     type="text"
@@ -373,7 +403,7 @@ export default function PatientRequestPage() {
 
                 <div>
                   <label className="mb-2 block text-sm font-medium text-slate-700">
-                    Preferred Availability
+                    Preferred Availability <span className="font-normal text-slate-400">(optional)</span>
                   </label>
                   <select
                     value={preferredDays}
@@ -390,9 +420,10 @@ export default function PatientRequestPage() {
 
             <section>
               <div className="mb-5 flex items-center gap-2">
-                <UploadCloud className="h-5 w-5 text-slate-500" />
+                <div className="h-2 w-2 rounded-full bg-teal-500" />
                 <h2 className="text-2xl font-semibold text-slate-900">
-                  Supporting Images (Optional)
+                  Supporting Images
+                  <span className="ml-2 text-base font-normal text-slate-400">(optional)</span>
                 </h2>
               </div>
 
@@ -428,6 +459,11 @@ export default function PatientRequestPage() {
             </section>
 
             <section>
+              <div className="mb-5 flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-teal-500" />
+                <h2 className="text-2xl font-semibold text-slate-900">Consent</h2>
+              </div>
+
               <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-4 text-sm text-blue-900">
                 <div className="flex items-start gap-3">
                   <Info className="mt-0.5 h-5 w-5 shrink-0" />
@@ -459,18 +495,6 @@ export default function PatientRequestPage() {
               </div>
             )}
 
-            {successMessage && (
-              <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-4 text-sm text-green-700">
-                <p className="font-medium">{successMessage}</p>
-                <p className="mt-2 text-green-600">
-                  You can now{' '}
-                  <Link href="/patient/status" className="font-semibold underline hover:text-green-800">
-                    check your request status
-                  </Link>{' '}
-                  at any time using your phone number.
-                </p>
-              </div>
-            )}
           </div>
 
           <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-5 sm:flex-row sm:justify-end sm:px-8">
@@ -490,6 +514,8 @@ export default function PatientRequestPage() {
             </button>
           </div>
         </form>
+        )}
+
       </section>
 
       <footer className="bg-slate-950 py-14 text-slate-300">
@@ -528,14 +554,10 @@ export default function PatientRequestPage() {
                 </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-white">
-                  Affordable Care Information
-                </a>
+                <span className="cursor-default text-slate-600">Affordable Care Information</span>
               </li>
               <li>
-                <a href="#" className="hover:text-white">
-                  FAQ
-                </a>
+                <span className="cursor-default text-slate-600">FAQ</span>
               </li>
             </ul>
           </div>
@@ -559,9 +581,7 @@ export default function PatientRequestPage() {
                 </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-white">
-                  Clinical Requirements
-                </a>
+                <span className="cursor-default text-slate-600">Clinical Requirements</span>
               </li>
             </ul>
           </div>
