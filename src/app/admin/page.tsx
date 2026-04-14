@@ -2,12 +2,14 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import {
   ShieldCheck,
   CheckCircle2,
   AlertCircle,
   ChevronRight,
+  LogOut,
 } from 'lucide-react'
 
 type PatientRequest = {
@@ -80,9 +82,15 @@ function ProgressBar({ value }: { value: number }) {
 }
 
 export default function AdminDashboardPage() {
+  const router = useRouter()
   const [requests, setRequests] = useState<PatientRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
+
+  async function handleSignOut() {
+    await supabase.auth.signOut()
+    router.replace('/login')
+  }
 
   useEffect(() => {
     async function loadRequests() {
@@ -214,6 +222,14 @@ export default function AdminDashboardPage() {
             <div className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-500">
               <ShieldCheck className="h-4 w-4" />
             </div>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              Sign Out
+            </button>
           </div>
         </div>
       </header>
