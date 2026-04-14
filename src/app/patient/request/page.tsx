@@ -74,8 +74,7 @@ export default function PatientRequestPage() {
       const fileExt = attachment.name.split('.').pop()
       const safeName = fullName.trim().toLowerCase().replace(/\s+/g, '-')
       const fileName = `${safeName}-${Date.now()}.${fileExt}`
-      const filePath = `patient-requests/${fileName}`
-
+const filePath = fileName
       const { error: uploadError } = await supabase.storage
         .from('patient-uploads')
         .upload(filePath, attachment)
