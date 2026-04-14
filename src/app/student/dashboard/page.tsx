@@ -194,20 +194,20 @@ export default function StudentDashboardPage() {
             <div className="text-sm font-semibold uppercase tracking-wider text-slate-500">
               Active Cases
             </div>
-            <div className="mt-3 text-5xl font-bold tracking-tight text-blue-900">
+            <div className="mt-3 text-5xl font-bold tracking-tight text-slate-300">
               {stats.activeCases}
             </div>
-            <div className="mt-3 text-sm text-slate-500">Currently assigned to you</div>
+            <div className="mt-3 text-xs italic text-slate-400">Coming soon — requires assignment tracking</div>
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="text-sm font-semibold uppercase tracking-wider text-slate-500">
               Completed
             </div>
-            <div className="mt-3 text-5xl font-bold tracking-tight text-emerald-600">
+            <div className="mt-3 text-5xl font-bold tracking-tight text-slate-300">
               {stats.completed}
             </div>
-            <div className="mt-3 text-sm text-slate-500">Cases finished this semester</div>
+            <div className="mt-3 text-xs italic text-slate-400">Coming soon — requires assignment tracking</div>
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -360,22 +360,24 @@ export default function StudentDashboardPage() {
               </Link>
             </div>
 
-            <div className="rounded-2xl border border-blue-200 bg-blue-50 p-6 shadow-sm">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 shadow-sm">
               <div className="flex items-start gap-3">
-                <Users className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+                <Users className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
                 <div>
-                  <h3 className="text-base font-bold text-blue-900">Semester Progress</h3>
-                  <p className="mt-1 text-sm text-blue-800">
-                    You have completed{' '}
-                    <strong>7 of 12</strong> required clinical cases this semester.
+                  <h3 className="text-base font-bold text-slate-700">
+                    Semester Progress{' '}
+                    <span className="text-xs font-normal text-slate-400">(preview)</span>
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Progress tracking is not yet connected. These figures are placeholders until the assignment table is live.
                   </p>
-                  <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-blue-100">
+                  <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-200">
                     <div
-                      className="h-full rounded-full bg-blue-600 transition-all duration-500"
+                      className="h-full rounded-full bg-slate-300 transition-all duration-500"
                       style={{ width: '58%' }}
                     />
                   </div>
-                  <p className="mt-1 text-xs text-blue-700">58% — 5 cases remaining</p>
+                  <p className="mt-1 text-xs text-slate-400">58% — example only</p>
                 </div>
               </div>
             </div>

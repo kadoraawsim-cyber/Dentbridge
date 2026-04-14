@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import {
+  ArrowLeft,
   GraduationCap,
   RefreshCw,
   Stethoscope,
@@ -188,7 +189,8 @@ export default function StudentExchangePage() {
             href="/student/dashboard"
             className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-900"
           >
-            ← Back to Dashboard
+            <ArrowLeft className="h-4 w-4" />
+            Back to Dashboard
           </Link>
 
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -207,6 +209,15 @@ export default function StudentExchangePage() {
           </div>
         </div>
 
+        <div className="mb-8 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
+          <p className="text-sm font-semibold text-amber-800">
+            Preview — this page shows example data only.
+          </p>
+          <p className="mt-1 text-sm text-amber-700">
+            Case exchange is not yet connected to the database. No actions on this page will write any data. The full workflow will be enabled once the exchange table and faculty approval step are built.
+          </p>
+        </div>
+
         <div className="grid gap-10 xl:grid-cols-[1fr_1.6fr]">
           {/* My active cases — eligible for exchange */}
           <div>
@@ -214,7 +225,8 @@ export default function StudentExchangePage() {
               My Active Cases
             </h2>
             <p className="mb-5 text-sm text-slate-500">
-              Offer any of your active cases to the exchange board.
+              Example cases shown below.{' '}
+              <span className="italic text-slate-400">Real data requires assignment tracking.</span>
             </p>
 
             <div className="space-y-4">

@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { ShieldCheck } from 'lucide-react'
+import { ArrowLeft, ShieldCheck } from 'lucide-react'
 
 type PatientRequest = {
   id: string
@@ -313,7 +313,8 @@ export default function AdminRequestDetailPage() {
             href="/admin/requests"
             className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-900"
           >
-            ← Back to Review List
+            <ArrowLeft className="h-4 w-4" />
+            Back to Review List
           </Link>
 
           <div className="flex flex-wrap items-center gap-3">
@@ -334,7 +335,7 @@ export default function AdminRequestDetailPage() {
 
           {!loading && request && (
             <p className="mt-3 inline-block rounded-md bg-slate-100 px-2 py-1 font-mono text-sm text-slate-700">
-              ID: {request.id}
+              Ref: {request.id.slice(0, 8)}
             </p>
           )}
         </div>
@@ -468,7 +469,7 @@ export default function AdminRequestDetailPage() {
                       type="button"
                       onClick={handleReject}
                       disabled={saving}
-                      className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-60"
+                      className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
                     >
                       Reject / Out of Scope
                     </button>
@@ -511,13 +512,13 @@ export default function AdminRequestDetailPage() {
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 shadow-sm">
-                <h3 className="mb-2 text-sm font-bold text-slate-900">Patient History</h3>
-                <p className="mb-4 text-sm text-slate-600">
-                  No prior treatment records found in the university system for this patient.
+                <h3 className="mb-2 text-sm font-bold text-slate-900">Prior Records</h3>
+                <p className="mb-4 text-sm text-slate-500">
+                  Patient history lookup is not yet connected. Check the university system separately if needed.
                 </p>
-                <div className="flex items-center gap-2 text-xs text-slate-500">
-                  <ShieldCheck className="h-4 w-4 text-teal-600" />
-                  Identity verified via submitted request details
+                <div className="flex items-center gap-2 text-xs text-slate-400">
+                  <ShieldCheck className="h-4 w-4 text-slate-400" />
+                  Details taken from submitted request
                 </div>
               </div>
 

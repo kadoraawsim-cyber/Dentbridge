@@ -251,7 +251,9 @@ export default function AdminDashboardPage() {
 
               <button
                 type="button"
-                className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                disabled
+                className="inline-flex cursor-default items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-400"
+                title="Not yet available"
               >
                 Analytics Report
               </button>
@@ -351,7 +353,7 @@ export default function AdminDashboardPage() {
                       <tr key={request.id} className="transition hover:bg-slate-50">
                         <td className="px-6 py-5">
                           <div className="font-semibold text-slate-900">{request.full_name}</div>
-                          <div className="mt-1 text-xs text-slate-500">{request.id}</div>
+                          <div className="mt-1 font-mono text-xs text-slate-400">{request.id.slice(0, 8)}</div>
                         </td>
 
                         <td className="px-6 py-5 text-sm text-slate-700">

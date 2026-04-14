@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { Search, Stethoscope, GraduationCap, Filter, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, Search, Stethoscope, GraduationCap, Filter, CheckCircle2 } from 'lucide-react'
 
 type CaseItem = {
   id: string
@@ -177,7 +177,8 @@ export default function StudentCasesPage() {
               href="/student/dashboard"
               className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-900"
             >
-              ← Back to Dashboard
+              <ArrowLeft className="h-4 w-4" />
+              Back to Dashboard
             </Link>
             <h1 className="text-4xl font-bold tracking-tight text-slate-900">Available Cases</h1>
             <p className="mt-3 max-w-2xl text-base leading-relaxed text-slate-600">
@@ -233,10 +234,20 @@ export default function StudentCasesPage() {
         )}
 
         {!loading && !errorMessage && filtered.length === 0 && (
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-600 shadow-sm">
-            {cases.length === 0
-              ? 'No cases have been released to the pool yet. Check back after faculty review.'
-              : 'No cases match your current filter.'}
+          <div className="rounded-2xl border border-slate-100 bg-slate-50 p-6">
+            <div className="flex items-start gap-3">
+              <Search className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
+              <div>
+                <p className="text-sm font-semibold text-slate-700">
+                  {cases.length === 0 ? 'No cases available yet' : 'No cases match your filter'}
+                </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  {cases.length === 0
+                    ? 'No cases have been released to the pool yet. Check back after faculty review.'
+                    : 'Try a different department or clear your search to see all available cases.'}
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
@@ -263,7 +274,7 @@ export default function StudentCasesPage() {
                     <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
                       Treatment
                     </p>
-                    <p className="text-xl font-bold text-slate-900">{c.treatment_type}</p>
+                    <p className="text-lg font-bold text-slate-900">{c.treatment_type}</p>
                   </div>
 
                   <p className="mt-2 text-sm text-slate-500">
@@ -308,7 +319,7 @@ export default function StudentCasesPage() {
                   {requestedId === c.id ? (
                     <div className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
                       <CheckCircle2 className="h-4 w-4" />
-                      Request sent — pending faculty confirmation
+                      Noted — assignment feature coming soon
                     </div>
                   ) : (
                     <button
@@ -319,6 +330,9 @@ export default function StudentCasesPage() {
                       Request This Case
                     </button>
                   )}
+                  <p className="mt-2 text-center text-[10px] text-slate-400">
+                    Case assignment is not yet live — faculty review required
+                  </p>
                 </div>
               </article>
             ))}

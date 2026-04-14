@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { Search, Stethoscope } from 'lucide-react'
+import { ArrowLeft, Search, Stethoscope } from 'lucide-react'
 
 type PatientRequest = {
   id: string
@@ -48,6 +48,44 @@ function getUrgencyLabel(urgency: string) {
       return 'LOW URGENCY'
     default:
       return 'UNSPECIFIED'
+  }
+}
+
+function getStatusBadgeClass(status: string) {
+  switch ((status || '').toLowerCase()) {
+    case 'submitted':
+      return 'bg-slate-100 text-slate-700 border border-slate-200'
+    case 'under_review':
+      return 'bg-amber-50 text-amber-700 border border-amber-200'
+    case 'matched':
+      return 'bg-violet-50 text-violet-700 border border-violet-200'
+    case 'contacted':
+      return 'bg-cyan-50 text-cyan-700 border border-cyan-200'
+    case 'completed':
+      return 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+    case 'rejected':
+      return 'bg-rose-50 text-rose-700 border border-rose-200'
+    default:
+      return 'bg-slate-100 text-slate-700 border border-slate-200'
+  }
+}
+
+function getStatusLabel(status: string) {
+  switch ((status || '').toLowerCase()) {
+    case 'submitted':
+      return 'Submitted'
+    case 'under_review':
+      return 'Under Review'
+    case 'matched':
+      return 'Matched'
+    case 'contacted':
+      return 'Contacted'
+    case 'completed':
+      return 'Completed'
+    case 'rejected':
+      return 'Rejected'
+    default:
+      return status || 'Unknown'
   }
 }
 
@@ -170,7 +208,8 @@ export default function AdminRequestsPage() {
               href="/admin"
               className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-900"
             >
-              ← Back to Dashboard
+              <ArrowLeft className="h-4 w-4" />
+              Back to Dashboard
             </Link>
 
             <h1 className="text-4xl font-bold tracking-tight text-slate-900">
@@ -207,8 +246,18 @@ export default function AdminRequestsPage() {
         )}
 
         {!loading && !errorMessage && filteredRequests.length === 0 && (
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-600 shadow-sm">
-            No matching requests found.
+          <div className="rounded-2xl border border-slate-100 bg-slate-50 p-6">
+            <div className="flex items-start gap-3">
+              <Search className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
+              <div>
+                <p className="text-sm font-semibold text-slate-700">No requests found</p>
+                <p className="mt-1 text-sm text-slate-500">
+                  {searchTerm.trim()
+                    ? 'No requests match your search. Try a different name, phone, or treatment.'
+                    : 'No patient requests have been submitted yet.'}
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
@@ -231,16 +280,25 @@ export default function AdminRequestsPage() {
                         {request.id.slice(0, 8)}
                       </span>
 
-                      <span
-                        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold tracking-wide ${getUrgencyBadgeClass(
-                          request.urgency
-                        )}`}
-                      >
-                        {getUrgencyLabel(request.urgency)}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${getStatusBadgeClass(
+                            request.status
+                          )}`}
+                        >
+                          {getStatusLabel(request.status)}
+                        </span>
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold tracking-wide ${getUrgencyBadgeClass(
+                            request.urgency
+                          )}`}
+                        >
+                          {getUrgencyLabel(request.urgency)}
+                        </span>
+                      </div>
                     </div>
 
-                    <h3 className="text-2xl font-bold tracking-tight text-slate-900">
+                    <h3 className="text-lg font-bold tracking-tight text-slate-900">
                       {request.full_name}
                     </h3>
 
