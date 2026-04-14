@@ -2,9 +2,8 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { ArrowLeft, LogOut, Search, Stethoscope } from 'lucide-react'
+import { AlertCircle, ArrowLeft, LogOut, Phone, Search, ShieldCheck } from 'lucide-react'
 
 type PatientRequest = {
   id: string
@@ -12,43 +11,65 @@ type PatientRequest = {
   age: number | null
   phone: string
   city: string | null
-  preferred_university: string | null
   preferred_language: string | null
   treatment_type: string
   complaint_text: string
   urgency: string
-  preferred_days: string | null
-  consent: boolean
   status: string
-  attachment_path: string | null
-  attachment_name: string | null
   assigned_department: string | null
   created_at: string | null
+}
+
+function relativeTime(iso: string | null): string {
+  if (!iso) return '—'
+  const ms = Date.now() - new Date(iso).getTime()
+  const mins = Math.floor(ms / 60000)
+  if (mins < 2) return 'Just now'
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  const days = Math.floor(hrs / 24)
+  if (days === 1) return 'Yesterday'
+  if (days < 7) return `${days}d ago`
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
+function getUrgencyBorderClass(urgency: string): string {
+  switch ((urgency || '').toLowerCase()) {
+    case 'high':
+      return 'border-l-4 border-l-red-500'
+    case 'medium':
+      return 'border-l-4 border-l-amber-400'
+    case 'low':
+      return 'border-l-4 border-l-slate-300'
+    default:
+      return 'border-l-4 border-l-slate-200'
+  }
 }
 
 function getUrgencyBadgeClass(urgency: string) {
   switch ((urgency || '').toLowerCase()) {
     case 'high':
-      return 'bg-red-50 text-red-700 border border-red-200'
+      return 'bg-red-100 text-red-700 border border-red-200'
     case 'medium':
       return 'bg-amber-50 text-amber-700 border border-amber-200'
     case 'low':
-      return 'bg-slate-50 text-slate-700 border border-slate-200'
+      return 'bg-slate-100 text-slate-600 border border-slate-200'
     default:
-      return 'bg-slate-50 text-slate-700 border border-slate-200'
+      return 'bg-slate-100 text-slate-700 border border-slate-200'
   }
 }
 
 function getUrgencyLabel(urgency: string) {
   switch ((urgency || '').toLowerCase()) {
     case 'high':
-      return 'HIGH URGENCY'
+      return 'High Urgency'
     case 'medium':
-      return 'MEDIUM URGENCY'
+      return 'Medium'
     case 'low':
-      return 'LOW URGENCY'
+      return 'Low'
     default:
-      return 'UNSPECIFIED'
+      return 'Unspecified'
   }
 }
 
@@ -90,7 +111,10 @@ function getStatusLabel(status: string) {
   }
 }
 
-function suggestDepartment(treatmentType: string, assignedDepartment: string | null) {
+// Returns a department name based on keyword matching against the treatment type.
+// This is a simple heuristic — not an intelligent routing system.
+// Faculty should verify the suggestion before assigning.
+function keywordRoutingHint(treatmentType: string, assignedDepartment: string | null): string {
   if (assignedDepartment) return assignedDepartment
 
   const value = (treatmentType || '').toLowerCase()
@@ -99,26 +123,37 @@ function suggestDepartment(treatmentType: string, assignedDepartment: string | n
   if (value.includes('extraction')) return 'Oral & Maxillofacial Surgery'
   if (value.includes('gum')) return 'Periodontology'
   if (value.includes('orthodont')) return 'Orthodontics'
-  if (value.includes('prosthetic') || value.includes('crown') || value.includes('denture')) return 'Prosthodontics'
+  if (value.includes('prosthetic') || value.includes('crown') || value.includes('denture'))
+    return 'Prosthodontics'
   if (value.includes('pediatric')) return 'Pedodontics'
-  if (value.includes('esthetic') || value.includes('filling') || value.includes('cleaning')) {
+  if (value.includes('esthetic') || value.includes('filling') || value.includes('cleaning'))
     return 'Restorative Dentistry'
-  }
 
   return 'General Review'
 }
 
+const URGENCY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 }
+
 export default function AdminRequestsPage() {
-  const router = useRouter()
   const [requests, setRequests] = useState<PatientRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [urgencyFilter, setUrgencyFilter] = useState('all')
+  const [sortBy, setSortBy] = useState('newest')
+  const [adminEmail, setAdminEmail] = useState<string>('')
 
   async function handleSignOut() {
     await supabase.auth.signOut()
-    router.replace('/login')
+    window.location.href = '/admin/login'
   }
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user?.email) setAdminEmail(user.email)
+    })
+  }, [])
 
   useEffect(() => {
     async function loadRequests() {
@@ -127,7 +162,9 @@ export default function AdminRequestsPage() {
 
       const { data, error } = await supabase
         .from('patient_requests')
-        .select('*')
+        .select(
+          'id, full_name, age, phone, city, preferred_language, treatment_type, complaint_text, urgency, status, assigned_department, created_at'
+        )
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -146,21 +183,63 @@ export default function AdminRequestsPage() {
   const filteredRequests = useMemo(() => {
     const q = searchTerm.trim().toLowerCase()
 
-    if (!q) return requests
+    let result = requests.filter((r) => {
+      const matchesSearch =
+        !q ||
+        r.full_name?.toLowerCase().includes(q) ||
+        r.id?.toLowerCase().includes(q) ||
+        r.phone?.toLowerCase().includes(q) ||
+        r.treatment_type?.toLowerCase().includes(q) ||
+        r.city?.toLowerCase().includes(q) ||
+        r.complaint_text?.toLowerCase().includes(q)
 
-    return requests.filter((request) => {
-      return (
-        request.full_name?.toLowerCase().includes(q) ||
-        request.id?.toLowerCase().includes(q) ||
-        request.phone?.toLowerCase().includes(q) ||
-        request.treatment_type?.toLowerCase().includes(q) ||
-        request.city?.toLowerCase().includes(q)
-      )
+      const matchesStatus =
+        statusFilter === 'all' || (r.status || '').toLowerCase() === statusFilter
+
+      const matchesUrgency =
+        urgencyFilter === 'all' || (r.urgency || '').toLowerCase() === urgencyFilter
+
+      return matchesSearch && matchesStatus && matchesUrgency
     })
-  }, [requests, searchTerm])
+
+    if (sortBy === 'oldest') {
+      result = [...result].sort(
+        (a, b) =>
+          new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
+      )
+    } else if (sortBy === 'urgency') {
+      result = [...result].sort(
+        (a, b) =>
+          (URGENCY_ORDER[(a.urgency || '').toLowerCase()] ?? 3) -
+          (URGENCY_ORDER[(b.urgency || '').toLowerCase()] ?? 3)
+      )
+    }
+    // 'newest' preserves the server-side descending order
+
+    return result
+  }, [requests, searchTerm, statusFilter, urgencyFilter, sortBy])
+
+  // Queue summary counts shown in the page header
+  const queueStats = useMemo(
+    () => ({
+      pending: requests.filter((r) =>
+        ['submitted', 'under_review'].includes((r.status || '').toLowerCase())
+      ).length,
+      urgent: requests.filter(
+        (r) =>
+          (r.urgency || '').toLowerCase() === 'high' &&
+          ['submitted', 'under_review'].includes((r.status || '').toLowerCase())
+      ).length,
+    }),
+    [requests]
+  )
+
+  const isFiltered =
+    searchTerm.trim() !== '' || statusFilter !== 'all' || urgencyFilter !== 'all'
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-3">
@@ -187,23 +266,12 @@ export default function AdminRequestsPage() {
           </nav>
 
           <div className="flex items-center gap-3">
-            <div className="hidden items-center rounded-full border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-600 sm:flex">
-              <button type="button" className="rounded px-1 text-slate-900">
-                EN
-              </button>
-              <span className="text-slate-300">|</span>
-              <button type="button" className="rounded px-1 hover:text-slate-900">
-                TR
-              </button>
-              <span className="text-slate-300">|</span>
-              <button type="button" className="rounded px-1 hover:text-slate-900">
-                AR
-              </button>
-            </div>
-
-            <div className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-500">
-              <Stethoscope className="h-4 w-4" />
-            </div>
+            {adminEmail && (
+              <div className="hidden items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 sm:flex">
+                <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-teal-500" />
+                <span className="max-w-[200px] truncate">{adminEmail}</span>
+              </div>
+            )}
             <button
               type="button"
               onClick={handleSignOut}
@@ -217,40 +285,111 @@ export default function AdminRequestsPage() {
       </header>
 
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
-          <div>
-            <Link
-              href="/admin"
-              className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-900"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Dashboard
-            </Link>
 
-            <h1 className="text-4xl font-bold tracking-tight text-slate-900">
-              Patient Triage & Case Review
-            </h1>
+        {/* ── Page header ────────────────────────────────────────────────── */}
+        <div className="mb-8">
+          <Link
+            href="/admin"
+            className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-900"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Dashboard
+          </Link>
 
-            <p className="mt-3 max-w-2xl text-base leading-relaxed text-slate-600">
-              Review incoming patient requests, assign urgency, and route to appropriate clinical departments.
-            </p>
-          </div>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+                Patient Triage & Case Review
+              </h1>
+              <p className="mt-2 text-sm text-slate-500">
+                Review incoming cases, verify urgency, assign clinical routing, and release to the
+                student pool.
+              </p>
+              {!loading && (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                    {queueStats.pending} pending review
+                  </span>
+                  {queueStats.urgent > 0 && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
+                      <AlertCircle className="h-3 w-3" />
+                      {queueStats.urgent} urgent
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
 
-          <div className="relative w-full max-w-md lg:justify-self-end">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search by name or ID..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-slate-900"
-            />
+            <div className="relative w-full max-w-sm sm:w-auto">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search by name, ID, phone, or issue…"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-slate-900"
+              />
+            </div>
           </div>
         </div>
 
+        {/* ── Filter / sort toolbar ───────────────────────────────────────── */}
+        <div className="mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+            Filter:
+          </span>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="h-8 rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 outline-none focus:border-slate-900"
+          >
+            <option value="all">All Statuses</option>
+            <option value="submitted">Submitted</option>
+            <option value="under_review">Under Review</option>
+            <option value="matched">Matched</option>
+            <option value="completed">Completed</option>
+            <option value="rejected">Rejected</option>
+          </select>
+
+          <select
+            value={urgencyFilter}
+            onChange={(e) => setUrgencyFilter(e.target.value)}
+            className="h-8 rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 outline-none focus:border-slate-900"
+          >
+            <option value="all">All Urgencies</option>
+            <option value="high">High Urgency</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+
+          <span className="ml-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+            Sort:
+          </span>
+
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="h-8 rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 outline-none focus:border-slate-900"
+          >
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="urgency">High Urgency First</option>
+          </select>
+
+          {!loading && (
+            <span className="ml-auto text-xs text-slate-500">
+              {isFiltered
+                ? `${filteredRequests.length} of ${requests.length} cases`
+                : `${requests.length} ${requests.length === 1 ? 'case' : 'cases'}`}
+            </span>
+          )}
+        </div>
+
         {loading && (
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-600 shadow-sm">
-            Loading requests...
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm">
+            Loading cases…
           </div>
         )}
 
@@ -265,11 +404,11 @@ export default function AdminRequestsPage() {
             <div className="flex items-start gap-3">
               <Search className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
               <div>
-                <p className="text-sm font-semibold text-slate-700">No requests found</p>
+                <p className="text-sm font-semibold text-slate-700">No cases found</p>
                 <p className="mt-1 text-sm text-slate-500">
-                  {searchTerm.trim()
-                    ? 'No requests match your search. Try a different name, phone, or treatment.'
-                    : 'No patient requests have been submitted yet.'}
+                  {isFiltered
+                    ? 'No cases match the current filters. Adjust or clear the filters to see more.'
+                    : 'No patient cases have been submitted yet.'}
                 </p>
               </div>
             </div>
@@ -277,80 +416,105 @@ export default function AdminRequestsPage() {
         )}
 
         {!loading && !errorMessage && filteredRequests.length > 0 && (
-          <div className="grid gap-6 md:grid-cols-2 2xl:grid-cols-3">
+          <div className="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
             {filteredRequests.map((request) => {
-              const suggestion = suggestDepartment(
-                request.treatment_type,
-                request.assigned_department
-              )
+              const hint = keywordRoutingHint(request.treatment_type, request.assigned_department)
+              const isAssigned = !!request.assigned_department
+              const isHighUrgency = (request.urgency || '').toLowerCase() === 'high'
 
               return (
                 <article
                   key={request.id}
-                  className="flex min-h-[420px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
+                  className={`flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md ${getUrgencyBorderClass(request.urgency)}`}
                 >
-                  <div className="p-6">
-                    <div className="mb-4 flex items-start justify-between gap-3">
-                      <span className="rounded-md bg-slate-100 px-2.5 py-1 font-mono text-xs font-bold text-slate-600">
-                        {request.id.slice(0, 8)}
+                  {/* ── Card header ──────────────────────────────────────── */}
+                  <div className="p-5">
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                      <span className="rounded-md bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-bold text-slate-500">
+                        #{request.id.slice(0, 8)}
                       </span>
-
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span
-                          className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${getStatusBadgeClass(
-                            request.status
-                          )}`}
+                          className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${getStatusBadgeClass(request.status)}`}
                         >
                           {getStatusLabel(request.status)}
                         </span>
                         <span
-                          className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold tracking-wide ${getUrgencyBadgeClass(
-                            request.urgency
-                          )}`}
+                          className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${getUrgencyBadgeClass(request.urgency)}`}
                         >
                           {getUrgencyLabel(request.urgency)}
                         </span>
                       </div>
                     </div>
 
-                    <h3 className="text-lg font-bold tracking-tight text-slate-900">
-                      {request.full_name}
-                    </h3>
+                    {/* Patient name */}
+                    <Link href={`/admin/requests/${request.id}`} className="group block">
+                      <h3 className="text-xl font-bold tracking-tight text-slate-900 group-hover:text-blue-900">
+                        {request.full_name}
+                      </h3>
+                    </Link>
 
-                    <p className="mt-2 text-sm text-slate-500">
-                      {request.age ?? '-'} years old
-                      {request.city ? ` • ${request.city}` : ''}
+                    {/* Demographics */}
+                    <p className="mt-1 text-sm text-slate-500">
+                      {request.age ?? '—'} yrs
+                      {request.city ? ` · ${request.city}` : ''}
+                      {request.preferred_language &&
+                      request.preferred_language.toLowerCase() !== 'english'
+                        ? ` · ${request.preferred_language}`
+                        : ''}
                     </p>
 
-                    <div className="mt-8">
-                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {/* Reported issue */}
+                    <div className="mt-4">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
                         Reported Issue
                       </p>
-                      <p className="text-xl font-semibold text-slate-900">
+                      <p className="mt-1 text-base font-semibold text-slate-900">
                         {request.treatment_type}
                       </p>
                     </div>
 
-                    <div className="mt-6 rounded-xl border border-slate-100 bg-slate-50 p-4">
-                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        System Suggestion
+                    {/* Complaint preview — gives triage context at a glance */}
+                    {request.complaint_text && (
+                      <p className="mt-2.5 line-clamp-2 text-sm leading-relaxed text-slate-500">
+                        {request.complaint_text}
                       </p>
+                    )}
 
-                      <div className="flex items-center gap-2">
-                        <Stethoscope className="h-4 w-4 text-blue-600" />
-                        <span className="text-base font-semibold text-blue-900">
-                          {suggestion}
-                        </span>
-                      </div>
+                    {/* Department routing */}
+                    <div className="mt-4 flex items-center gap-2">
+                      <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                        {isAssigned ? 'Assigned dept.' : 'Suggested dept.'}
+                      </span>
+                      <span
+                        className={`text-sm font-semibold ${isAssigned ? 'text-blue-900' : 'text-slate-600'}`}
+                      >
+                        {hint}
+                      </span>
+                      {!isAssigned && (
+                        <span className="text-[10px] text-slate-400">(verify)</span>
+                      )}
                     </div>
                   </div>
 
-                  <div className="mt-auto border-t border-slate-100 bg-slate-50/70 p-4">
+                  {/* ── Card footer ──────────────────────────────────────── */}
+                  <div className="mt-auto border-t border-slate-100 px-5 py-4">
+                    <div className="mb-3 flex items-center justify-between text-xs text-slate-500">
+                      <span className="flex items-center gap-1.5">
+                        <Phone className="h-3.5 w-3.5 text-slate-400" />
+                        {request.phone}
+                      </span>
+                      <span>{relativeTime(request.created_at)}</span>
+                    </div>
                     <Link
                       href={`/admin/requests/${request.id}`}
-                      className="flex w-full items-center justify-center rounded-xl bg-blue-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-800"
+                      className={`flex w-full items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition ${
+                        isHighUrgency
+                          ? 'bg-red-600 hover:bg-red-700'
+                          : 'bg-blue-900 hover:bg-blue-800'
+                      }`}
                     >
-                      Review & Assign
+                      Open Case File →
                     </Link>
                   </div>
                 </article>

@@ -55,17 +55,16 @@ export default function StudentLoginPage() {
       return
     }
 
-    // Role always wins — even if someone with an admin account uses this page.
     const role = data.user?.app_metadata?.role
 
-    if (role === 'admin') {
-      router.replace('/admin')
-    } else if (role === 'student') {
-      router.replace('/student/dashboard')
+    if (role === 'student') {
+      window.location.href = '/student/dashboard'
     } else {
       await supabase.auth.signOut()
       setErrorMessage(
-        'Your account does not have an assigned role. Contact the platform administrator.'
+        role === 'admin'
+          ? 'This account is not allowed to use the student portal.'
+          : 'Your account does not have an assigned role. Contact the platform administrator.'
       )
     }
   }
@@ -118,7 +117,7 @@ export default function StudentLoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="student@university.edu"
                 required
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-slate-900"
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-slate-900"
               />
             </div>
 
@@ -134,7 +133,7 @@ export default function StudentLoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 pr-11 text-sm outline-none transition focus:border-slate-900"
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 pr-11 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-slate-900"
                 />
                 <button
                   type="button"

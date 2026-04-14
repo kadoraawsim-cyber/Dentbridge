@@ -1,7 +1,8 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect } from 'react'
 import Link from 'next/link'
+import { supabase } from '@/lib/supabase'
 import {
   ArrowRight,
   Baby,
@@ -148,6 +149,12 @@ const departments = [
 export default function HomePage() {
   const [openDepartment, setOpenDepartment] = React.useState<string | null>(null)
 
+  // Clear any staff session when landing on the public home page.
+  // Patients are always anonymous so signOut() is a no-op for them.
+  useEffect(() => {
+    supabase.auth.signOut()
+  }, [])
+
   return (
     <main className="min-h-screen bg-white text-slate-900">
       <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur">
@@ -168,10 +175,10 @@ export default function HomePage() {
             <Link href="/patient/request" className="hover:text-slate-900">
               Request Treatment
             </Link>
-            <Link href="/student/dashboard" className="hover:text-slate-900">
+            <Link href="/student/login" className="hover:text-slate-900">
               Student Portal
             </Link>
-            <Link href="/admin" className="hover:text-slate-900">
+            <Link href="/admin/login" className="hover:text-slate-900">
               Faculty Portal
             </Link>
           </nav>
@@ -464,12 +471,12 @@ export default function HomePage() {
             <h3 className="mb-4 font-semibold text-white">Clinical Portals</h3>
             <ul className="space-y-2 text-sm text-slate-400">
               <li>
-                <Link href="/student/dashboard" className="hover:text-white">
+                <Link href="/student/login" className="hover:text-white">
                   Student Portal
                 </Link>
               </li>
               <li>
-                <Link href="/admin" className="hover:text-white">
+                <Link href="/admin/login" className="hover:text-white">
                   Faculty Portal
                 </Link>
               </li>

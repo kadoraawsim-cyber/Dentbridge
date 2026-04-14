@@ -2,7 +2,6 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import {
   ShieldCheck,
@@ -10,32 +9,25 @@ import {
   AlertCircle,
   ChevronRight,
   LogOut,
+  Clock,
+  Inbox,
+  Activity,
 } from 'lucide-react'
 
 type PatientRequest = {
   id: string
   full_name: string
-  age: number | null
-  phone: string
-  city: string | null
-  preferred_university: string | null
-  preferred_language: string | null
   treatment_type: string
-  complaint_text: string
   urgency: string
-  preferred_days: string | null
-  consent: boolean
   status: string
-  attachment_path: string | null
-  attachment_name: string | null
   assigned_department: string | null
   created_at: string | null
 }
 
-type DepartmentLoadItem = {
+type DepartmentCaseItem = {
   name: string
   count: number
-  capacity: number
+  barWidth: number
 }
 
 function getUrgencyBadgeClass(urgency: string) {
@@ -70,27 +62,47 @@ function getStatusBadgeClass(status: string) {
   }
 }
 
-function ProgressBar({ value }: { value: number }) {
+function relativeTime(iso: string | null): string {
+  if (!iso) return '—'
+  const ms = Date.now() - new Date(iso).getTime()
+  const mins = Math.floor(ms / 60000)
+  if (mins < 2) return 'Just now'
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  const days = Math.floor(hrs / 24)
+  if (days === 1) return 'Yesterday'
+  if (days < 7) return `${days}d ago`
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
+function RelativeBar({ value }: { value: number }) {
   return (
     <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
       <div
         className="h-full rounded-full bg-teal-500 transition-all duration-500"
-        style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
+        style={{ width: `${Math.max(4, Math.min(100, value))}%` }}
       />
     </div>
   )
 }
 
 export default function AdminDashboardPage() {
-  const router = useRouter()
   const [requests, setRequests] = useState<PatientRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
+  const [adminEmail, setAdminEmail] = useState<string>('')
 
   async function handleSignOut() {
     await supabase.auth.signOut()
-    router.replace('/login')
+    window.location.href = '/admin/login'
   }
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user?.email) setAdminEmail(user.email)
+    })
+  }, [])
 
   useEffect(() => {
     async function loadRequests() {
@@ -99,7 +111,7 @@ export default function AdminDashboardPage() {
 
       const { data, error } = await supabase
         .from('patient_requests')
-        .select('*')
+        .select('id, full_name, treatment_type, urgency, status, assigned_department, created_at')
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -119,66 +131,85 @@ export default function AdminDashboardPage() {
     const now = new Date()
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
-    const newToday = requests.filter((request) => {
-      if (!request.created_at) return false
-      return new Date(request.created_at) >= todayStart
+    const newToday = requests.filter((r) => {
+      if (!r.created_at) return false
+      return new Date(r.created_at) >= todayStart
     }).length
 
-    const pendingReview = requests.filter((request) =>
-      ['submitted', 'under_review'].includes((request.status || '').toLowerCase())
+    const pendingReview = requests.filter((r) =>
+      ['submitted', 'under_review'].includes((r.status || '').toLowerCase())
     ).length
 
-    const activeTreatments = requests.filter((request) =>
-      ['matched', 'contacted'].includes((request.status || '').toLowerCase())
+    const activeTreatments = requests.filter((r) =>
+      (r.status || '').toLowerCase() === 'matched'
     ).length
 
-    const exchangeApprovals = requests.filter(
-      (request) =>
-        (request.status || '').toLowerCase() === 'under_review' &&
-        !!request.assigned_department
-    ).length
+    const total = requests.length
 
-    return {
-      newToday,
-      pendingReview,
-      activeTreatments,
-      exchangeApprovals,
-    }
+    return { newToday, pendingReview, activeTreatments, total }
   }, [requests])
 
-  const recentRequests = useMemo(() => requests.slice(0, 3), [requests])
+  // 5 most recent requests for the activity feed
+  const recentRequests = useMemo(() => requests.slice(0, 5), [requests])
 
-  const departmentLoad = useMemo<DepartmentLoadItem[]>(() => {
+  // Up to 3 high-urgency cases still awaiting faculty review
+  const urgentUnreviewedList = useMemo(
+    () =>
+      requests
+        .filter(
+          (r) =>
+            (r.urgency || '').toLowerCase() === 'high' &&
+            ['submitted', 'under_review'].includes((r.status || '').toLowerCase())
+        )
+        .slice(0, 3),
+    [requests]
+  )
+
+  // Real case counts per department — excludes rejected and completed.
+  const departmentCases = useMemo<DepartmentCaseItem[]>(() => {
     const departmentNames = [
-      'Restorative Dentistry',
       'Endodontics',
       'Oral & Maxillofacial Surgery',
+      'Orthodontics',
       'Periodontology',
+      'Restorative Dentistry',
+      'Prosthodontics',
+      'Pedodontics',
+      'Oral Radiology',
     ]
 
-    return departmentNames.map((name) => {
-      const count = requests.filter(
-        (request) => (request.assigned_department || '').toLowerCase() === name.toLowerCase()
-      ).length
+    const counts = departmentNames.map((name) => ({
+      name,
+      count: requests.filter(
+        (r) =>
+          (r.assigned_department || '').toLowerCase() === name.toLowerCase() &&
+          !['rejected', 'completed'].includes((r.status || '').toLowerCase())
+      ).length,
+    }))
 
-      return {
-        name,
-        count,
-        capacity: Math.min(100, count * 12 + 15),
-      }
-    })
+    const withCases = counts.filter((d) => d.count > 0)
+    if (withCases.length === 0) return []
+
+    const maxCount = Math.max(...withCases.map((d) => d.count))
+    return withCases.map((d) => ({
+      ...d,
+      barWidth: Math.round((d.count / maxCount) * 100),
+    }))
   }, [requests])
 
-  const urgentCases = useMemo(() => {
-    return requests.filter(
-      (request) =>
-        (request.urgency || '').toLowerCase() === 'high' &&
-        ['submitted', 'under_review'].includes((request.status || '').toLowerCase())
-    ).length
-  }, [requests])
+  const urgentCasesCount = useMemo(
+    () =>
+      requests.filter(
+        (r) =>
+          (r.urgency || '').toLowerCase() === 'high' &&
+          ['submitted', 'under_review'].includes((r.status || '').toLowerCase())
+      ).length,
+    [requests]
+  )
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-3">
@@ -205,23 +236,12 @@ export default function AdminDashboardPage() {
           </nav>
 
           <div className="flex items-center gap-3">
-            <div className="hidden items-center rounded-full border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-600 sm:flex">
-              <button type="button" className="rounded px-1 text-slate-900">
-                EN
-              </button>
-              <span className="text-slate-300">|</span>
-              <button type="button" className="rounded px-1 hover:text-slate-900">
-                TR
-              </button>
-              <span className="text-slate-300">|</span>
-              <button type="button" className="rounded px-1 hover:text-slate-900">
-                AR
-              </button>
-            </div>
-
-            <div className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-500">
-              <ShieldCheck className="h-4 w-4" />
-            </div>
+            {adminEmail && (
+              <div className="hidden items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 sm:flex">
+                <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-teal-500" />
+                <span className="max-w-[200px] truncate">{adminEmail}</span>
+              </div>
+            )}
             <button
               type="button"
               onClick={handleSignOut}
@@ -235,106 +255,182 @@ export default function AdminDashboardPage() {
       </header>
 
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="rounded-3xl border border-slate-200 bg-white px-6 py-7 shadow-sm sm:px-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-start gap-4">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-slate-900 text-white shadow-sm">
-                <ShieldCheck className="h-8 w-8" />
-              </div>
 
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-                  Faculty Administrator Portal
-                </h1>
-
-                <div className="mt-2 flex flex-wrap items-center gap-3 text-sm font-medium">
-                  <span className="text-slate-500">DentBridge Platform</span>
+        {/* ── Page title + CTA ───────────────────────────────────────────── */}
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+              Faculty Dashboard
+            </h1>
+            <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+              <CheckCircle2 className="h-4 w-4 text-teal-500" />
+              Systems online
+              {!loading && dashboardStats.pendingReview > 0 && (
+                <>
                   <span className="h-1 w-1 rounded-full bg-slate-300" />
-                  <span className="flex items-center gap-1 text-teal-600">
-                    <CheckCircle2 className="h-4 w-4" />
-                    Systems Online
+                  <span className="font-semibold text-amber-600">
+                    {dashboardStats.pendingReview} case
+                    {dashboardStats.pendingReview !== 1 ? 's' : ''} awaiting review
                   </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <Link href="/admin/requests">
-                <button className="inline-flex items-center justify-center rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800">
-                  Review Pending Cases
-                </button>
-              </Link>
-
-              <button
-                type="button"
-                disabled
-                className="inline-flex cursor-default items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-400"
-                title="Not yet available"
-              >
-                Analytics Report
-              </button>
-            </div>
+                </>
+              )}
+            </p>
           </div>
+          <Link
+            href="/admin/requests"
+            className="inline-flex items-center gap-2 self-start rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 sm:self-auto"
+          >
+            Open Work Queue
+            <ChevronRight className="h-4 w-4" />
+          </Link>
         </div>
 
         {errorMessage && (
-          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             {errorMessage}
           </div>
         )}
 
-        <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+        {/* ── Stats ──────────────────────────────────────────────────────── */}
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="text-sm font-semibold uppercase tracking-wider text-slate-500">
-              New Requests Today
+            <div className="mb-3 flex items-center gap-2">
+              <Inbox className="h-4 w-4 text-slate-400" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                New Today
+              </span>
             </div>
-            <div className="mt-3 text-5xl font-bold tracking-tight text-blue-900">
-              {loading ? '...' : dashboardStats.newToday}
+            <div className="text-5xl font-bold tracking-tight text-blue-900">
+              {loading ? '…' : dashboardStats.newToday}
             </div>
-            <div className="mt-3 text-sm font-medium text-blue-600">+ live from today</div>
+            <div className="mt-2 text-sm text-slate-500">Submitted today</div>
+          </div>
+
+          <div
+            className={`rounded-2xl border bg-white p-6 shadow-sm transition ${
+              !loading && dashboardStats.pendingReview > 0
+                ? 'border-amber-200'
+                : 'border-slate-200'
+            }`}
+          >
+            <div className="mb-3 flex items-center gap-2">
+              <Clock className="h-4 w-4 text-amber-500" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Pending Review
+              </span>
+            </div>
+            <div
+              className={`text-5xl font-bold tracking-tight ${
+                !loading && dashboardStats.pendingReview > 0 ? 'text-amber-600' : 'text-slate-400'
+              }`}
+            >
+              {loading ? '…' : dashboardStats.pendingReview}
+            </div>
+            <div className="mt-2 flex items-center justify-between">
+              <span className="text-sm text-slate-500">Needs faculty assessment</span>
+              {!loading && dashboardStats.pendingReview > 0 && (
+                <Link
+                  href="/admin/requests"
+                  className="text-xs font-semibold text-amber-600 hover:underline"
+                >
+                  Review →
+                </Link>
+              )}
+            </div>
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="text-sm font-semibold uppercase tracking-wider text-slate-500">
-              Pending Review
+            <div className="mb-3 flex items-center gap-2">
+              <Activity className="h-4 w-4 text-violet-500" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Matched Cases
+              </span>
             </div>
-            <div className="mt-3 text-5xl font-bold tracking-tight text-amber-600">
-              {loading ? '...' : dashboardStats.pendingReview}
+            <div className="text-5xl font-bold tracking-tight text-violet-700">
+              {loading ? '…' : dashboardStats.activeTreatments}
             </div>
-            <div className="mt-3 text-sm text-slate-500">Requires faculty assessment</div>
+            <div className="mt-2 text-sm text-slate-500">Released to student pool</div>
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="text-sm font-semibold uppercase tracking-wider text-slate-500">
-              Active Treatments
+            <div className="mb-3 flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-teal-500" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Total Requests
+              </span>
             </div>
-            <div className="mt-3 text-5xl font-bold tracking-tight text-slate-900">
-              {loading ? '...' : dashboardStats.activeTreatments}
+            <div className="text-5xl font-bold tracking-tight text-teal-600">
+              {loading ? '…' : dashboardStats.total}
             </div>
-            <div className="mt-3 text-sm text-slate-500">
-              Currently assigned to students
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="text-sm font-semibold uppercase tracking-wider text-slate-500">
-              Exchange Approvals
-            </div>
-            <div className="mt-3 text-5xl font-bold tracking-tight text-teal-600">
-              {loading ? '...' : dashboardStats.exchangeApprovals}
-            </div>
-            <div className="mt-3 text-sm text-slate-500">Student case exchanges</div>
+            <div className="mt-2 text-sm text-slate-500">All time</div>
           </div>
         </div>
 
+        {/* ── Priority queue: urgent unreviewed cases ─────────────────────── */}
+        {!loading && urgentUnreviewedList.length > 0 && (
+          <div className="mt-8">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <AlertCircle className="h-5 w-5 text-red-600" />
+                <h2 className="text-lg font-bold text-slate-900">
+                  High-Urgency Cases Awaiting Review
+                </h2>
+                <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-bold text-red-700">
+                  {urgentUnreviewedList.length}
+                </span>
+              </div>
+              <Link
+                href="/admin/requests"
+                className="text-sm font-semibold text-blue-600 hover:underline"
+              >
+                View all →
+              </Link>
+            </div>
+
+            <div className="overflow-hidden rounded-2xl border border-red-200 bg-white shadow-sm">
+              {urgentUnreviewedList.map((r, i) => (
+                <div
+                  key={r.id}
+                  className={`flex items-center gap-4 px-6 py-4 ${
+                    i < urgentUnreviewedList.length - 1 ? 'border-b border-slate-100' : ''
+                  }`}
+                >
+                  <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-red-500" />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-slate-900">{r.full_name}</p>
+                    <p className="mt-0.5 truncate text-sm text-slate-500">{r.treatment_type}</p>
+                  </div>
+                  <div className="hidden shrink-0 text-right sm:block">
+                    <p className="text-xs text-slate-400">{relativeTime(r.created_at)}</p>
+                    <span
+                      className={`mt-1 inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${getStatusBadgeClass(r.status)}`}
+                    >
+                      {r.status}
+                    </span>
+                  </div>
+                  <Link
+                    href={`/admin/requests/${r.id}`}
+                    className="shrink-0 rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-red-700"
+                  >
+                    Review Now
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="mt-10 grid gap-8 xl:grid-cols-[1.9fr_1fr]">
+          {/* ── Recent requests table ────────────────────────────────────── */}
           <div>
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-                Recent Patient Requests
+              <h2 className="text-xl font-bold tracking-tight text-slate-900">
+                Recent Requests
               </h2>
-
-              <Link href="/admin/requests" className="text-sm font-semibold text-blue-600 hover:underline">
+              <Link
+                href="/admin/requests"
+                className="text-sm font-semibold text-blue-600 hover:underline"
+              >
                 View All
               </Link>
             </div>
@@ -343,65 +439,70 @@ export default function AdminDashboardPage() {
               <table className="w-full border-collapse text-left">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
-                    <th className="px-6 py-4 font-semibold">Patient</th>
-                    <th className="px-6 py-4 font-semibold">Reported Issue</th>
-                    <th className="px-6 py-4 font-semibold">Urgency</th>
-                    <th className="px-6 py-4 font-semibold">Status</th>
-                    <th className="px-6 py-4 font-semibold text-right">Action</th>
+                    <th className="px-5 py-3 font-semibold">Patient</th>
+                    <th className="px-5 py-3 font-semibold">Issue</th>
+                    <th className="px-5 py-3 font-semibold">Urgency</th>
+                    <th className="px-5 py-3 font-semibold">Status</th>
+                    <th className="px-5 py-3 font-semibold text-right">Submitted</th>
                   </tr>
                 </thead>
 
                 <tbody className="divide-y divide-slate-100">
                   {loading ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-8 text-sm text-slate-500">
-                        Loading recent requests...
+                      <td colSpan={5} className="px-5 py-8 text-sm text-slate-500">
+                        Loading requests…
                       </td>
                     </tr>
                   ) : recentRequests.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-8 text-sm text-slate-500">
-                        No recent requests found.
+                      <td colSpan={5} className="px-5 py-8 text-sm text-slate-500">
+                        No requests found.
                       </td>
                     </tr>
                   ) : (
-                    recentRequests.map((request) => (
-                      <tr key={request.id} className="transition hover:bg-slate-50">
-                        <td className="px-6 py-5">
-                          <div className="font-semibold text-slate-900">{request.full_name}</div>
-                          <div className="mt-1 font-mono text-xs text-slate-400">{request.id.slice(0, 8)}</div>
+                    recentRequests.map((r) => (
+                      <tr key={r.id} className="group transition hover:bg-slate-50">
+                        <td className="px-5 py-4">
+                          <Link href={`/admin/requests/${r.id}`} className="block">
+                            <div className="font-semibold text-slate-900 group-hover:text-blue-900">
+                              {r.full_name}
+                            </div>
+                            <div className="mt-0.5 font-mono text-[11px] text-slate-400">
+                              {r.id.slice(0, 8)}
+                            </div>
+                          </Link>
                         </td>
 
-                        <td className="px-6 py-5 text-sm text-slate-700">
-                          {request.treatment_type}
-                        </td>
+                        <td className="px-5 py-4 text-sm text-slate-600">{r.treatment_type}</td>
 
-                        <td className="px-6 py-5">
+                        <td className="px-5 py-4">
                           <span
-                            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getUrgencyBadgeClass(
-                              request.urgency
+                            className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${getUrgencyBadgeClass(
+                              r.urgency
                             )}`}
                           >
-                            {(request.urgency || 'Unknown').toUpperCase()}
+                            {(r.urgency || 'Unknown').toUpperCase()}
                           </span>
                         </td>
 
-                        <td className="px-6 py-5">
+                        <td className="px-5 py-4">
                           <span
-                            className={`inline-flex rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider ${getStatusBadgeClass(
-                              request.status
+                            className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${getStatusBadgeClass(
+                              r.status
                             )}`}
                           >
-                            {request.status}
+                            {r.status}
                           </span>
                         </td>
 
-                        <td className="px-6 py-5 text-right">
-                          <Link href={`/admin/requests/${request.id}`}>
-                            <button className="inline-flex items-center gap-1 text-sm font-semibold text-blue-600 transition hover:text-blue-800">
-                              Review
-                              <ChevronRight className="h-4 w-4" />
-                            </button>
+                        <td className="px-5 py-4 text-right">
+                          <Link
+                            href={`/admin/requests/${r.id}`}
+                            className="flex items-center justify-end gap-1 text-xs text-slate-400 hover:text-blue-700"
+                          >
+                            {relativeTime(r.created_at)}
+                            <ChevronRight className="h-3.5 w-3.5" />
                           </Link>
                         </td>
                       </tr>
@@ -412,41 +513,76 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
+          {/* ── Right column ─────────────────────────────────────────────── */}
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-              Department Load
-            </h2>
+            <div>
+              <h2 className="mb-4 text-xl font-bold tracking-tight text-slate-900">
+                Cases by Department
+              </h2>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="space-y-5">
-                {departmentLoad.map((department) => (
-                  <div key={department.name}>
-                    <div className="mb-2 flex items-center justify-between text-sm">
-                      <span className="font-medium text-slate-700">{department.name}</span>
-                      <span className="text-slate-500">{department.capacity}% Capacity</span>
-                    </div>
-                    <ProgressBar value={department.capacity} />
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                {loading ? (
+                  <p className="text-sm text-slate-500">Loading…</p>
+                ) : departmentCases.length === 0 ? (
+                  <p className="text-sm text-slate-500">
+                    No cases are currently assigned to departments.
+                  </p>
+                ) : (
+                  <div className="space-y-5">
+                    {departmentCases.map((dept) => (
+                      <div key={dept.name}>
+                        <div className="mb-1.5 flex items-center justify-between text-sm">
+                          <span className="font-medium text-slate-700">{dept.name}</span>
+                          <span className="font-bold text-slate-700">{dept.count}</span>
+                        </div>
+                        <RelativeBar value={dept.barWidth} />
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
             </div>
 
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
+            <div
+              className={`rounded-2xl border p-6 shadow-sm ${
+                urgentCasesCount > 0
+                  ? 'border-amber-200 bg-amber-50'
+                  : 'border-slate-200 bg-white'
+              }`}
+            >
               <div className="flex items-start gap-3">
-                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                <AlertCircle
+                  className={`mt-0.5 h-5 w-5 shrink-0 ${
+                    urgentCasesCount > 0 ? 'text-amber-600' : 'text-slate-400'
+                  }`}
+                />
                 <div>
-                  <h3 className="text-base font-bold text-amber-900">Action Required</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-amber-800">
-                    {urgentCases > 0
-                      ? `${urgentCases} urgent case${urgentCases > 1 ? 's have' : ' has'} been waiting for faculty review. Please review to avoid delays.`
-                      : 'No urgent cases are currently waiting for review.'}
+                  <h3
+                    className={`text-base font-bold ${
+                      urgentCasesCount > 0 ? 'text-amber-900' : 'text-slate-700'
+                    }`}
+                  >
+                    {loading ? 'Checking queue…' : urgentCasesCount > 0 ? 'Action Required' : 'Queue Clear'}
+                  </h3>
+                  <p
+                    className={`mt-2 text-sm leading-relaxed ${
+                      urgentCasesCount > 0 ? 'text-amber-800' : 'text-slate-500'
+                    }`}
+                  >
+                    {loading
+                      ? ''
+                      : urgentCasesCount > 0
+                      ? `${urgentCasesCount} urgent case${urgentCasesCount > 1 ? 's are' : ' is'} waiting for faculty review. Please review to avoid delays.`
+                      : 'No urgent cases are currently awaiting review.'}
                   </p>
 
-                  <Link href="/admin/requests">
-                    <button className="mt-4 rounded-xl border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-800 transition hover:bg-amber-100">
-                      Review Requests
-                    </button>
-                  </Link>
+                  {urgentCasesCount > 0 && (
+                    <Link href="/admin/requests">
+                      <button className="mt-4 rounded-xl border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-800 transition hover:bg-amber-100">
+                        Review Now
+                      </button>
+                    </Link>
+                  )}
                 </div>
               </div>
             </div>

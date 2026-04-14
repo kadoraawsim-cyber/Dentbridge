@@ -2,9 +2,9 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { ArrowLeft, LogOut, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, Clock, LogOut, ShieldCheck } from 'lucide-react'
 
 type PatientRequest = {
   id: string
@@ -12,7 +12,6 @@ type PatientRequest = {
   age: number | null
   phone: string
   city: string | null
-  preferred_university: string | null
   preferred_language: string | null
   treatment_type: string
   complaint_text: string
@@ -25,6 +24,8 @@ type PatientRequest = {
   assigned_department: string | null
   target_student_level: string | null
   clinical_notes: string | null
+  reviewed_by: string | null
+  reviewed_at: string | null
   created_at: string | null
 }
 
@@ -45,7 +46,9 @@ const studentLevelOptions = [
   'Specialist Dentist',
 ]
 
-function suggestDepartment(treatmentType: string, assignedDepartment: string | null) {
+// Returns a department name based on keyword matching only.
+// This is a heuristic pre-fill, not an intelligent routing system.
+function keywordRoutingHint(treatmentType: string, assignedDepartment: string | null) {
   if (assignedDepartment) return assignedDepartment
 
   const value = (treatmentType || '').toLowerCase()
@@ -56,9 +59,8 @@ function suggestDepartment(treatmentType: string, assignedDepartment: string | n
   if (value.includes('orthodont')) return 'Orthodontics'
   if (value.includes('prosthetic') || value.includes('crown')) return 'Prosthodontics'
   if (value.includes('pediatric')) return 'Pedodontics'
-  if (value.includes('esthetic') || value.includes('filling') || value.includes('cleaning')) {
+  if (value.includes('esthetic') || value.includes('filling') || value.includes('cleaning'))
     return 'Restorative Dentistry'
-  }
 
   return 'Oral Radiology'
 }
@@ -83,7 +85,7 @@ function mapDetailToUrgency(detail: string) {
   return 'Medium'
 }
 
-function mapUrgencyToStatusBadge(status: string) {
+function getStatusBadgeClass(status: string) {
   switch ((status || '').toLowerCase()) {
     case 'submitted':
       return 'bg-slate-100 text-slate-700 border border-slate-200'
@@ -102,15 +104,17 @@ function mapUrgencyToStatusBadge(status: string) {
   }
 }
 
+function formatReviewDate(iso: string | null): string {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleString(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  })
+}
+
 export default function AdminRequestDetailPage() {
   const params = useParams()
   const id = Array.isArray(params?.id) ? params.id[0] : params?.id
-  const router = useRouter()
-
-  async function handleSignOut() {
-    await supabase.auth.signOut()
-    router.replace('/login')
-  }
 
   const [request, setRequest] = useState<PatientRequest | null>(null)
   const [loading, setLoading] = useState(true)
@@ -118,11 +122,26 @@ export default function AdminRequestDetailPage() {
   const [saving, setSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState('')
   const [openingFile, setOpeningFile] = useState(false)
+  const [adminEmail, setAdminEmail] = useState<string>('')
+
+  // 'reject' or 'approve' means a confirmation is pending; null means normal button state
+  const [pendingAction, setPendingAction] = useState<'reject' | 'approve' | null>(null)
 
   const [assignedDepartment, setAssignedDepartment] = useState('')
   const [urgencyLevel, setUrgencyLevel] = useState('')
   const [targetStudentLevel, setTargetStudentLevel] = useState('Year 4 Clinical Student')
   const [clinicalNotes, setClinicalNotes] = useState('')
+
+  async function handleSignOut() {
+    await supabase.auth.signOut()
+    window.location.href = '/admin/login'
+  }
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user?.email) setAdminEmail(user.email)
+    })
+  }, [])
 
   useEffect(() => {
     async function loadRequest() {
@@ -133,7 +152,9 @@ export default function AdminRequestDetailPage() {
 
       const { data, error } = await supabase
         .from('patient_requests')
-        .select('*')
+        .select(
+          'id, full_name, age, phone, city, preferred_language, treatment_type, complaint_text, urgency, preferred_days, consent, status, attachment_path, attachment_name, assigned_department, target_student_level, clinical_notes, reviewed_by, reviewed_at, created_at'
+        )
         .eq('id', id)
         .single()
 
@@ -145,7 +166,7 @@ export default function AdminRequestDetailPage() {
 
       const item = data as PatientRequest
       setRequest(item)
-      setAssignedDepartment(suggestDepartment(item.treatment_type, item.assigned_department))
+      setAssignedDepartment(keywordRoutingHint(item.treatment_type, item.assigned_department))
       setUrgencyLevel(mapUrgencyToDetail(item.urgency))
       setTargetStudentLevel(item.target_student_level || 'Year 4 Clinical Student')
       setClinicalNotes(item.clinical_notes || '')
@@ -159,6 +180,12 @@ export default function AdminRequestDetailPage() {
     if (!request?.attachment_name) return 'Uploaded file'
     return request.attachment_name
   }, [request])
+
+  // Terminal states: matched = released to pool (no further admin edits);
+  // rejected/completed = case closed. All three block further form edits.
+  const isTerminal =
+    request !== null &&
+    ['matched', 'rejected', 'completed'].includes((request.status || '').toLowerCase())
 
   async function handleViewAttachment() {
     if (!request?.attachment_path) return
@@ -193,24 +220,27 @@ export default function AdminRequestDetailPage() {
     setSaving(true)
     setErrorMessage('')
 
-    const { error } = await supabase
-      .from('patient_requests')
-      .update({
+    const res = await fetch(`/api/admin/cases/${request.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'save_draft',
         assigned_department: assignedDepartment,
         urgency: mapDetailToUrgency(urgencyLevel),
         target_student_level: targetStudentLevel,
         clinical_notes: clinicalNotes,
-        status: 'under_review',
-      })
-      .eq('id', request.id)
+      }),
+    })
 
     setSaving(false)
 
-    if (error) {
-      setErrorMessage(error.message)
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Unknown error' }))
+      setErrorMessage((err as { error?: string }).error ?? 'Failed to save draft.')
       return
     }
 
+    const { data } = (await res.json()) as { data: { reviewed_by: string | null; reviewed_at: string } }
     setRequest({
       ...request,
       assigned_department: assignedDepartment,
@@ -218,34 +248,40 @@ export default function AdminRequestDetailPage() {
       target_student_level: targetStudentLevel,
       clinical_notes: clinicalNotes,
       status: 'under_review',
+      reviewed_by: data.reviewed_by,
+      reviewed_at: data.reviewed_at,
     })
     showSaved('Draft saved.')
   }
 
-  async function handleApprove() {
+  async function confirmApprove() {
     if (!request) return
 
     setSaving(true)
     setErrorMessage('')
+    setPendingAction(null)
 
-    const { error } = await supabase
-      .from('patient_requests')
-      .update({
+    const res = await fetch(`/api/admin/cases/${request.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'approve',
         assigned_department: assignedDepartment,
         urgency: mapDetailToUrgency(urgencyLevel),
         target_student_level: targetStudentLevel,
         clinical_notes: clinicalNotes,
-        status: 'matched',
-      })
-      .eq('id', request.id)
+      }),
+    })
 
     setSaving(false)
 
-    if (error) {
-      setErrorMessage(error.message)
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Unknown error' }))
+      setErrorMessage((err as { error?: string }).error ?? 'Failed to approve.')
       return
     }
 
+    const { data } = (await res.json()) as { data: { reviewed_by: string | null; reviewed_at: string } }
     setRequest({
       ...request,
       assigned_department: assignedDepartment,
@@ -253,33 +289,39 @@ export default function AdminRequestDetailPage() {
       target_student_level: targetStudentLevel,
       clinical_notes: clinicalNotes,
       status: 'matched',
+      reviewed_by: data.reviewed_by,
+      reviewed_at: data.reviewed_at,
     })
     showSaved('Approved and released to pool.')
   }
 
-  async function handleReject() {
+  async function confirmReject() {
     if (!request) return
 
     setSaving(true)
     setErrorMessage('')
+    setPendingAction(null)
 
-    const { error } = await supabase
-      .from('patient_requests')
-      .update({
-        status: 'rejected',
-      })
-      .eq('id', request.id)
+    const res = await fetch(`/api/admin/cases/${request.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'reject' }),
+    })
 
     setSaving(false)
 
-    if (error) {
-      setErrorMessage(error.message)
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Unknown error' }))
+      setErrorMessage((err as { error?: string }).error ?? 'Failed to reject.')
       return
     }
 
+    const { data } = (await res.json()) as { data: { reviewed_by: string | null; reviewed_at: string } }
     setRequest({
       ...request,
       status: 'rejected',
+      reviewed_by: data.reviewed_by,
+      reviewed_at: data.reviewed_at,
     })
     showSaved('Case marked as rejected.')
   }
@@ -311,14 +353,22 @@ export default function AdminRequestDetailPage() {
             </Link>
           </nav>
 
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-            Sign Out
-          </button>
+          <div className="flex items-center gap-3">
+            {adminEmail && (
+              <div className="hidden items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 sm:flex">
+                <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-teal-500" />
+                <span className="max-w-[200px] truncate">{adminEmail}</span>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              Sign Out
+            </button>
+          </div>
         </div>
       </header>
 
@@ -334,12 +384,12 @@ export default function AdminRequestDetailPage() {
 
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-4xl font-bold tracking-tight text-slate-900">
-              {loading ? 'Loading case...' : `Case Review: ${request?.full_name || ''}`}
+              {loading ? 'Loading case…' : `Case Review: ${request?.full_name || ''}`}
             </h1>
 
             {!loading && request && (
               <span
-                className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${mapUrgencyToStatusBadge(
+                className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${getStatusBadgeClass(
                   request.status
                 )}`}
               >
@@ -356,8 +406,8 @@ export default function AdminRequestDetailPage() {
         </div>
 
         {loading && (
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-600 shadow-sm">
-            Loading case details...
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm">
+            Loading case details…
           </div>
         )}
 
@@ -378,12 +428,12 @@ export default function AdminRequestDetailPage() {
                 <div className="mb-8 grid grid-cols-2 gap-x-8 gap-y-6">
                   <div>
                     <p className="mb-1 text-xs text-slate-500">Age</p>
-                    <p className="font-medium text-slate-900">{request.age ?? '-'}</p>
+                    <p className="font-medium text-slate-900">{request.age ?? '—'}</p>
                   </div>
 
                   <div>
                     <p className="mb-1 text-xs text-slate-500">Location</p>
-                    <p className="font-medium text-slate-900">{request.city || '-'}</p>
+                    <p className="font-medium text-slate-900">{request.city || '—'}</p>
                   </div>
 
                   <div className="col-span-2">
@@ -398,20 +448,30 @@ export default function AdminRequestDetailPage() {
                   Faculty Triage Decision
                 </h3>
 
+                {isTerminal && (
+                  <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+                    {(request.status || '').toLowerCase() === 'matched'
+                      ? 'This case has been released to the student pool. No further edits can be made from this view.'
+                      : 'This case is closed. No further changes can be made.'}
+                  </div>
+                )}
+
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-sm font-semibold text-slate-700">
-                        Assign Department
+                        Assign Department{' '}
+                        <span className="font-normal text-xs text-slate-400">(keyword pre-fill — verify)</span>
                       </label>
                       <select
                         value={assignedDepartment}
                         onChange={(e) => setAssignedDepartment(e.target.value)}
-                        className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-blue-900"
+                        disabled={isTerminal || saving}
+                        className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-blue-900 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
                       >
-                        {departmentOptions.map((department) => (
-                          <option key={department} value={department}>
-                            {department}
+                        {departmentOptions.map((dept) => (
+                          <option key={dept} value={dept}>
+                            {dept}
                           </option>
                         ))}
                       </select>
@@ -424,7 +484,8 @@ export default function AdminRequestDetailPage() {
                       <select
                         value={urgencyLevel}
                         onChange={(e) => setUrgencyLevel(e.target.value)}
-                        className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-blue-900"
+                        disabled={isTerminal || saving}
+                        className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-blue-900 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
                       >
                         <option>High (Emergency / Severe Pain)</option>
                         <option>Medium (Discomfort)</option>
@@ -440,11 +501,12 @@ export default function AdminRequestDetailPage() {
                     <select
                       value={targetStudentLevel}
                       onChange={(e) => setTargetStudentLevel(e.target.value)}
-                      className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-blue-900"
+                      disabled={isTerminal || saving}
+                      className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-blue-900 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
                     >
-                      {studentLevelOptions.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
+                      {studentLevelOptions.map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
                         </option>
                       ))}
                     </select>
@@ -457,8 +519,9 @@ export default function AdminRequestDetailPage() {
                     <textarea
                       value={clinicalNotes}
                       onChange={(e) => setClinicalNotes(e.target.value)}
-                      placeholder="Add any specific instructions for the assigned student or coordinator..."
-                      className="min-h-[110px] w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-blue-900"
+                      disabled={isTerminal || saving}
+                      placeholder="Add any specific instructions for the assigned student or coordinator…"
+                      className="min-h-[110px] w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
                     />
                   </div>
                 </div>
@@ -470,41 +533,129 @@ export default function AdminRequestDetailPage() {
                     </p>
                   )}
 
-                  <div className="flex gap-4">
-                    <button
-                      type="button"
-                      onClick={handleSaveDraft}
-                      disabled={saving}
-                      className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
-                    >
-                      Save Draft
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleReject}
-                      disabled={saving}
-                      className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
-                    >
-                      Reject / Out of Scope
-                    </button>
-
-                    <div className="ml-auto">
+                  {isTerminal ? null : pendingAction === 'reject' ? (
+                    <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+                      <p className="mb-3 text-sm font-semibold text-red-800">
+                        Reject this case?
+                      </p>
+                      <p className="mb-4 text-sm text-red-700">
+                        This will mark the case as out of scope. The patient will see it as
+                        rejected. This action cannot be undone from this view.
+                      </p>
+                      <div className="flex gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setPendingAction(null)}
+                          disabled={saving}
+                          className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={confirmReject}
+                          disabled={saving}
+                          className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
+                        >
+                          {saving ? 'Rejecting…' : 'Confirm Reject'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : pendingAction === 'approve' ? (
+                    <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+                      <p className="mb-3 text-sm font-semibold text-blue-900">
+                        Release this case to the student pool?
+                      </p>
+                      <ul className="mb-4 space-y-1 text-sm text-blue-800">
+                        <li>Department: <strong>{assignedDepartment}</strong></li>
+                        <li>Urgency: <strong>{mapDetailToUrgency(urgencyLevel)}</strong></li>
+                        <li>Student level: <strong>{targetStudentLevel}</strong></li>
+                      </ul>
+                      <div className="flex gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setPendingAction(null)}
+                          disabled={saving}
+                          className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={confirmApprove}
+                          disabled={saving}
+                          className="rounded-xl bg-blue-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:opacity-60"
+                        >
+                          {saving ? 'Releasing…' : 'Confirm & Release'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex gap-4">
                       <button
                         type="button"
-                        onClick={handleApprove}
+                        onClick={handleSaveDraft}
                         disabled={saving}
-                        className="rounded-xl bg-blue-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:opacity-60"
+                        className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
                       >
-                        Approve & Release to Pool
+                        Save Draft
                       </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setPendingAction('reject')}
+                        disabled={saving}
+                        className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
+                      >
+                        Reject / Out of Scope
+                      </button>
+
+                      <div className="ml-auto">
+                        <button
+                          type="button"
+                          onClick={() => setPendingAction('approve')}
+                          disabled={saving}
+                          className="rounded-xl bg-blue-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:opacity-60"
+                        >
+                          Approve & Release to Pool
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
 
             <div className="space-y-6">
+              {/* Faculty Review Record — sourced from reviewed_by / reviewed_at columns */}
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="mb-4 flex items-center gap-2">
+                  <Clock className="h-4 w-4 shrink-0 text-slate-400" />
+                  <h3 className="text-sm font-bold text-slate-900">Faculty Review Record</h3>
+                </div>
+
+                {request.reviewed_by || request.reviewed_at ? (
+                  <div className="space-y-3 text-sm">
+                    <div>
+                      <p className="text-xs text-slate-500">Reviewed by</p>
+                      <p className="break-all font-medium text-slate-900">
+                        {request.reviewed_by ?? '—'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Last reviewed</p>
+                      <p className="font-medium text-slate-900">
+                        {formatReviewDate(request.reviewed_at)}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-400">
+                    No faculty action has been recorded yet.
+                  </p>
+                )}
+              </div>
+
               <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <h3 className="mb-4 text-lg font-bold text-slate-900">Uploaded Images</h3>
 
@@ -522,18 +673,19 @@ export default function AdminRequestDetailPage() {
                   disabled={!request.attachment_path || openingFile}
                   className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {openingFile ? 'Opening...' : 'View Full Screen'}
+                  {openingFile ? 'Opening…' : 'View Full Screen'}
                 </button>
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 shadow-sm">
                 <h3 className="mb-2 text-sm font-bold text-slate-900">Prior Records</h3>
                 <p className="mb-4 text-sm text-slate-500">
-                  Patient history lookup is not yet connected. Check the university system separately if needed.
+                  Patient history lookup is not yet connected. Check the university system
+                  separately if prior records are needed.
                 </p>
                 <div className="flex items-center gap-2 text-xs text-slate-400">
                   <ShieldCheck className="h-4 w-4 text-slate-400" />
-                  Details taken from submitted request
+                  Details taken from submitted request only
                 </div>
               </div>
 
@@ -548,12 +700,14 @@ export default function AdminRequestDetailPage() {
 
                   <div>
                     <p className="text-xs text-slate-500">Preferred Language</p>
-                    <p className="font-medium text-slate-900">{request.preferred_language || '-'}</p>
+                    <p className="font-medium text-slate-900">
+                      {request.preferred_language || '—'}
+                    </p>
                   </div>
 
                   <div>
                     <p className="text-xs text-slate-500">Preferred Availability</p>
-                    <p className="font-medium text-slate-900">{request.preferred_days || '-'}</p>
+                    <p className="font-medium text-slate-900">{request.preferred_days || '—'}</p>
                   </div>
 
                   <div>
