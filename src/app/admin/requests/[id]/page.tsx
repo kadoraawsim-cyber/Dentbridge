@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { ArrowLeft, Clock, LogOut, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, Calendar, Clock, LogOut, Phone, ShieldCheck } from 'lucide-react'
 
 type PatientRequest = {
   id: string
@@ -110,6 +110,14 @@ function formatReviewDate(iso: string | null): string {
     dateStyle: 'medium',
     timeStyle: 'short',
   })
+}
+
+function waitingDays(iso: string | null): string {
+  if (!iso) return '—'
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / (1000 * 60 * 60 * 24))
+  if (days === 0) return 'Submitted today'
+  if (days === 1) return 'Waiting 1 day'
+  return `Waiting ${days} days`
 }
 
 export default function AdminRequestDetailPage() {
@@ -399,9 +407,19 @@ export default function AdminRequestDetailPage() {
           </div>
 
           {!loading && request && (
-            <p className="mt-3 inline-block rounded-md bg-slate-100 px-2 py-1 font-mono text-sm text-slate-700">
-              Ref: {request.id.slice(0, 8)}
-            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-4">
+              <p className="inline-block rounded-md bg-slate-100 px-2 py-1 font-mono text-sm text-slate-700">
+                Ref: {request.id.slice(0, 8)}
+              </p>
+              <span className="flex items-center gap-1.5 text-sm text-slate-500">
+                <Calendar className="h-4 w-4 text-slate-400" />
+                {formatReviewDate(request.created_at)}
+              </span>
+              <span className="flex items-center gap-1.5 text-sm font-medium text-amber-600">
+                <Clock className="h-4 w-4" />
+                {waitingDays(request.created_at)}
+              </span>
+            </div>
           )}
         </div>
 
@@ -425,7 +443,7 @@ export default function AdminRequestDetailPage() {
                   Patient Profile & Complaint
                 </h3>
 
-                <div className="mb-8 grid grid-cols-2 gap-x-8 gap-y-6">
+                <div className="mb-8 grid grid-cols-2 gap-x-8 gap-y-5">
                   <div>
                     <p className="mb-1 text-xs text-slate-500">Age</p>
                     <p className="font-medium text-slate-900">{request.age ?? '—'}</p>
@@ -434,6 +452,26 @@ export default function AdminRequestDetailPage() {
                   <div>
                     <p className="mb-1 text-xs text-slate-500">Location</p>
                     <p className="font-medium text-slate-900">{request.city || '—'}</p>
+                  </div>
+
+                  <div>
+                    <p className="mb-1 text-xs text-slate-500">Phone</p>
+                    <p className="flex items-center gap-1.5 font-medium text-slate-900">
+                      <Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                      {request.phone}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="mb-1 text-xs text-slate-500">Preferred Language</p>
+                    <p className="font-medium text-slate-900">
+                      {request.preferred_language || '—'}
+                    </p>
+                  </div>
+
+                  <div className="col-span-2">
+                    <p className="mb-1 text-xs text-slate-500">Preferred Availability</p>
+                    <p className="font-medium text-slate-900">{request.preferred_days || '—'}</p>
                   </div>
 
                   <div className="col-span-2">
@@ -689,33 +727,6 @@ export default function AdminRequestDetailPage() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h3 className="mb-4 text-sm font-bold text-slate-900">Request Summary</h3>
-
-                <div className="space-y-3 text-sm">
-                  <div>
-                    <p className="text-xs text-slate-500">Phone</p>
-                    <p className="font-medium text-slate-900">{request.phone}</p>
-                  </div>
-
-                  <div>
-                    <p className="text-xs text-slate-500">Preferred Language</p>
-                    <p className="font-medium text-slate-900">
-                      {request.preferred_language || '—'}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-xs text-slate-500">Preferred Availability</p>
-                    <p className="font-medium text-slate-900">{request.preferred_days || '—'}</p>
-                  </div>
-
-                  <div>
-                    <p className="text-xs text-slate-500">Requested Treatment</p>
-                    <p className="font-medium text-slate-900">{request.treatment_type}</p>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         )}
