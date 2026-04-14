@@ -7,7 +7,6 @@ import { ArrowLeft, Search, Stethoscope } from 'lucide-react'
 
 type PatientRequest = {
   id: string
-  full_name: string
   treatment_type: string
   status: string
   created_at: string | null
@@ -147,11 +146,7 @@ export default function PatientStatusPage() {
     setLoading(true)
 
     const { data, error } = await supabase
-      .from('patient_requests')
-      .select('id, full_name, treatment_type, status, created_at, preferred_days, assigned_department')
-      .eq('phone', trimmed)
-      .order('created_at', { ascending: false })
-      .limit(1)
+      .rpc('get_request_status_by_phone', { lookup_phone: trimmed })
       .maybeSingle()
 
     setLoading(false)
@@ -323,13 +318,6 @@ export default function PatientStatusPage() {
             </div>
 
             <div className="space-y-6 p-6 sm:p-8">
-              <div>
-                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Patient Name
-                </p>
-                <p className="text-2xl font-bold text-slate-900">{result.full_name}</p>
-              </div>
-
               <div className="pt-1 pb-2">
                 <StatusStepper status={result.status} />
               </div>
