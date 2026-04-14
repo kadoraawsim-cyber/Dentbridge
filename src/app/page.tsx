@@ -171,47 +171,51 @@ export default function HomePage() {
             </div>
           </Link>
 
-          <nav className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
-            <Link href="/patient/request" className="hover:text-slate-900">
+          <nav className="hidden items-center gap-6 md:flex">
+            <Link href="/patient/request" className="text-sm font-medium text-slate-600 transition hover:text-slate-900">
               Request Treatment
             </Link>
-            <Link href="/student/login" className="hover:text-slate-900">
+            <Link href="/student/login" className="text-sm font-medium text-slate-600 transition hover:text-slate-900">
               Student Portal
             </Link>
-            <Link href="/admin/login" className="hover:text-slate-900">
-              Faculty Portal
+            <Link
+              href="/admin/login"
+              className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+            >
+              Faculty Login
             </Link>
           </nav>
         </div>
       </header>
 
-      <section className="bg-[#1c2f6b] px-4 py-10 sm:px-6 lg:px-8">
-        <div className="mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-2">
+      <section className="bg-[#1c2f6b] px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2">
           <div>
-            <span className="inline-flex rounded-full border border-teal-300 bg-teal-500/10 px-4 py-2 text-sm font-medium text-teal-100">
+            <span className="inline-flex items-center gap-2 rounded-full border border-teal-400/40 bg-teal-400/10 px-4 py-1.5 text-sm font-medium text-teal-200">
+              <span className="h-1.5 w-1.5 rounded-full bg-teal-400" />
               University-Supervised Clinical Access
             </span>
 
-            <h1 className="mt-6 max-w-3xl text-5xl font-bold leading-tight tracking-tight text-white sm:text-6xl">
-              Affordable University-Supervised Dental Care
+            <h1 className="mt-7 max-w-2xl text-5xl font-bold leading-[1.1] tracking-tight text-white sm:text-6xl">
+              Affordable University&#8209;Supervised Dental Care
             </h1>
 
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-200">
-              DentBridge connects patients seeking affordable dental treatment with
-              senior dental students working under strict faculty supervision through
-              a structured university-based workflow.
+            <p className="mt-6 max-w-xl text-lg leading-8 text-slate-300">
+              DentBridge connects patients with affordable treatment through senior dental
+              students working under strict faculty supervision — a structured, digital workflow.
             </p>
 
-            <div className="mt-8 flex flex-wrap gap-4">
+            <div className="mt-9 flex flex-wrap gap-3">
               <Link
                 href="/patient/request"
-                className="inline-flex items-center justify-center rounded-xl bg-white px-6 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
+                className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
               >
                 Submit Treatment Request
+                <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 href="/patient/status"
-                className="inline-flex items-center justify-center rounded-xl border border-slate-400 px-6 py-3 text-sm font-semibold text-white transition hover:border-white"
+                className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20"
               >
                 Check Treatment Status
               </Link>

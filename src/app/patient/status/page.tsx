@@ -265,119 +265,110 @@ export default function PatientStatusPage() {
 
         <form
           onSubmit={handleSearch}
-          className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
+          className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
         >
-          <div className="space-y-5 p-6 sm:p-8">
+          <div className="p-6 sm:p-8">
             <div className="mb-5 flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-teal-500" />
-              <h2 className="text-xl font-semibold text-slate-900">Patient Lookup</h2>
+              <h2 className="text-lg font-semibold text-slate-900">Patient Lookup</h2>
             </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">
-                Phone Number
-              </label>
+            <label className="mb-2 block text-sm font-medium text-slate-700">
+              Phone Number
+            </label>
+            <div className="flex gap-3">
               <input
                 type="text"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="+90 5XX XXX XX XX"
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-900"
+                className="h-11 flex-1 rounded-xl border border-slate-200 px-4 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
               />
+              <button
+                type="submit"
+                disabled={loading}
+                className="inline-flex h-11 items-center gap-2 rounded-xl bg-teal-600 px-5 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loading ? (
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
+                {loading ? 'Searching…' : 'Check Status'}
+              </button>
             </div>
 
             {errorMessage && (
-              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 {errorMessage}
               </div>
             )}
           </div>
-
-          <div className="flex justify-end border-t border-slate-200 bg-slate-50 px-6 py-5 sm:px-8">
-            <button
-              type="submit"
-              disabled={loading}
-              className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              <Search className="h-4 w-4" />
-              {loading ? 'Searching...' : 'Check Status'}
-            </button>
-          </div>
         </form>
 
         {!loading && searched && !result && !errorMessage && (
-          <div className="mt-6 rounded-2xl border border-slate-100 bg-slate-50 p-6">
-            <div className="flex items-start gap-3">
-              <Search className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
-              <div>
-                <p className="text-sm font-semibold text-slate-700">No request found</p>
-                <p className="mt-1 text-sm text-slate-500">
-                  We could not find a submitted request for that phone number. Please check the number and try again, or{' '}
-                  <Link href="/patient/request" className="text-teal-600 hover:underline">
-                    submit a new request
-                  </Link>
-                  .
-                </p>
-              </div>
+          <div className="mt-5 flex items-start gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-5">
+            <Search className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
+            <div>
+              <p className="text-sm font-semibold text-slate-700">No request found</p>
+              <p className="mt-1 text-sm text-slate-500">
+                We couldn't find a request for that number. Double-check and try again, or{' '}
+                <Link href="/patient/request" className="text-teal-600 hover:underline">
+                  submit a new request
+                </Link>
+                .
+              </p>
             </div>
           </div>
         )}
 
         {!loading && result && (
-          <div className="mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-100 bg-slate-50/70 px-6 py-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="font-mono text-xs font-bold text-slate-500">
-                  Ref: {result.id.slice(0, 8)}
-                </p>
-                <span
-                  className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold tracking-wide ${getStatusBadgeClass(
-                    result.status
-                  )}`}
-                >
-                  {getStatusLabel(result.status)}
-                </span>
-              </div>
+          <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/60 px-5 py-3.5">
+              <span className="font-mono text-xs font-bold text-slate-400">
+                REF #{result.id.slice(0, 8).toUpperCase()}
+              </span>
+              <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getStatusBadgeClass(result.status)}`}>
+                {getStatusLabel(result.status)}
+              </span>
             </div>
 
-            <div className="space-y-6 p-6 sm:p-8">
-              <div className="pt-1 pb-2">
+            <div className="p-5 sm:p-7">
+              {/* Progress stepper */}
+              <div className="mb-6">
                 <StatusStepper status={result.status} />
               </div>
 
-              <div className="grid grid-cols-2 gap-x-8 gap-y-5">
+              <div className="grid grid-cols-2 gap-x-6 gap-y-4 border-t border-slate-100 pt-5">
                 <div>
-                  <p className="mb-1 text-xs text-slate-500">Treatment Requested</p>
-                  <p className="font-medium text-slate-900">{result.treatment_type}</p>
+                  <p className="mb-0.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Treatment</p>
+                  <p className="text-sm font-semibold text-slate-900">{result.treatment_type}</p>
                 </div>
-
                 <div>
-                  <p className="mb-1 text-xs text-slate-500">Date Submitted</p>
-                  <p className="font-medium text-slate-900">{formatDate(result.created_at)}</p>
+                  <p className="mb-0.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Submitted</p>
+                  <p className="text-sm font-semibold text-slate-900">{formatDate(result.created_at)}</p>
                 </div>
-
                 <div>
-                  <p className="mb-1 text-xs text-slate-500">Preferred Availability</p>
-                  <p className="font-medium text-slate-900">{result.preferred_days || '-'}</p>
+                  <p className="mb-0.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Availability</p>
+                  <p className="text-sm font-semibold text-slate-900">{result.preferred_days || '—'}</p>
                 </div>
-
                 <div>
-                  <p className="mb-1 text-xs text-slate-500">Assigned Department</p>
+                  <p className="mb-0.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Department</p>
                   {result.assigned_department ? (
                     <div className="flex items-center gap-1.5">
-                      <Stethoscope className="h-4 w-4 text-blue-600" />
-                      <p className="font-medium text-blue-900">{result.assigned_department}</p>
+                      <Stethoscope className="h-3.5 w-3.5 text-blue-600" />
+                      <p className="text-sm font-semibold text-blue-900">{result.assigned_department}</p>
                     </div>
                   ) : (
-                    <p className="font-medium text-slate-400">Pending review</p>
+                    <p className="text-sm text-slate-400">Pending review</p>
                   )}
                 </div>
               </div>
             </div>
 
-            <div className="border-t border-slate-100 bg-slate-50/70 px-6 py-4">
-              <p className="text-xs text-slate-500">
-                This shows your most recently submitted request. For changes or questions, contact the clinic directly.
+            <div className="border-t border-slate-100 bg-slate-50/60 px-5 py-3.5">
+              <p className="text-xs text-slate-400">
+                Showing your most recent request. For questions, contact the clinic directly.
               </p>
             </div>
           </div>

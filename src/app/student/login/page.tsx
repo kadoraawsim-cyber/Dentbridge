@@ -81,29 +81,27 @@ export default function StudentLoginPage() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4 py-12">
-      <Link href="/" className="mb-10 flex items-center gap-3">
+      <Link href="/" className="mb-8 flex items-center gap-3">
         <img
           src="/dentbridge-icon.png"
           alt="DentBridge icon"
-          className="h-10 w-10 object-contain"
+          className="h-9 w-9 object-contain"
         />
         <div>
-          <p className="text-lg font-bold leading-none text-slate-900">DentBridge</p>
-          <p className="text-[11px] uppercase tracking-wide text-slate-500">
-            Faculty-Supported Clinical Platform
-          </p>
+          <p className="text-[15px] font-bold leading-none text-slate-900">DentBridge</p>
+          <p className="text-[10px] uppercase tracking-wider text-slate-400">Clinical Platform</p>
         </div>
       </Link>
 
-      <div className="w-full max-w-md overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-        <div className="space-y-5 p-8">
+      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="p-8">
           <div className="mb-6">
-            <div className="mb-5 flex items-center gap-2">
+            <div className="mb-3 flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-teal-500" />
-              <h1 className="text-xl font-semibold text-slate-900">Student Portal Sign In</h1>
+              <h1 className="text-xl font-semibold text-slate-900">Student Sign In</h1>
             </div>
             <p className="text-sm text-slate-500">
-              This portal is for clinical students only. Use your university credentials to access your case dashboard.
+              Clinical students only. Use your university credentials to access the case dashboard.
             </p>
           </div>
 
@@ -157,8 +155,11 @@ export default function StudentLoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="mt-2 w-full rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
+              {loading && (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+              )}
               {loading ? 'Signing in…' : 'Sign In'}
             </button>
           </form>
