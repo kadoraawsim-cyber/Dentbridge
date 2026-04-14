@@ -43,12 +43,12 @@ export default function PatientRequestPage() {
   const [attachment, setAttachment] = useState<File | null>(null)
 
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [successMessage, setSuccessMessage] = useState('')
+  const [submittedId, setSubmittedId] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
 
   async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
-    setSuccessMessage('')
+    setSubmittedId(null)
     setErrorMessage('')
 
     if (!fullName || !age || !phone || !treatmentType || !complaintText || !urgency) {
@@ -89,24 +89,28 @@ export default function PatientRequestPage() {
       attachmentPath = filePath
     }
 
-    const { error } = await supabase.from('patient_requests').insert([
-      {
-        full_name: fullName,
-        age: age ? Number(age) : null,
-        phone,
-        city,
-        preferred_university: preferredUniversity,
-        preferred_language: preferredLanguage,
-        treatment_type: treatmentType,
-        complaint_text: complaintText,
-        urgency,
-        preferred_days: preferredDays,
-        consent,
-        attachment_path: attachmentPath,
-        attachment_name: attachment ? attachment.name : null,
-        status: 'submitted',
-      },
-    ])
+    const { data: insertedRow, error } = await supabase
+      .from('patient_requests')
+      .insert([
+        {
+          full_name: fullName,
+          age: age ? Number(age) : null,
+          phone,
+          city,
+          preferred_university: preferredUniversity,
+          preferred_language: preferredLanguage,
+          treatment_type: treatmentType,
+          complaint_text: complaintText,
+          urgency,
+          preferred_days: preferredDays,
+          consent,
+          attachment_path: attachmentPath,
+          attachment_name: attachment ? attachment.name : null,
+          status: 'submitted',
+        },
+      ])
+      .select('id')
+      .single()
 
     setIsSubmitting(false)
 
@@ -115,7 +119,7 @@ export default function PatientRequestPage() {
       return
     }
 
-    setSuccessMessage('Your treatment request has been submitted successfully.')
+    setSubmittedId(insertedRow?.id ?? 'submitted')
     setFullName('')
     setAge('')
     setPhone('')
@@ -210,7 +214,7 @@ export default function PatientRequestPage() {
           </p>
         </div>
 
-        {successMessage && (
+        {submittedId && (
           <div className="overflow-hidden rounded-3xl border border-emerald-200 bg-white shadow-sm">
             <div className="px-6 py-12 text-center sm:px-10">
               <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50">
@@ -220,6 +224,11 @@ export default function PatientRequestPage() {
               <p className="mx-auto mt-3 max-w-sm text-slate-600">
                 Your treatment request has been received. Our faculty team will review it and contact you.
               </p>
+              {submittedId !== 'submitted' && (
+                <p className="mt-3 font-mono text-sm text-slate-500">
+                  Reference: <span className="font-bold text-slate-700">{submittedId.slice(0, 8).toUpperCase()}</span>
+                </p>
+              )}
               <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
                 <Link
                   href="/patient/status"
@@ -229,7 +238,7 @@ export default function PatientRequestPage() {
                 </Link>
                 <button
                   type="button"
-                  onClick={() => setSuccessMessage('')}
+                  onClick={() => setSubmittedId(null)}
                   className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                 >
                   Submit Another Request
@@ -239,7 +248,7 @@ export default function PatientRequestPage() {
           </div>
         )}
 
-        {!successMessage && (
+        {!submittedId && (
         <form
           onSubmit={handleSubmit}
           className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"

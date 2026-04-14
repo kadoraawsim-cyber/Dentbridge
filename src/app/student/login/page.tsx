@@ -17,10 +17,12 @@ export default function StudentLoginPage() {
   const [errorMessage, setErrorMessage] = useState('')
 
   // If already authenticated, redirect to the correct portal immediately.
+  // getUser() validates the JWT server-side — more reliable than getSession()
+  // which only reads the local cookie without network validation.
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        const role = session.user.app_metadata?.role
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        const role = user.app_metadata?.role
         if (role === 'admin') {
           router.replace('/admin')
         } else if (role === 'student') {

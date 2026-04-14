@@ -14,30 +14,37 @@ type PatientRequest = {
   assigned_department: string | null
 }
 
+// The normal forward path of a case. Rejected / cancelled are side-states
+// shown separately and do not appear in the stepper.
 const STATUS_FLOW = [
-  { key: 'submitted', label: 'Submitted' },
-  { key: 'under_review', label: 'Under Review' },
-  { key: 'matched', label: 'Matched' },
-  { key: 'contacted', label: 'Contacted' },
-  { key: 'completed', label: 'Completed' },
+  { key: 'submitted',             label: 'Submitted' },
+  { key: 'under_review',          label: 'Under Review' },
+  { key: 'matched',               label: 'Assigned to Dept.' },
+  { key: 'student_approved',      label: 'Student Assigned' },
+  { key: 'contacted',             label: 'Contacted' },
+  { key: 'appointment_scheduled', label: 'Appt. Scheduled' },
+  { key: 'in_treatment',          label: 'In Treatment' },
+  { key: 'completed',             label: 'Completed' },
 ]
 
 function StatusStepper({ status }: { status: string }) {
   const normalised = (status || '').toLowerCase()
-  const isRejected = normalised === 'rejected'
+  const isClosed = normalised === 'rejected' || normalised === 'cancelled'
   const currentIndex = STATUS_FLOW.findIndex((s) => s.key === normalised)
 
   return (
     <div>
-      {isRejected && (
+      {isClosed && (
         <p className="mb-3 text-xs font-semibold text-rose-600">
-          Case marked as out of scope — no further steps required
+          {normalised === 'cancelled'
+            ? 'This case has been cancelled.'
+            : 'Case marked as out of scope — no further steps required.'}
         </p>
       )}
       <div className="flex items-center">
         {STATUS_FLOW.map((step, i) => {
-          const isDone = !isRejected && i < currentIndex
-          const isCurrent = !isRejected && i === currentIndex
+          const isDone = !isClosed && i < currentIndex
+          const isCurrent = !isClosed && i === currentIndex
           return (
             <React.Fragment key={step.key}>
               <div
@@ -62,8 +69,8 @@ function StatusStepper({ status }: { status: string }) {
       </div>
       <div className="mt-2 flex justify-between">
         {STATUS_FLOW.map((step, i) => {
-          const isDone = !isRejected && i < currentIndex
-          const isCurrent = !isRejected && i === currentIndex
+          const isDone = !isClosed && i < currentIndex
+          const isCurrent = !isClosed && i === currentIndex
           return (
             <span
               key={step.key}
@@ -88,12 +95,20 @@ function getStatusBadgeClass(status: string) {
       return 'bg-amber-50 text-amber-700 border border-amber-200'
     case 'matched':
       return 'bg-violet-50 text-violet-700 border border-violet-200'
+    case 'student_approved':
+      return 'bg-blue-50 text-blue-700 border border-blue-200'
     case 'contacted':
       return 'bg-cyan-50 text-cyan-700 border border-cyan-200'
+    case 'appointment_scheduled':
+      return 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+    case 'in_treatment':
+      return 'bg-purple-50 text-purple-700 border border-purple-200'
     case 'completed':
       return 'bg-emerald-50 text-emerald-700 border border-emerald-200'
     case 'rejected':
       return 'bg-rose-50 text-rose-700 border border-rose-200'
+    case 'cancelled':
+      return 'bg-slate-100 text-slate-500 border border-slate-200'
     default:
       return 'bg-slate-100 text-slate-700 border border-slate-200'
   }
@@ -106,13 +121,21 @@ function getStatusLabel(status: string) {
     case 'under_review':
       return 'Under Faculty Review'
     case 'matched':
-      return 'Matched with Department'
+      return 'Assigned to Department — Awaiting Student'
+    case 'student_approved':
+      return 'Student Assigned — Preparing Contact'
     case 'contacted':
-      return 'Contacted by Clinic'
+      return 'Patient Contacted by Student'
+    case 'appointment_scheduled':
+      return 'Appointment Scheduled'
+    case 'in_treatment':
+      return 'Currently In Treatment'
     case 'completed':
       return 'Treatment Completed'
     case 'rejected':
       return 'Out of Scope'
+    case 'cancelled':
+      return 'Cancelled'
     default:
       return status
   }

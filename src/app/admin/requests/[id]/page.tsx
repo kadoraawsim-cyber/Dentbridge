@@ -30,10 +30,18 @@ export default async function AdminRequestDetailPage({
 
   if (error || !data) notFound()
 
+  // Fetch all student requests for this case so faculty can review and act on them.
+  const { data: studentRequests } = await supabase
+    .from('student_case_requests')
+    .select('id, student_email, status, clinical_notes, reviewed_by, reviewed_at, created_at')
+    .eq('case_id', id)
+    .order('created_at', { ascending: false })
+
   return (
     <CaseDetailClient
       initialRequest={data}
       adminEmail={user.email ?? ''}
+      initialStudentRequests={studentRequests ?? []}
     />
   )
 }

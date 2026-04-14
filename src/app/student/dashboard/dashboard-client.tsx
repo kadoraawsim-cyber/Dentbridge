@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -14,6 +14,7 @@ import {
   RefreshCw,
   LogOut,
   Clock,
+  Phone,
 } from 'lucide-react'
 
 type PoolCase = {
@@ -32,9 +33,19 @@ type MyRequest = {
   created_at: string
 }
 
+type ActiveCase = {
+  caseId: string
+  treatment_type: string
+  assigned_department: string | null
+  status: string
+  full_name: string
+  phone: string
+}
+
 interface Props {
   poolCases: PoolCase[]
   myRequests: MyRequest[]
+  activeCases: ActiveCase[]
   studentEmail: string
 }
 
@@ -51,12 +62,74 @@ function getUrgencyBadgeClass(urgency: string) {
   }
 }
 
-export function DashboardClient({ poolCases, myRequests, studentEmail }: Props) {
+function getActiveCaseStatusLabel(status: string) {
+  switch (status) {
+    case 'student_approved':   return 'Contact patient to begin'
+    case 'contacted':          return 'Patient contacted — schedule appointment'
+    case 'appointment_scheduled': return 'Appointment set — mark when treatment begins'
+    case 'in_treatment':       return 'Treatment in progress — faculty will close case'
+    case 'completed':          return 'Treatment completed'
+    case 'cancelled':          return 'Case cancelled'
+    default:                   return status.replace(/_/g, ' ')
+  }
+}
+
+function getActiveCaseStatusBadge(status: string) {
+  switch (status) {
+    case 'student_approved':      return 'bg-blue-50 text-blue-700 border border-blue-200'
+    case 'contacted':             return 'bg-cyan-50 text-cyan-700 border border-cyan-200'
+    case 'appointment_scheduled': return 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+    case 'in_treatment':          return 'bg-purple-50 text-purple-700 border border-purple-200'
+    case 'completed':             return 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+    case 'cancelled':             return 'bg-slate-100 text-slate-500 border border-slate-200'
+    default:                      return 'bg-slate-100 text-slate-700 border border-slate-200'
+  }
+}
+
+export function DashboardClient({ poolCases, myRequests, activeCases, studentEmail }: Props) {
   const router = useRouter()
+
+  // Per-case loading and error state for lifecycle actions
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [actionErrors, setActionErrors] = useState<Record<string, string>>({})
+
+  // Local copy of active case statuses for optimistic updates
+  const [localStatuses, setLocalStatuses] = useState<Record<string, string>>(
+    () => Object.fromEntries(activeCases.map((c) => [c.caseId, c.status]))
+  )
 
   async function handleSignOut() {
     await supabase.auth.signOut()
     router.replace('/student/login')
+  }
+
+  async function handleLifecycleAction(
+    caseId: string,
+    action: 'mark_contacted' | 'mark_appointment_scheduled' | 'mark_in_treatment'
+  ) {
+    if (actionLoading) return
+    setActionLoading(caseId)
+    setActionErrors((prev) => { const next = { ...prev }; delete next[caseId]; return next })
+
+    const res = await fetch(`/api/student/cases/${caseId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action }),
+    })
+
+    setActionLoading(null)
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: 'Request failed' }))
+      setActionErrors((prev) => ({
+        ...prev,
+        [caseId]: (body as { error?: string }).error ?? 'Failed to update status',
+      }))
+      return
+    }
+
+    const { data } = (await res.json()) as { data: { status: string } }
+    setLocalStatuses((prev) => ({ ...prev, [caseId]: data.status }))
   }
 
   const recentCases = useMemo(() => poolCases.slice(0, 4), [poolCases])
@@ -66,9 +139,9 @@ export function DashboardClient({ poolCases, myRequests, studentEmail }: Props) 
       available: poolCases.length,
       urgent: poolCases.filter((c) => (c.urgency || '').toLowerCase() === 'high').length,
       pending: myRequests.filter((r) => r.status === 'pending').length,
-      approved: myRequests.filter((r) => r.status === 'approved').length,
+      approved: activeCases.length,
     }),
-    [poolCases, myRequests]
+    [poolCases, myRequests, activeCases]
   )
 
   return (
@@ -175,13 +248,13 @@ export function DashboardClient({ poolCases, myRequests, studentEmail }: Props) 
 
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="text-sm font-semibold uppercase tracking-wider text-slate-500">
-              Approved Cases
+              Active Cases
             </div>
             <div className="mt-3 text-5xl font-bold tracking-tight text-emerald-600">
               {stats.approved}
             </div>
             <div className="mt-3 text-sm font-medium text-emerald-600">
-              {stats.approved > 0 ? 'Ready to contact patient' : 'No approvals yet'}
+              {stats.approved > 0 ? 'Cases you are assigned to' : 'No active cases yet'}
             </div>
           </div>
 
@@ -205,6 +278,116 @@ export function DashboardClient({ poolCases, myRequests, studentEmail }: Props) 
             <div className="mt-3 text-sm text-slate-500">High-priority cases</div>
           </div>
         </div>
+
+        {/* Active Cases — shown only when the student has approved cases */}
+        {activeCases.length > 0 && (
+          <div className="mt-10">
+            <h2 className="mb-4 text-2xl font-bold tracking-tight text-slate-900">
+              My Active Cases
+            </h2>
+
+            <div className="grid gap-6 md:grid-cols-2">
+              {activeCases.map((c) => {
+                const liveStatus = localStatuses[c.caseId] ?? c.status
+                const isLoading = actionLoading === c.caseId
+                const error = actionErrors[c.caseId]
+                const isClosed = liveStatus === 'completed' || liveStatus === 'cancelled'
+
+                return (
+                  <div
+                    key={c.caseId}
+                    className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+                  >
+                    <div className="p-6">
+                      <div className="mb-4 flex items-start justify-between gap-3">
+                        <span className="rounded-md bg-slate-100 px-2.5 py-1 font-mono text-xs font-bold text-slate-600">
+                          {c.caseId.slice(0, 8)}
+                        </span>
+                        <span
+                          className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold tracking-wide ${getActiveCaseStatusBadge(liveStatus)}`}
+                        >
+                          {liveStatus.replace(/_/g, ' ').toUpperCase()}
+                        </span>
+                      </div>
+
+                      <p className="text-lg font-bold text-slate-900">{c.treatment_type}</p>
+                      {c.assigned_department && (
+                        <div className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
+                          <Stethoscope className="h-3.5 w-3.5 text-blue-500" />
+                          {c.assigned_department}
+                        </div>
+                      )}
+
+                      <p className="mt-2 text-sm text-slate-500">
+                        {getActiveCaseStatusLabel(liveStatus)}
+                      </p>
+
+                      {/* Patient contact — always visible for active approved cases */}
+                      <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                          Patient Contact
+                        </p>
+                        <p className="text-sm font-bold text-slate-900">{c.full_name}</p>
+                        <div className="mt-1 flex items-center gap-1.5 text-sm text-slate-700">
+                          <Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                          {c.phone}
+                        </div>
+                      </div>
+                    </div>
+
+                    {!isClosed && (
+                      <div className="border-t border-slate-100 bg-slate-50/70 p-4">
+                        {error && (
+                          <p className="mb-2 text-center text-xs text-red-600">{error}</p>
+                        )}
+
+                        {liveStatus === 'student_approved' && (
+                          <button
+                            type="button"
+                            onClick={() => handleLifecycleAction(c.caseId, 'mark_contacted')}
+                            disabled={isLoading}
+                            className="flex w-full items-center justify-center rounded-xl bg-cyan-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:opacity-60"
+                          >
+                            {isLoading ? 'Updating…' : 'Mark Patient Contacted'}
+                          </button>
+                        )}
+
+                        {liveStatus === 'contacted' && (
+                          <button
+                            type="button"
+                            onClick={() => handleLifecycleAction(c.caseId, 'mark_appointment_scheduled')}
+                            disabled={isLoading}
+                            className="flex w-full items-center justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60"
+                          >
+                            {isLoading ? 'Updating…' : 'Mark Appointment Scheduled'}
+                          </button>
+                        )}
+
+                        {liveStatus === 'appointment_scheduled' && (
+                          <button
+                            type="button"
+                            onClick={() => handleLifecycleAction(c.caseId, 'mark_in_treatment')}
+                            disabled={isLoading}
+                            className="flex w-full items-center justify-center rounded-xl bg-purple-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-purple-700 disabled:opacity-60"
+                          >
+                            {isLoading ? 'Updating…' : 'Mark In Treatment'}
+                          </button>
+                        )}
+
+                        {liveStatus === 'in_treatment' && (
+                          <div className="flex w-full items-center justify-center gap-2 rounded-xl border border-purple-200 bg-purple-50 px-4 py-3 text-sm font-semibold text-purple-700">
+                            <Clock className="h-4 w-4" />
+                            Treatment in progress — faculty will close case
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Main grid */}
         <div className="mt-10 grid gap-8 xl:grid-cols-[1.9fr_1fr]">

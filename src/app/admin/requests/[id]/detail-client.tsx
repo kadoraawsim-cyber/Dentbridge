@@ -3,7 +3,17 @@
 import React, { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { ArrowLeft, Calendar, Clock, LogOut, Phone, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, Calendar, CheckCircle2, Clock, LogOut, Phone, ShieldCheck, XCircle } from 'lucide-react'
+
+type StudentCaseRequest = {
+  id: string
+  student_email: string
+  status: string
+  clinical_notes: string | null
+  reviewed_by: string | null
+  reviewed_at: string | null
+  created_at: string
+}
 
 type PatientRequest = {
   id: string
@@ -31,7 +41,21 @@ type PatientRequest = {
 interface Props {
   initialRequest: PatientRequest
   adminEmail: string
+  initialStudentRequests: StudentCaseRequest[]
 }
+
+// Used to determine which lifecycle steps have been reached when rendering
+// the status trail in the Lifecycle section.
+const STATUS_ORDER = [
+  'submitted',
+  'under_review',
+  'matched',
+  'student_approved',
+  'contacted',
+  'appointment_scheduled',
+  'in_treatment',
+  'completed',
+]
 
 const departmentOptions = [
   'Endodontics',
@@ -95,12 +119,20 @@ function getStatusBadgeClass(status: string) {
       return 'bg-amber-50 text-amber-700 border border-amber-200'
     case 'matched':
       return 'bg-violet-50 text-violet-700 border border-violet-200'
+    case 'student_approved':
+      return 'bg-blue-50 text-blue-700 border border-blue-200'
     case 'contacted':
       return 'bg-cyan-50 text-cyan-700 border border-cyan-200'
+    case 'appointment_scheduled':
+      return 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+    case 'in_treatment':
+      return 'bg-purple-50 text-purple-700 border border-purple-200'
     case 'completed':
       return 'bg-emerald-50 text-emerald-700 border border-emerald-200'
     case 'rejected':
       return 'bg-rose-50 text-rose-700 border border-rose-200'
+    case 'cancelled':
+      return 'bg-slate-100 text-slate-500 border border-slate-200'
     default:
       return 'bg-slate-100 text-slate-700 border border-slate-200'
   }
@@ -122,7 +154,7 @@ function waitingDays(iso: string | null): string {
   return `Waiting ${days} days`
 }
 
-export function CaseDetailClient({ initialRequest, adminEmail }: Props) {
+export function CaseDetailClient({ initialRequest, adminEmail, initialStudentRequests }: Props) {
   const [request, setRequest] = useState<PatientRequest>(initialRequest)
   const [errorMessage, setErrorMessage] = useState('')
   const [saving, setSaving] = useState(false)
@@ -131,6 +163,15 @@ export function CaseDetailClient({ initialRequest, adminEmail }: Props) {
 
   // 'reject' or 'approve' means a confirmation is pending; null means normal button state
   const [pendingAction, setPendingAction] = useState<'reject' | 'approve' | null>(null)
+
+  // Lifecycle action currently in flight (post-pool stage transitions)
+  const [lifecycleLoading, setLifecycleLoading] = useState(false)
+
+  // Student request management
+  const [studentRequests, setStudentRequests] =
+    useState<StudentCaseRequest[]>(initialStudentRequests)
+  // Which request_id is currently being approved/rejected (disables that row's buttons)
+  const [requestActionId, setRequestActionId] = useState<string | null>(null)
 
   const [assignedDepartment, setAssignedDepartment] = useState(
     keywordRoutingHint(initialRequest.treatment_type, initialRequest.assigned_department)
@@ -151,10 +192,22 @@ export function CaseDetailClient({ initialRequest, adminEmail }: Props) {
     return request.attachment_name
   }, [request])
 
-  // Terminal states: matched = released to pool; rejected/completed = case closed.
-  const isTerminal = ['matched', 'rejected', 'completed'].includes(
-    (request.status || '').toLowerCase()
-  )
+  const currentStatus = (request.status || '').toLowerCase()
+
+  // Triage phase: faculty can edit department/urgency/notes and approve/reject
+  const isTriagePhase = ['submitted', 'under_review'].includes(currentStatus)
+
+  // Lifecycle phase: case is active post-pool; faculty advances through stages
+  const isLifecyclePhase = [
+    'matched', 'student_approved', 'contacted',
+    'appointment_scheduled', 'in_treatment',
+  ].includes(currentStatus)
+
+  // Closed: no further actions possible
+  const isClosed = ['rejected', 'completed', 'cancelled'].includes(currentStatus)
+
+  // Keep the old isTerminal alias so the triage form disable logic still works
+  const isTerminal = !isTriagePhase
 
   async function handleViewAttachment() {
     if (!request.attachment_path) return
@@ -181,6 +234,93 @@ export function CaseDetailClient({ initialRequest, adminEmail }: Props) {
   function showSaved(message: string) {
     setSaveSuccess(message)
     setTimeout(() => setSaveSuccess(''), 3000)
+  }
+
+  async function handleStudentRequestAction(
+    requestId: string,
+    action: 'approve_student_request' | 'reject_student_request'
+  ) {
+    setRequestActionId(requestId)
+    setErrorMessage('')
+
+    const res = await fetch(`/api/admin/cases/${request.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, request_id: requestId }),
+    })
+
+    setRequestActionId(null)
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Unknown error' }))
+      setErrorMessage((err as { error?: string }).error ?? 'Failed to update student request.')
+      return
+    }
+
+    const { data: resultData } = (await res.json()) as { data: { status: string } }
+
+    setStudentRequests((prev) =>
+      prev.map((r) =>
+        r.id === requestId
+          ? {
+              ...r,
+              status: resultData.status,
+              reviewed_by: adminEmail,
+              reviewed_at: new Date().toISOString(),
+            }
+          : // auto-reject other pending rows when one is approved
+            action === 'approve_student_request' && r.status === 'pending'
+            ? { ...r, status: 'rejected', reviewed_by: adminEmail, reviewed_at: new Date().toISOString() }
+            : r
+      )
+    )
+
+    // Approving a student advances the case to student_approved
+    if (action === 'approve_student_request') {
+      setRequest((prev) => ({
+        ...prev,
+        status: 'student_approved',
+        reviewed_by: adminEmail,
+        reviewed_at: new Date().toISOString(),
+      }))
+    }
+  }
+
+  async function handleLifecycleAction(
+    action:
+      | 'mark_contacted'
+      | 'mark_appointment_scheduled'
+      | 'mark_in_treatment'
+      | 'mark_completed'
+      | 'mark_cancelled'
+  ) {
+    setLifecycleLoading(true)
+    setErrorMessage('')
+
+    const res = await fetch(`/api/admin/cases/${request.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action }),
+    })
+
+    setLifecycleLoading(false)
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Unknown error' }))
+      setErrorMessage((err as { error?: string }).error ?? 'Failed to update case status.')
+      return
+    }
+
+    const { data } = (await res.json()) as {
+      data: { status: string; reviewed_by: string | null; reviewed_at: string }
+    }
+    setRequest((prev) => ({
+      ...prev,
+      status: data.status,
+      reviewed_by: data.reviewed_by,
+      reviewed_at: data.reviewed_at,
+    }))
+    showSaved(`Status updated to ${data.status.replace(/_/g, ' ')}.`)
   }
 
   async function handleSaveDraft() {
@@ -685,6 +825,206 @@ export function CaseDetailClient({ initialRequest, adminEmail }: Props) {
             </div>
           </div>
         </div>
+
+        {/* Lifecycle actions — visible once the case is in the post-pool phase */}
+        {(isLifecyclePhase || isClosed) && (
+          <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="mb-5 text-lg font-bold text-slate-900">Case Lifecycle</h3>
+
+            {/* Status trail */}
+            <div className="mb-6 grid grid-cols-2 gap-x-8 gap-y-4 text-sm sm:grid-cols-4">
+              {[
+                { key: 'matched',               label: 'Released to Pool' },
+                { key: 'student_approved',       label: 'Student Assigned' },
+                { key: 'contacted',              label: 'Patient Contacted' },
+                { key: 'appointment_scheduled',  label: 'Appt. Scheduled' },
+                { key: 'in_treatment',           label: 'In Treatment' },
+                { key: 'completed',              label: 'Completed' },
+                { key: 'cancelled',              label: 'Cancelled' },
+              ].map((step) => {
+                const reached =
+                  STATUS_ORDER.indexOf(currentStatus) >= STATUS_ORDER.indexOf(step.key) ||
+                  (currentStatus === 'cancelled' && step.key === 'cancelled') ||
+                  (currentStatus === 'completed' && step.key === 'completed')
+                return (
+                  <div key={step.key} className="flex items-center gap-2">
+                    {currentStatus === step.key ? (
+                      <div className="h-2 w-2 shrink-0 rounded-full border-2 border-teal-500 bg-white" />
+                    ) : reached ? (
+                      <div className="h-2 w-2 shrink-0 rounded-full bg-teal-500" />
+                    ) : (
+                      <div className="h-2 w-2 shrink-0 rounded-full bg-slate-200" />
+                    )}
+                    <span
+                      className={`text-xs font-medium ${
+                        currentStatus === step.key
+                          ? 'text-teal-700'
+                          : reached
+                          ? 'text-slate-600'
+                          : 'text-slate-400'
+                      }`}
+                    >
+                      {step.label}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Action buttons */}
+            {isLifecyclePhase && (
+              <div className="flex flex-wrap gap-3 border-t border-slate-100 pt-5">
+                {currentStatus === 'student_approved' && (
+                  <button
+                    type="button"
+                    onClick={() => handleLifecycleAction('mark_contacted')}
+                    disabled={lifecycleLoading}
+                    className="rounded-xl bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:opacity-60"
+                  >
+                    {lifecycleLoading ? '…' : 'Mark Patient Contacted'}
+                  </button>
+                )}
+                {currentStatus === 'contacted' && (
+                  <button
+                    type="button"
+                    onClick={() => handleLifecycleAction('mark_appointment_scheduled')}
+                    disabled={lifecycleLoading}
+                    className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60"
+                  >
+                    {lifecycleLoading ? '…' : 'Mark Appointment Scheduled'}
+                  </button>
+                )}
+                {currentStatus === 'appointment_scheduled' && (
+                  <button
+                    type="button"
+                    onClick={() => handleLifecycleAction('mark_in_treatment')}
+                    disabled={lifecycleLoading}
+                    className="rounded-xl bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-purple-700 disabled:opacity-60"
+                  >
+                    {lifecycleLoading ? '…' : 'Mark In Treatment'}
+                  </button>
+                )}
+                {currentStatus === 'in_treatment' && (
+                  <button
+                    type="button"
+                    onClick={() => handleLifecycleAction('mark_completed')}
+                    disabled={lifecycleLoading}
+                    className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+                  >
+                    {lifecycleLoading ? '…' : 'Mark Treatment Completed'}
+                  </button>
+                )}
+                <div className="ml-auto">
+                  <button
+                    type="button"
+                    onClick={() => handleLifecycleAction('mark_cancelled')}
+                    disabled={lifecycleLoading}
+                    className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-60"
+                  >
+                    Mark Cancelled
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {isClosed && (
+              <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+                {currentStatus === 'completed' ? (
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                ) : (
+                  <XCircle className="h-4 w-4 shrink-0 text-slate-400" />
+                )}
+                {currentStatus === 'completed'
+                  ? 'Treatment completed. This case is closed.'
+                  : currentStatus === 'cancelled'
+                  ? 'This case has been cancelled.'
+                  : 'This case is closed.'}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Student Requests — visible when case is in pool or requests exist */}
+        {(isLifecyclePhase || isClosed || studentRequests.length > 0) && (
+          <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-slate-900">Student Requests</h3>
+              {studentRequests.length > 0 && (
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                  {studentRequests.length} request{studentRequests.length !== 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+
+            {studentRequests.length === 0 ? (
+              <p className="text-sm text-slate-400">
+                No students have requested this case yet.
+              </p>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {studentRequests.map((req) => (
+                  <div
+                    key={req.id}
+                    className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-slate-900">
+                        {req.student_email}
+                      </p>
+                      <p className="mt-0.5 text-xs text-slate-400">
+                        Requested {formatReviewDate(req.created_at)}
+                      </p>
+                      {req.reviewed_by && (
+                        <p className="mt-0.5 text-xs text-slate-400">
+                          Reviewed by {req.reviewed_by} · {formatReviewDate(req.reviewed_at)}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-3">
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          req.status === 'approved'
+                            ? 'border border-emerald-200 bg-emerald-50 text-emerald-700'
+                            : req.status === 'rejected'
+                              ? 'border border-red-200 bg-red-50 text-red-700'
+                              : 'border border-amber-200 bg-amber-50 text-amber-700'
+                        }`}
+                      >
+                        {req.status.toUpperCase()}
+                      </span>
+
+                      {req.status === 'pending' && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleStudentRequestAction(req.id, 'approve_student_request')
+                            }
+                            disabled={requestActionId === req.id}
+                            className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+                          >
+                            {requestActionId === req.id ? '…' : 'Approve'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleStudentRequestAction(req.id, 'reject_student_request')
+                            }
+                            disabled={requestActionId === req.id}
+                            className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-60"
+                          >
+                            Reject
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </section>
     </main>
   )
