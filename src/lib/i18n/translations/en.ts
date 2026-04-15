@@ -200,6 +200,154 @@ export type TranslationShape = {
     footerNote: string
   }
 
+  // ── Student portal ─────────────────────────────────────────────────────────
+  student: {
+    login: {
+      checkingSession: string
+      clinicalPlatform: string
+      title: string
+      subtitle: string
+      emailLabel: string
+      passwordLabel: string
+      showPassword: string
+      hidePassword: string
+      signingIn: string
+      signIn: string
+      clinicalStudentsOnly: string
+      facultyAdminQuestion: string
+      adminPortalLink: string
+      patientQuestion: string
+      submitRequest: string
+      checkStatus: string
+      noAccountNeeded: string
+      errorInvalidCredentials: string
+      errorNotStudentPortal: string
+      errorNoRole: string
+    }
+    nav: {
+      clinicalPlatform: string
+      dashboard: string
+      casePool: string
+      exchange: string
+      signOut: string
+      availableCases: string
+    }
+    dashboard: {
+      welcomeBack: string
+      enrolledActive: string
+      browseCases: string
+      caseNeedsAttention: string
+      casesNeedAttention: string
+      actionNeededSuffix: string
+      statPendingLabel: string
+      statPendingDesc: string
+      statActiveLabel: string
+      statActiveCases: string
+      statNoActiveCases: string
+      statInPoolLabel: string
+      statInPoolDesc: string
+      statUrgentLabel: string
+      statUrgentDesc: string
+      myActiveCases: string
+      assigned: string
+      stepContacted: string
+      stepApptSet: string
+      stepInTreatment: string
+      statusReadyToContact: string
+      statusPatientContacted: string
+      statusApptConfirmed: string
+      statusInTreatmentDesc: string
+      statusCompleted: string
+      statusCancelled: string
+      patientContact: string
+      actionNeededBadge: string
+      btnMarkContacted: string
+      btnMarkApptScheduled: string
+      btnMarkInTreatment: string
+      updating: string
+      treatmentInProgress: string
+      caseClosed: string
+      caseCancelledText: string
+      recentlyInPool: string
+      caseAvailable: string
+      casesAvailable: string
+      viewAll: string
+      tableCase: string
+      tableTreatment: string
+      tableDept: string
+      tableUrgency: string
+      noCasesInPool: string
+      noCasesInPoolDesc: string
+      view: string
+      quickActions: string
+      browseCasePool: string
+      casesOpen: string
+      findAvailableCases: string
+      caseExchange: string
+      tradeCases: string
+      clinicalRequirements: string
+      caseLogComingSoon: string
+      requestPendingReview: string
+      requestsPendingReview: string
+      pendingRequestsDesc: string
+    }
+    cases: {
+      backToDashboard: string
+      pageTitle: string
+      pageDesc: string
+      searchPlaceholder: string
+      filterAll: string
+      filterMyRequests: string
+      deptLabel: string
+      requestPendingReview: string
+      requestsPendingReview: string
+      pendingNoteNotify: string
+      emptyNoRequests: string
+      emptyNoRequestsDesc: string
+      emptyNoPool: string
+      emptyNoPoolDesc: string
+      emptyNoMatch: string
+      emptyNoMatchDesc: string
+      clearFilters: string
+      requiredLevel: string
+      availability: string
+      patientContact: string
+      contactPatientMsg: string
+      btnRequest: string
+      submitting: string
+      badgeApproved: string
+      badgePending: string
+      pendingFacultyReview: string
+      approvedCheckDashboard: string
+      requestDeclined: string
+      unassigned: string
+    }
+    exchange: {
+      backToDashboard: string
+      pageTitle: string
+      pageDesc: string
+      exchangesPending: string
+      previewNote: string
+      previewDesc: string
+      myActiveCases: string
+      myActiveCasesDesc: string
+      realDataNote: string
+      active: string
+      offerForExchange: string
+      exchangePosted: string
+      howExchangesWorkTitle: string
+      howExchangesWorkDesc: string
+      exchangeBoard: string
+      open: string
+      exchangeBoardDesc: string
+      offeredBy: string
+      patient: string
+      acceptedAwaitingApproval: string
+      acceptExchange: string
+      availableCases: string
+    }
+  }
+
   // ── Footer ──────────────────────────────────────────────────────────────────
   footer: {
     tagline: string
@@ -494,6 +642,153 @@ export const en: TranslationShape = {
     pendingReview: 'Pending review',
     footerNote:
       'Showing your most recent request. For questions, contact the clinic directly.',
+  },
+
+  student: {
+    login: {
+      checkingSession: 'Checking session\u2026',
+      clinicalPlatform: 'Clinical Platform',
+      title: 'Student Sign In',
+      subtitle: 'Clinical students only. Use your university credentials to access the case dashboard.',
+      emailLabel: 'Email address',
+      passwordLabel: 'Password',
+      showPassword: 'Show password',
+      hidePassword: 'Hide password',
+      signingIn: 'Signing in\u2026',
+      signIn: 'Sign In',
+      clinicalStudentsOnly: 'Clinical students only',
+      facultyAdminQuestion: 'Are you faculty or an administrator?',
+      adminPortalLink: 'Admin portal login',
+      patientQuestion: 'Are you a patient?',
+      submitRequest: 'Submit a request',
+      checkStatus: 'check your status',
+      noAccountNeeded: 'No account needed.',
+      errorInvalidCredentials: 'Invalid email or password. Please try again.',
+      errorNotStudentPortal: 'This account is not allowed to use the student portal.',
+      errorNoRole: 'Your account does not have an assigned role. Contact the platform administrator.',
+    },
+    nav: {
+      clinicalPlatform: 'Clinical Platform',
+      dashboard: 'Dashboard',
+      casePool: 'Case Pool',
+      exchange: 'Exchange',
+      signOut: 'Sign Out',
+      availableCases: 'Available Cases',
+    },
+    dashboard: {
+      welcomeBack: 'Good to have you back',
+      enrolledActive: 'Enrolled & Active',
+      browseCases: 'Browse Cases',
+      caseNeedsAttention: '1 case needs your attention',
+      casesNeedAttention: 'cases need your attention',
+      actionNeededSuffix: '\u2014 scroll down to update the status of your active cases.',
+      statPendingLabel: 'Pending',
+      statPendingDesc: 'Awaiting faculty',
+      statActiveLabel: 'Active',
+      statActiveCases: 'Cases assigned to you',
+      statNoActiveCases: 'No active cases yet',
+      statInPoolLabel: 'In Pool',
+      statInPoolDesc: 'Open to request',
+      statUrgentLabel: 'Urgent',
+      statUrgentDesc: 'High-priority cases',
+      myActiveCases: 'My Active Cases',
+      assigned: 'assigned',
+      stepContacted: 'Contacted',
+      stepApptSet: 'Appt. Set',
+      stepInTreatment: 'In Treatment',
+      statusReadyToContact: 'Ready to contact \u2014 reach out to schedule the appointment',
+      statusPatientContacted: 'Patient contacted \u2014 confirm appointment date and time',
+      statusApptConfirmed: 'Appointment confirmed \u2014 mark when treatment begins',
+      statusInTreatmentDesc: 'Treatment in progress \u2014 faculty will close this case',
+      statusCompleted: 'Treatment completed',
+      statusCancelled: 'This case has been cancelled',
+      patientContact: 'Patient Contact',
+      actionNeededBadge: 'ACTION NEEDED',
+      btnMarkContacted: 'Mark Patient Contacted',
+      btnMarkApptScheduled: 'Mark Appointment Scheduled',
+      btnMarkInTreatment: 'Mark In Treatment',
+      updating: 'Updating\u2026',
+      treatmentInProgress: 'Treatment in progress \u2014 faculty will close case',
+      caseClosed: 'Case closed \u2014 treatment completed',
+      caseCancelledText: 'Case cancelled',
+      recentlyInPool: 'Recently in Pool',
+      caseAvailable: 'case available',
+      casesAvailable: 'cases available',
+      viewAll: 'View All',
+      tableCase: 'Case',
+      tableTreatment: 'Treatment',
+      tableDept: 'Dept.',
+      tableUrgency: 'Urgency',
+      noCasesInPool: 'No cases in the pool yet',
+      noCasesInPoolDesc: 'Faculty releases cases after review. Check back soon.',
+      view: 'View',
+      quickActions: 'Quick Actions',
+      browseCasePool: 'Browse Case Pool',
+      casesOpen: 'cases open',
+      findAvailableCases: 'Find available cases',
+      caseExchange: 'Case Exchange',
+      tradeCases: 'Trade cases with peers',
+      clinicalRequirements: 'Clinical Requirements',
+      caseLogComingSoon: 'Case log \u2014 coming soon',
+      requestPendingReview: '1 request pending review',
+      requestsPendingReview: 'requests pending review',
+      pendingRequestsDesc: 'Faculty will review your requests and send a decision. No action needed on your end.',
+    },
+    cases: {
+      backToDashboard: 'Back to Dashboard',
+      pageTitle: 'Case Pool',
+      pageDesc: 'Faculty-approved cases open for student requests. Find cases that match your department rotation and training level.',
+      searchPlaceholder: 'Search treatment, city\u2026',
+      filterAll: 'All Cases',
+      filterMyRequests: 'My Requests',
+      deptLabel: 'Dept:',
+      requestPendingReview: '1 request pending faculty review.',
+      requestsPendingReview: 'requests pending faculty review.',
+      pendingNoteNotify: "You'll be notified once a decision is made.",
+      emptyNoRequests: 'No requests yet',
+      emptyNoRequestsDesc: 'Switch to \u201cAll Cases\u201d to browse the pool and request a case.',
+      emptyNoPool: 'No cases in the pool yet',
+      emptyNoPoolDesc: 'Faculty releases cases after triage. Check back soon.',
+      emptyNoMatch: 'No cases match your filter',
+      emptyNoMatchDesc: 'Try a different department filter or clear your search.',
+      clearFilters: 'Clear filters',
+      requiredLevel: 'Required level:',
+      availability: 'Availability:',
+      patientContact: 'Patient Contact',
+      contactPatientMsg: 'Contact the patient to schedule their appointment.',
+      btnRequest: 'Request This Case',
+      submitting: 'Submitting\u2026',
+      badgeApproved: 'APPROVED',
+      badgePending: 'PENDING',
+      pendingFacultyReview: 'Pending Faculty Review',
+      approvedCheckDashboard: 'Approved \u2014 check your dashboard',
+      requestDeclined: 'Request Declined',
+      unassigned: 'Unassigned',
+    },
+    exchange: {
+      backToDashboard: 'Back to Dashboard',
+      pageTitle: 'Case Exchange',
+      pageDesc: 'Offer your active cases for exchange or accept cases from other students. All exchanges require faculty approval before taking effect.',
+      exchangesPending: 'Exchanges pending faculty approval',
+      previewNote: 'Preview \u2014 this page shows example data only.',
+      previewDesc: 'Case exchange is not yet connected to the database. No actions on this page will write any data. The full workflow will be enabled once the exchange table and faculty approval step are built.',
+      myActiveCases: 'My Active Cases',
+      myActiveCasesDesc: 'Example cases shown below.',
+      realDataNote: 'Real data requires assignment tracking.',
+      active: 'Active',
+      offerForExchange: 'Offer for Exchange',
+      exchangePosted: 'Exchange request posted',
+      howExchangesWorkTitle: 'How exchanges work:',
+      howExchangesWorkDesc: 'Post a case to the board, another student accepts it, and a faculty member confirms the swap before it takes effect.',
+      exchangeBoard: 'Exchange Board',
+      open: 'open',
+      exchangeBoardDesc: 'Cases offered by other students. Accept one to initiate the swap request.',
+      offeredBy: 'Offered by',
+      patient: 'Patient:',
+      acceptedAwaitingApproval: 'Accepted \u2014 awaiting faculty approval',
+      acceptExchange: 'Accept Exchange',
+      availableCases: 'Available Cases',
+    },
   },
 
   footer: {

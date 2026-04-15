@@ -5,9 +5,12 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { GraduationCap, Eye, EyeOff } from 'lucide-react'
+import { useI18n } from '@/lib/i18n'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 export default function StudentLoginPage() {
   const router = useRouter()
+  const { t } = useI18n()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -53,7 +56,7 @@ export default function StudentLoginPage() {
     setLoading(false)
 
     if (error) {
-      setErrorMessage('Invalid email or password. Please try again.')
+      setErrorMessage(t('student.login.errorInvalidCredentials'))
       return
     }
 
@@ -65,8 +68,8 @@ export default function StudentLoginPage() {
       await supabase.auth.signOut()
       setErrorMessage(
         role === 'admin'
-          ? 'This account is not allowed to use the student portal.'
-          : 'Your account does not have an assigned role. Contact the platform administrator.'
+          ? t('student.login.errorNotStudentPortal')
+          : t('student.login.errorNoRole')
       )
     }
   }
@@ -74,41 +77,44 @@ export default function StudentLoginPage() {
   if (checking) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-50">
-        <p className="text-sm text-slate-500">Checking session…</p>
+        <p className="text-sm text-slate-500">{t('student.login.checkingSession')}</p>
       </main>
     )
   }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4 py-12">
-      <Link href="/" className="mb-8 flex items-center gap-3">
-        <img
-          src="/dentbridge-icon.png"
-          alt="DentBridge icon"
-          className="h-9 w-9 object-contain"
-        />
-        <div>
-          <p className="text-[15px] font-bold leading-none text-slate-900">DentBridge</p>
-          <p className="text-[10px] uppercase tracking-wider text-slate-400">Clinical Platform</p>
-        </div>
-      </Link>
+      <div className="mb-6 flex w-full max-w-md items-center justify-between">
+        <Link href="/" className="flex items-center gap-3">
+          <img
+            src="/dentbridge-icon.png"
+            alt="DentBridge icon"
+            className="h-9 w-9 object-contain"
+          />
+          <div>
+            <p className="text-[15px] font-bold leading-none text-slate-900">DentBridge</p>
+            <p className="text-[10px] uppercase tracking-wider text-slate-400">
+              {t('student.login.clinicalPlatform')}
+            </p>
+          </div>
+        </Link>
+        <LanguageSwitcher />
+      </div>
 
       <div className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="p-8">
           <div className="mb-6">
             <div className="mb-3 flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-teal-500" />
-              <h1 className="text-xl font-semibold text-slate-900">Student Sign In</h1>
+              <h1 className="text-xl font-semibold text-slate-900">{t('student.login.title')}</h1>
             </div>
-            <p className="text-sm text-slate-500">
-              Clinical students only. Use your university credentials to access the case dashboard.
-            </p>
+            <p className="text-sm text-slate-500">{t('student.login.subtitle')}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="mb-2 block text-sm font-medium text-slate-700">
-                Email address
+                {t('student.login.emailLabel')}
               </label>
               <input
                 type="email"
@@ -123,7 +129,7 @@ export default function StudentLoginPage() {
 
             <div>
               <label className="mb-2 block text-sm font-medium text-slate-700">
-                Password
+                {t('student.login.passwordLabel')}
               </label>
               <div className="relative">
                 <input
@@ -131,7 +137,7 @@ export default function StudentLoginPage() {
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;"
                   required
                   className="w-full rounded-xl border border-slate-300 px-4 py-3 pr-11 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-slate-900"
                 />
@@ -139,7 +145,7 @@ export default function StudentLoginPage() {
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? t('student.login.hidePassword') : t('student.login.showPassword')}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -160,7 +166,7 @@ export default function StudentLoginPage() {
               {loading && (
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
               )}
-              {loading ? 'Signing in…' : 'Sign In'}
+              {loading ? t('student.login.signingIn') : t('student.login.signIn')}
             </button>
           </form>
         </div>
@@ -168,25 +174,25 @@ export default function StudentLoginPage() {
         <div className="border-t border-slate-100 bg-slate-50/70 px-8 py-5">
           <div className="flex items-center gap-2 text-xs text-slate-500">
             <GraduationCap className="h-3.5 w-3.5 shrink-0 text-blue-500" />
-            Clinical students only
+            {t('student.login.clinicalStudentsOnly')}
           </div>
           <div className="mt-4 space-y-1 border-t border-slate-100 pt-4 text-xs text-slate-400">
             <p>
-              Are you faculty or an administrator?{' '}
+              {t('student.login.facultyAdminQuestion')}{' '}
               <Link href="/admin/login" className="text-teal-600 hover:underline">
-                Admin portal login
+                {t('student.login.adminPortalLink')}
               </Link>
             </p>
             <p>
-              Are you a patient?{' '}
+              {t('student.login.patientQuestion')}{' '}
               <Link href="/patient/request" className="text-teal-600 hover:underline">
-                Submit a request
+                {t('student.login.submitRequest')}
               </Link>{' '}
               or{' '}
               <Link href="/patient/status" className="text-teal-600 hover:underline">
-                check your status
+                {t('student.login.checkStatus')}
               </Link>
-              . No account needed.
+              . {t('student.login.noAccountNeeded')}
             </p>
           </div>
         </div>

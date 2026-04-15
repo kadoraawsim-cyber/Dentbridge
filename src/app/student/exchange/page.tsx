@@ -14,6 +14,8 @@ import {
   CheckCircle2,
   Clock,
 } from 'lucide-react'
+import { useI18n } from '@/lib/i18n'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 // Mock data — replace with Supabase `exchange_requests` table when ready.
 // Schema hint: id, case_id (→ patient_requests), offered_by (→ students),
@@ -123,12 +125,13 @@ function getUrgencyBadgeClass(urgency: string) {
 
 export default function StudentExchangePage() {
   const router = useRouter()
+  const { t } = useI18n()
   const [acceptedId, setAcceptedId] = useState<string | null>(null)
   const [offeredId, setOfferedId] = useState<string | null>(null)
 
   async function handleSignOut() {
     await supabase.auth.signOut()
-    router.replace('/login')
+    router.replace('/student/login')
   }
 
   function handleAccept(id: string) {
@@ -154,37 +157,25 @@ export default function StudentExchangePage() {
             <div>
               <p className="text-lg font-bold leading-none text-slate-900">DentBridge</p>
               <p className="text-[11px] uppercase tracking-wide text-slate-500">
-                Faculty-Supported Clinical Platform
+                {t('student.nav.clinicalPlatform')}
               </p>
             </div>
           </Link>
 
           <nav className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
             <Link href="/student/dashboard" className="hover:text-slate-900">
-              Dashboard
+              {t('student.nav.dashboard')}
             </Link>
             <Link href="/student/cases" className="hover:text-slate-900">
-              Available Cases
+              {t('student.nav.availableCases')}
             </Link>
             <Link href="/student/exchange" className="text-slate-900">
-              Case Exchange
+              {t('student.nav.exchange')}
             </Link>
           </nav>
 
           <div className="flex items-center gap-3">
-            <div className="hidden items-center rounded-full border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-600 sm:flex">
-              <button type="button" className="rounded px-1 text-slate-900">
-                EN
-              </button>
-              <span className="text-slate-300">|</span>
-              <button type="button" className="rounded px-1 hover:text-slate-900">
-                TR
-              </button>
-              <span className="text-slate-300">|</span>
-              <button type="button" className="rounded px-1 hover:text-slate-900">
-                AR
-              </button>
-            </div>
+            <LanguageSwitcher />
             <div className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-500">
               <GraduationCap className="h-4 w-4" />
             </div>
@@ -194,7 +185,7 @@ export default function StudentExchangePage() {
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
             >
               <LogOut className="h-3.5 w-3.5" />
-              Sign Out
+              {t('student.nav.signOut')}
             </button>
           </div>
         </div>
@@ -207,31 +198,32 @@ export default function StudentExchangePage() {
             className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-900"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
+            {t('student.exchange.backToDashboard')}
           </Link>
 
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h1 className="text-4xl font-bold tracking-tight text-slate-900">Case Exchange</h1>
+              <h1 className="text-4xl font-bold tracking-tight text-slate-900">
+                {t('student.exchange.pageTitle')}
+              </h1>
               <p className="mt-3 max-w-2xl text-base leading-relaxed text-slate-600">
-                Offer your active cases for exchange or accept cases from other students. All
-                exchanges require faculty approval before taking effect.
+                {t('student.exchange.pageDesc')}
               </p>
             </div>
 
             <div className="flex shrink-0 items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
               <Clock className="h-4 w-4 shrink-0 text-amber-600" />
-              Exchanges pending faculty approval
+              {t('student.exchange.exchangesPending')}
             </div>
           </div>
         </div>
 
         <div className="mb-8 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
           <p className="text-sm font-semibold text-amber-800">
-            Preview — this page shows example data only.
+            {t('student.exchange.previewNote')}
           </p>
           <p className="mt-1 text-sm text-amber-700">
-            Case exchange is not yet connected to the database. No actions on this page will write any data. The full workflow will be enabled once the exchange table and faculty approval step are built.
+            {t('student.exchange.previewDesc')}
           </p>
         </div>
 
@@ -239,11 +231,11 @@ export default function StudentExchangePage() {
           {/* My active cases — eligible for exchange */}
           <div>
             <h2 className="mb-1 text-2xl font-bold tracking-tight text-slate-900">
-              My Active Cases
+              {t('student.exchange.myActiveCases')}
             </h2>
             <p className="mb-5 text-sm text-slate-500">
-              Example cases shown below.{' '}
-              <span className="italic text-slate-400">Real data requires assignment tracking.</span>
+              {t('student.exchange.myActiveCasesDesc')}{' '}
+              <span className="italic text-slate-400">{t('student.exchange.realDataNote')}</span>
             </p>
 
             <div className="space-y-4">
@@ -260,7 +252,7 @@ export default function StudentExchangePage() {
                         {(mc.urgency || '').toUpperCase()}
                       </span>
                       <span className="rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                        Active
+                        {t('student.exchange.active')}
                       </span>
                     </div>
 
@@ -276,7 +268,7 @@ export default function StudentExchangePage() {
                     {offeredId === mc.id ? (
                       <div className="flex items-center justify-center gap-2 text-sm font-semibold text-emerald-700">
                         <CheckCircle2 className="h-4 w-4" />
-                        Exchange request posted
+                        {t('student.exchange.exchangePosted')}
                       </div>
                     ) : (
                       <button
@@ -285,7 +277,7 @@ export default function StudentExchangePage() {
                         className="flex w-full items-center justify-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-semibold text-violet-800 transition hover:bg-violet-100"
                       >
                         <RefreshCw className="h-4 w-4" />
-                        Offer for Exchange
+                        {t('student.exchange.offerForExchange')}
                       </button>
                     )}
                   </div>
@@ -295,9 +287,8 @@ export default function StudentExchangePage() {
 
             <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5">
               <p className="text-sm leading-relaxed text-slate-600">
-                <strong className="text-slate-800">How exchanges work:</strong> Post a case to the
-                board, another student accepts it, and a faculty member confirms the swap before it
-                takes effect.
+                <strong className="text-slate-800">{t('student.exchange.howExchangesWorkTitle')}</strong>{' '}
+                {t('student.exchange.howExchangesWorkDesc')}
               </p>
             </div>
           </div>
@@ -305,13 +296,15 @@ export default function StudentExchangePage() {
           {/* Exchange board */}
           <div>
             <div className="mb-1 flex items-center justify-between">
-              <h2 className="text-2xl font-bold tracking-tight text-slate-900">Exchange Board</h2>
+              <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+                {t('student.exchange.exchangeBoard')}
+              </h2>
               <span className="rounded-full bg-blue-900 px-3 py-1 text-xs font-bold text-white">
-                {MOCK_EXCHANGE_BOARD.length} open
+                {MOCK_EXCHANGE_BOARD.length} {t('student.exchange.open')}
               </span>
             </div>
             <p className="mb-5 text-sm text-slate-500">
-              Cases offered by other students. Accept one to initiate the swap request.
+              {t('student.exchange.exchangeBoardDesc')}
             </p>
 
             <div className="space-y-4">
@@ -333,7 +326,9 @@ export default function StudentExchangePage() {
                     </div>
 
                     <h3 className="text-lg font-bold text-slate-900">{ex.treatment}</h3>
-                    <p className="mt-0.5 text-sm text-slate-500">Patient: {ex.patientName}</p>
+                    <p className="mt-0.5 text-sm text-slate-500">
+                      {t('student.exchange.patient')} {ex.patientName}
+                    </p>
 
                     <div className="mt-2 flex items-center gap-1.5 text-sm text-slate-600">
                       <Stethoscope className="h-3.5 w-3.5 text-blue-500" />
@@ -342,23 +337,23 @@ export default function StudentExchangePage() {
 
                     <div className="mt-4 rounded-lg border border-slate-100 bg-slate-50 p-3">
                       <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Offered by
+                        {t('student.exchange.offeredBy')}
                       </p>
                       <p className="text-sm font-medium text-slate-900">
                         {ex.offeredBy}{' '}
-                        <span className="font-normal text-slate-500">· {ex.offeredByYear}</span>
+                        <span className="font-normal text-slate-500">&middot; {ex.offeredByYear}</span>
                       </p>
-                      <p className="mt-1 text-xs italic text-slate-500">"{ex.reason}"</p>
+                      <p className="mt-1 text-xs italic text-slate-500">&ldquo;{ex.reason}&rdquo;</p>
                     </div>
 
-                    <p className="mt-3 text-xs text-slate-400">Posted {ex.postedAt}</p>
+                    <p className="mt-3 text-xs text-slate-400">{ex.postedAt}</p>
                   </div>
 
                   <div className="border-t border-slate-100 bg-slate-50/70 px-5 py-3">
                     {acceptedId === ex.id ? (
                       <div className="flex items-center justify-center gap-2 text-sm font-semibold text-emerald-700">
                         <CheckCircle2 className="h-4 w-4" />
-                        Accepted — awaiting faculty approval
+                        {t('student.exchange.acceptedAwaitingApproval')}
                       </div>
                     ) : (
                       <button
@@ -366,7 +361,7 @@ export default function StudentExchangePage() {
                         onClick={() => handleAccept(ex.id)}
                         className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800"
                       >
-                        Accept Exchange
+                        {t('student.exchange.acceptExchange')}
                         <ArrowRight className="h-4 w-4" />
                       </button>
                     )}

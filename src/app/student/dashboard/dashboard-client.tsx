@@ -21,6 +21,8 @@ import {
   AlertCircle,
   Activity,
 } from 'lucide-react'
+import { useI18n } from '@/lib/i18n'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 type PoolCase = {
   id: string
@@ -67,18 +69,6 @@ function getUrgencyBadgeClass(urgency: string) {
   }
 }
 
-function getActiveCaseStatusLabel(status: string) {
-  switch (status) {
-    case 'student_approved':        return 'Ready to contact — reach out to schedule the appointment'
-    case 'contacted':               return 'Patient contacted — confirm appointment date and time'
-    case 'appointment_scheduled':   return 'Appointment confirmed — mark when treatment begins'
-    case 'in_treatment':            return 'Treatment in progress — faculty will close this case'
-    case 'completed':               return 'Treatment completed'
-    case 'cancelled':               return 'This case has been cancelled'
-    default:                        return status.replace(/_/g, ' ')
-  }
-}
-
 function getActiveCaseStatusBadge(status: string): string {
   switch (status) {
     case 'student_approved':        return 'bg-blue-50 text-blue-700 border border-blue-200'
@@ -91,18 +81,6 @@ function getActiveCaseStatusBadge(status: string): string {
   }
 }
 
-function getActiveCaseStatusLabel_short(status: string): string {
-  switch (status) {
-    case 'student_approved':        return 'Assigned'
-    case 'contacted':               return 'Contacted'
-    case 'appointment_scheduled':   return 'Appt. Scheduled'
-    case 'in_treatment':            return 'In Treatment'
-    case 'completed':               return 'Completed'
-    case 'cancelled':               return 'Cancelled'
-    default:                        return status.replace(/_/g, ' ')
-  }
-}
-
 // Maps a lifecycle status to a 0-based step index for the progress rail
 function getStepIndex(status: string): number {
   const order = ['student_approved', 'contacted', 'appointment_scheduled', 'in_treatment', 'completed']
@@ -111,6 +89,7 @@ function getStepIndex(status: string): number {
 
 export function DashboardClient({ poolCases, myRequests, activeCases, studentEmail }: Props) {
   const router = useRouter()
+  const { t } = useI18n()
 
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [actionErrors, setActionErrors] = useState<Record<string, string>>({})
@@ -152,6 +131,30 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
     setLocalStatuses((prev) => ({ ...prev, [caseId]: data.status }))
   }
 
+  function getActiveCaseStatusLabel(status: string): string {
+    switch (status) {
+      case 'student_approved':        return t('student.dashboard.statusReadyToContact')
+      case 'contacted':               return t('student.dashboard.statusPatientContacted')
+      case 'appointment_scheduled':   return t('student.dashboard.statusApptConfirmed')
+      case 'in_treatment':            return t('student.dashboard.statusInTreatmentDesc')
+      case 'completed':               return t('student.dashboard.statusCompleted')
+      case 'cancelled':               return t('student.dashboard.statusCancelled')
+      default:                        return status.replace(/_/g, ' ')
+    }
+  }
+
+  function getActiveCaseStatusLabel_short(status: string): string {
+    switch (status) {
+      case 'student_approved':        return t('student.dashboard.assigned')
+      case 'contacted':               return t('student.dashboard.stepContacted')
+      case 'appointment_scheduled':   return t('student.dashboard.stepApptSet')
+      case 'in_treatment':            return t('student.dashboard.stepInTreatment')
+      case 'completed':               return t('student.dashboard.statusCompleted')
+      case 'cancelled':               return t('student.dashboard.caseCancelledText')
+      default:                        return status.replace(/_/g, ' ')
+    }
+  }
+
   const recentCases = useMemo(() => poolCases.slice(0, 5), [poolCases])
 
   const stats = useMemo(
@@ -172,6 +175,12 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
 
   const studentInitial = (studentEmail[0] ?? 'S').toUpperCase()
 
+  const steps = [
+    { label: t('student.dashboard.stepContacted'),   step: 0 },
+    { label: t('student.dashboard.stepApptSet'),     step: 1 },
+    { label: t('student.dashboard.stepInTreatment'), step: 2 },
+  ]
+
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
       {/* ── Header ──────────────────────────────────────────────────────────── */}
@@ -181,16 +190,18 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
             <img src="/dentbridge-icon.png" alt="DentBridge" className="h-9 w-9 object-contain" />
             <div>
               <p className="text-[15px] font-bold leading-none text-slate-900">DentBridge</p>
-              <p className="text-[10px] uppercase tracking-wider text-slate-400">Clinical Platform</p>
+              <p className="text-[10px] uppercase tracking-wider text-slate-400">
+                {t('student.nav.clinicalPlatform')}
+              </p>
             </div>
           </Link>
 
           <nav className="hidden items-center gap-1 md:flex">
             {[
-              { href: '/student/dashboard', label: 'Dashboard', active: true },
-              { href: '/student/cases',     label: 'Case Pool',  active: false },
-              { href: '/student/exchange',  label: 'Exchange',   active: false },
-            ].map(({ href, label, active }) => (
+              { href: '/student/dashboard', labelKey: 'student.nav.dashboard', active: true },
+              { href: '/student/cases',     labelKey: 'student.nav.casePool',   active: false },
+              { href: '/student/exchange',  labelKey: 'student.nav.exchange',   active: false },
+            ].map(({ href, labelKey, active }) => (
               <Link
                 key={href}
                 href={href}
@@ -200,12 +211,13 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
                     : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                 }`}
               >
-                {label}
+                {t(labelKey)}
               </Link>
             ))}
           </nav>
 
           <div className="flex items-center gap-2">
+            <LanguageSwitcher />
             {actionRequiredCases.length > 0 && (
               <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-amber-50 text-amber-600">
                 <Bell className="h-4 w-4" />
@@ -223,7 +235,7 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
               className="hidden items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 sm:inline-flex"
             >
               <LogOut className="h-3.5 w-3.5" />
-              Sign Out
+              {t('student.nav.signOut')}
             </button>
           </div>
         </div>
@@ -240,14 +252,14 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
               </div>
               <div>
                 <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-                  Good to have you back
+                  {t('student.dashboard.welcomeBack')}
                 </h1>
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
                   <span className="max-w-[220px] truncate text-slate-400">{studentEmail}</span>
                   <span className="hidden h-1 w-1 rounded-full bg-slate-300 sm:block" />
                   <span className="flex items-center gap-1 text-teal-600">
                     <CheckCircle2 className="h-3.5 w-3.5" />
-                    Enrolled &amp; Active
+                    {t('student.dashboard.enrolledActive')}
                   </span>
                 </div>
               </div>
@@ -259,7 +271,7 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
                 className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
                 <Stethoscope className="h-4 w-4" />
-                Browse Cases
+                {t('student.dashboard.browseCases')}
                 {stats.available > 0 && (
                   <span className="ml-0.5 rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">
                     {stats.available}
@@ -271,7 +283,7 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
                 className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
               >
                 <RefreshCw className="h-4 w-4" />
-                Exchange
+                {t('student.nav.exchange')}
               </Link>
             </div>
           </div>
@@ -283,10 +295,10 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
               <p className="text-sm text-amber-800">
                 <span className="font-semibold">
                   {actionRequiredCases.length === 1
-                    ? '1 case needs your attention'
-                    : `${actionRequiredCases.length} cases need your attention`}
+                    ? t('student.dashboard.caseNeedsAttention')
+                    : `${actionRequiredCases.length} ${t('student.dashboard.casesNeedAttention')}`}
                 </span>
-                {' '}— scroll down to update the status of your active cases.
+                {t('student.dashboard.actionNeededSuffix')}
               </p>
             </div>
           )}
@@ -300,9 +312,11 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
               <Clock className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Pending</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                {t('student.dashboard.statPendingLabel')}
+              </p>
               <p className="mt-0.5 text-3xl font-bold tracking-tight text-slate-900">{stats.pending}</p>
-              <p className="mt-0.5 text-xs text-slate-500">Awaiting faculty</p>
+              <p className="mt-0.5 text-xs text-slate-500">{t('student.dashboard.statPendingDesc')}</p>
             </div>
           </div>
 
@@ -312,10 +326,14 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
               <UserCheck className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Active</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                {t('student.dashboard.statActiveLabel')}
+              </p>
               <p className="mt-0.5 text-3xl font-bold tracking-tight text-slate-900">{stats.approved}</p>
               <p className="mt-0.5 text-xs text-emerald-600">
-                {stats.approved > 0 ? 'Cases assigned to you' : 'No active cases yet'}
+                {stats.approved > 0
+                  ? t('student.dashboard.statActiveCases')
+                  : t('student.dashboard.statNoActiveCases')}
               </p>
             </div>
           </div>
@@ -326,9 +344,11 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
               <Activity className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">In Pool</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                {t('student.dashboard.statInPoolLabel')}
+              </p>
               <p className="mt-0.5 text-3xl font-bold tracking-tight text-slate-900">{stats.available}</p>
-              <p className="mt-0.5 text-xs text-blue-600">Open to request</p>
+              <p className="mt-0.5 text-xs text-blue-600">{t('student.dashboard.statInPoolDesc')}</p>
             </div>
           </div>
 
@@ -338,9 +358,11 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
               <TrendingUp className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Urgent</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                {t('student.dashboard.statUrgentLabel')}
+              </p>
               <p className="mt-0.5 text-3xl font-bold tracking-tight text-slate-900">{stats.urgent}</p>
-              <p className="mt-0.5 text-xs text-slate-500">High-priority cases</p>
+              <p className="mt-0.5 text-xs text-slate-500">{t('student.dashboard.statUrgentDesc')}</p>
             </div>
           </div>
         </div>
@@ -349,9 +371,11 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
         {activeCases.length > 0 && (
           <div className="mb-10">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold tracking-tight text-slate-900">My Active Cases</h2>
+              <h2 className="text-xl font-bold tracking-tight text-slate-900">
+                {t('student.dashboard.myActiveCases')}
+              </h2>
               <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                {activeCases.length} assigned
+                {activeCases.length} {t('student.dashboard.assigned')}
               </span>
             </div>
 
@@ -362,14 +386,6 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
                 const error = actionErrors[c.caseId]
                 const isClosed = liveStatus === 'completed' || liveStatus === 'cancelled'
                 const stepIdx = getStepIndex(liveStatus)
-
-                // Steps for the progress rail
-                const steps = [
-                  { label: 'Contacted',    step: 0 },
-                  { label: 'Appt. Set',    step: 1 },
-                  { label: 'In Treatment', step: 2 },
-                  { label: 'Completed',    step: 4 },
-                ]
 
                 return (
                   <div
@@ -385,7 +401,7 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
                         {!isClosed && actionRequiredCases.some(x => x.caseId === c.caseId) && (
                           <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
                             <Bell className="h-2.5 w-2.5" />
-                            ACTION NEEDED
+                            {t('student.dashboard.actionNeededBadge')}
                           </span>
                         )}
                       </div>
@@ -408,7 +424,7 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
                       {!isClosed && (
                         <div className="mt-4">
                           <div className="flex items-center gap-1">
-                            {steps.slice(0, 3).map((s) => {
+                            {steps.map((s) => {
                               const done = stepIdx > s.step
                               const active = stepIdx === s.step
                               return (
@@ -440,7 +456,7 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
                       {/* Patient contact panel */}
                       <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3.5">
                         <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-emerald-600">
-                          Patient Contact
+                          {t('student.dashboard.patientContact')}
                         </p>
                         <p className="text-sm font-bold text-slate-900">{c.full_name}</p>
                         <div className="mt-1 flex items-center gap-1.5 text-sm text-slate-700">
@@ -467,9 +483,9 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
                               className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60"
                             >
                               {isLoading ? (
-                                <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> Updating…</>
+                                <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> {t('student.dashboard.updating')}</>
                               ) : (
-                                <><Phone className="h-4 w-4" /> Mark Patient Contacted</>
+                                <><Phone className="h-4 w-4" /> {t('student.dashboard.btnMarkContacted')}</>
                               )}
                             </button>
                           )}
@@ -482,9 +498,9 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
                               className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60"
                             >
                               {isLoading ? (
-                                <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> Updating…</>
+                                <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> {t('student.dashboard.updating')}</>
                               ) : (
-                                <><CalendarCheck className="h-4 w-4" /> Mark Appointment Scheduled</>
+                                <><CalendarCheck className="h-4 w-4" /> {t('student.dashboard.btnMarkApptScheduled')}</>
                               )}
                             </button>
                           )}
@@ -497,9 +513,9 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
                               className="flex w-full items-center justify-center gap-2 rounded-xl bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-purple-700 disabled:opacity-60"
                             >
                               {isLoading ? (
-                                <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> Updating…</>
+                                <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> {t('student.dashboard.updating')}</>
                               ) : (
-                                <><Stethoscope className="h-4 w-4" /> Mark In Treatment</>
+                                <><Stethoscope className="h-4 w-4" /> {t('student.dashboard.btnMarkInTreatment')}</>
                               )}
                             </button>
                           )}
@@ -507,7 +523,7 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
                           {liveStatus === 'in_treatment' && (
                             <div className="flex items-center justify-center gap-2 rounded-xl border border-purple-200 bg-purple-50 px-4 py-2.5 text-sm font-semibold text-purple-700">
                               <Clock className="h-4 w-4" />
-                              Treatment in progress — faculty will close case
+                              {t('student.dashboard.treatmentInProgress')}
                             </div>
                           )}
                         </div>
@@ -520,7 +536,9 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
                             : 'border-slate-200 bg-slate-50 text-slate-500'
                         }`}>
                           <CheckCircle2 className="h-4 w-4" />
-                          {liveStatus === 'completed' ? 'Case closed — treatment completed' : 'Case cancelled'}
+                          {liveStatus === 'completed'
+                            ? t('student.dashboard.caseClosed')
+                            : t('student.dashboard.caseCancelledText')}
                         </div>
                       )}
                     </div>
@@ -538,13 +556,20 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
           <div>
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold tracking-tight text-slate-900">Recently in Pool</h2>
+                <h2 className="text-xl font-bold tracking-tight text-slate-900">
+                  {t('student.dashboard.recentlyInPool')}
+                </h2>
                 {poolCases.length > 0 && (
-                  <p className="mt-0.5 text-sm text-slate-400">{poolCases.length} case{poolCases.length !== 1 ? 's' : ''} available</p>
+                  <p className="mt-0.5 text-sm text-slate-400">
+                    {poolCases.length}{' '}
+                    {poolCases.length === 1
+                      ? t('student.dashboard.caseAvailable')
+                      : t('student.dashboard.casesAvailable')}
+                  </p>
                 )}
               </div>
               <Link href="/student/cases" className="flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-800">
-                View All <ChevronRight className="h-4 w-4" />
+                {t('student.dashboard.viewAll')} <ChevronRight className="h-4 w-4" />
               </Link>
             </div>
 
@@ -554,19 +579,17 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
                   <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
                     <Stethoscope className="h-6 w-6" />
                   </div>
-                  <p className="font-semibold text-slate-700">No cases in the pool yet</p>
-                  <p className="mt-1 text-sm text-slate-400">
-                    Faculty releases cases after review. Check back soon.
-                  </p>
+                  <p className="font-semibold text-slate-700">{t('student.dashboard.noCasesInPool')}</p>
+                  <p className="mt-1 text-sm text-slate-400">{t('student.dashboard.noCasesInPoolDesc')}</p>
                 </div>
               ) : (
                 <table className="w-full min-w-[520px] border-collapse text-left">
                   <thead>
                     <tr className="border-b border-slate-100 bg-slate-50 text-[11px] uppercase tracking-wider text-slate-400">
-                      <th className="px-5 py-3.5 font-semibold">Case</th>
-                      <th className="px-5 py-3.5 font-semibold">Treatment</th>
-                      <th className="hidden px-5 py-3.5 font-semibold sm:table-cell">Dept.</th>
-                      <th className="px-5 py-3.5 font-semibold">Urgency</th>
+                      <th className="px-5 py-3.5 font-semibold">{t('student.dashboard.tableCase')}</th>
+                      <th className="px-5 py-3.5 font-semibold">{t('student.dashboard.tableTreatment')}</th>
+                      <th className="hidden px-5 py-3.5 font-semibold sm:table-cell">{t('student.dashboard.tableDept')}</th>
+                      <th className="px-5 py-3.5 font-semibold">{t('student.dashboard.tableUrgency')}</th>
                       <th className="px-5 py-3.5 font-semibold text-right"></th>
                     </tr>
                   </thead>
@@ -582,7 +605,7 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
                           {c.treatment_type}
                         </td>
                         <td className="hidden px-5 py-4 text-sm text-slate-500 sm:table-cell">
-                          {c.assigned_department || '—'}
+                          {c.assigned_department || '\u2014'}
                         </td>
                         <td className="px-5 py-4">
                           <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${getUrgencyBadgeClass(c.urgency)}`}>
@@ -592,7 +615,7 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
                         <td className="px-5 py-4 text-right">
                           <Link href="/student/cases">
                             <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 transition group-hover:text-blue-800">
-                              View <ChevronRight className="h-3.5 w-3.5" />
+                              {t('student.dashboard.view')} <ChevronRight className="h-3.5 w-3.5" />
                             </span>
                           </Link>
                         </td>
@@ -606,7 +629,9 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
 
           {/* Sidebar */}
           <div className="space-y-5">
-            <h2 className="text-xl font-bold tracking-tight text-slate-900">Quick Actions</h2>
+            <h2 className="text-xl font-bold tracking-tight text-slate-900">
+              {t('student.dashboard.quickActions')}
+            </h2>
 
             <div className="space-y-3">
               <Link
@@ -618,9 +643,13 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
                     <Stethoscope className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">Browse Case Pool</p>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {t('student.dashboard.browseCasePool')}
+                    </p>
                     <p className="text-xs text-slate-400">
-                      {stats.available > 0 ? `${stats.available} cases open` : 'Find available cases'}
+                      {stats.available > 0
+                        ? `${stats.available} ${t('student.dashboard.casesOpen')}`
+                        : t('student.dashboard.findAvailableCases')}
                     </p>
                   </div>
                 </div>
@@ -636,8 +665,10 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
                     <RefreshCw className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">Case Exchange</p>
-                    <p className="text-xs text-slate-400">Trade cases with peers</p>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {t('student.dashboard.caseExchange')}
+                    </p>
+                    <p className="text-xs text-slate-400">{t('student.dashboard.tradeCases')}</p>
                   </div>
                 </div>
                 <ArrowRight className="h-4 w-4 text-slate-300" />
@@ -649,8 +680,10 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
                     <BookOpen className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">Clinical Requirements</p>
-                    <p className="text-xs text-slate-400">Case log — coming soon</p>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {t('student.dashboard.clinicalRequirements')}
+                    </p>
+                    <p className="text-xs text-slate-400">{t('student.dashboard.caseLogComingSoon')}</p>
                   </div>
                 </div>
                 <ArrowRight className="h-4 w-4 text-slate-300" />
@@ -662,10 +695,12 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
               <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
                 <div className="flex items-center gap-2 text-sm font-semibold text-amber-800">
                   <Clock className="h-4 w-4 text-amber-600" />
-                  {stats.pending} request{stats.pending !== 1 ? 's' : ''} pending review
+                  {stats.pending === 1
+                    ? t('student.dashboard.requestPendingReview')
+                    : `${stats.pending} ${t('student.dashboard.requestsPendingReview')}`}
                 </div>
                 <p className="mt-1.5 text-xs text-amber-700">
-                  Faculty will review your requests and send a decision. No action needed on your end.
+                  {t('student.dashboard.pendingRequestsDesc')}
                 </p>
               </div>
             )}

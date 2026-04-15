@@ -20,6 +20,8 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import type { PoolCase, RequestInfo, ContactInfo } from './page'
+import { useI18n } from '@/lib/i18n'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 interface Props {
   initialCases: PoolCase[]
@@ -61,6 +63,7 @@ function getUrgencyDot(urgency: string) {
 
 export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: Props) {
   const router = useRouter()
+  const { t } = useI18n()
 
   const [localRequests, setLocalRequests] =
     useState<Record<string, RequestInfo>>(requestsByCaseId)
@@ -128,6 +131,11 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
     return result
   }, [initialCases, searchTerm, activeDepartment, requestFilter, localRequests])
 
+  // Translate department display label (keep 'All' sentinel as-is for filter logic)
+  function getDeptLabel(dept: string) {
+    return dept === 'All' ? t('student.cases.filterAll') : dept
+  }
+
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
       {/* ── Header ──────────────────────────────────────────────────────────── */}
@@ -137,16 +145,18 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
             <img src="/dentbridge-icon.png" alt="DentBridge" className="h-9 w-9 object-contain" />
             <div>
               <p className="text-[15px] font-bold leading-none text-slate-900">DentBridge</p>
-              <p className="text-[10px] uppercase tracking-wider text-slate-400">Clinical Platform</p>
+              <p className="text-[10px] uppercase tracking-wider text-slate-400">
+                {t('student.nav.clinicalPlatform')}
+              </p>
             </div>
           </Link>
 
           <nav className="hidden items-center gap-1 md:flex">
             {[
-              { href: '/student/dashboard', label: 'Dashboard',   active: false },
-              { href: '/student/cases',     label: 'Case Pool',   active: true  },
-              { href: '/student/exchange',  label: 'Exchange',    active: false },
-            ].map(({ href, label, active }) => (
+              { href: '/student/dashboard', labelKey: 'student.nav.dashboard', active: false },
+              { href: '/student/cases',     labelKey: 'student.nav.casePool',  active: true  },
+              { href: '/student/exchange',  labelKey: 'student.nav.exchange',  active: false },
+            ].map(({ href, labelKey, active }) => (
               <Link
                 key={href}
                 href={href}
@@ -156,12 +166,13 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
                     : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                 }`}
               >
-                {label}
+                {t(labelKey)}
               </Link>
             ))}
           </nav>
 
           <div className="flex items-center gap-2">
+            <LanguageSwitcher />
             <div className="hidden h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 sm:flex">
               <GraduationCap className="h-4 w-4" />
             </div>
@@ -171,7 +182,7 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
             >
               <LogOut className="h-3.5 w-3.5" />
-              Sign Out
+              {t('student.nav.signOut')}
             </button>
           </div>
         </div>
@@ -186,15 +197,16 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
             className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-slate-400 transition hover:text-slate-800"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
+            {t('student.cases.backToDashboard')}
           </Link>
 
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900">Case Pool</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+                {t('student.cases.pageTitle')}
+              </h1>
               <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-slate-500">
-                Faculty-approved cases open for student requests. Find cases that match your
-                department rotation and training level.
+                {t('student.cases.pageDesc')}
               </p>
             </div>
 
@@ -203,7 +215,7 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                placeholder="Search treatment, city…"
+                placeholder={t('student.cases.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-4 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
@@ -225,7 +237,7 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
                   : 'border border-slate-200 bg-white text-slate-600 hover:border-slate-300'
               }`}
             >
-              All Cases
+              {t('student.cases.filterAll')}
               {initialCases.length > 0 && (
                 <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
                   requestFilter === 'all' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
@@ -243,7 +255,7 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
                   : 'border border-slate-200 bg-white text-slate-600 hover:border-slate-300'
               }`}
             >
-              My Requests
+              {t('student.cases.filterMyRequests')}
               {myRequestCount > 0 && (
                 <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
                   requestFilter === 'my_requests' ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-700'
@@ -258,7 +270,7 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center gap-1 text-[11px] font-medium text-slate-400">
               <Filter className="h-3 w-3" />
-              Dept:
+              {t('student.cases.deptLabel')}
             </div>
             {DEPARTMENTS.map((dept) => (
               <button
@@ -271,7 +283,7 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
                     : 'border border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700'
                 }`}
               >
-                {dept}
+                {getDeptLabel(dept)}
               </button>
             ))}
           </div>
@@ -282,8 +294,12 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
           <div className="mb-5 flex items-center gap-3 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3">
             <Clock className="h-4 w-4 shrink-0 text-amber-500" />
             <p className="text-sm text-amber-800">
-              <span className="font-semibold">{pendingCount} request{pendingCount !== 1 ? 's' : ''} pending faculty review.</span>
-              {' '}You'll be notified once a decision is made.
+              <span className="font-semibold">
+                {pendingCount === 1
+                  ? t('student.cases.requestPendingReview')
+                  : `${pendingCount} ${t('student.cases.requestsPendingReview')}`}
+              </span>
+              {' '}{t('student.cases.pendingNoteNotify')}
             </p>
           </div>
         )}
@@ -300,17 +316,17 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
             </div>
             <p className="text-base font-semibold text-slate-700">
               {requestFilter === 'my_requests'
-                ? 'No requests yet'
+                ? t('student.cases.emptyNoRequests')
                 : initialCases.length === 0
-                ? 'No cases in the pool yet'
-                : 'No cases match your filter'}
+                ? t('student.cases.emptyNoPool')
+                : t('student.cases.emptyNoMatch')}
             </p>
             <p className="mt-1.5 max-w-xs text-sm text-slate-400">
               {requestFilter === 'my_requests'
-                ? 'Switch to "All Cases" to browse the pool and request a case.'
+                ? t('student.cases.emptyNoRequestsDesc')
                 : initialCases.length === 0
-                ? 'Faculty releases cases after triage. Check back soon.'
-                : 'Try a different department filter or clear your search.'}
+                ? t('student.cases.emptyNoPoolDesc')
+                : t('student.cases.emptyNoMatchDesc')}
             </p>
             {(requestFilter === 'my_requests' || activeDepartment !== 'All' || searchTerm) && (
               <button
@@ -319,7 +335,7 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
                 className="mt-4 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
               >
                 <RefreshCw className="h-3.5 w-3.5" />
-                Clear filters
+                {t('student.cases.clearFilters')}
               </button>
             )}
           </div>
@@ -361,12 +377,12 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
                       {/* Request state indicator */}
                       {isApproved && (
                         <span className="flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
-                          <CheckCircle2 className="h-2.5 w-2.5" /> APPROVED
+                          <CheckCircle2 className="h-2.5 w-2.5" /> {t('student.cases.badgeApproved')}
                         </span>
                       )}
                       {isPending && (
                         <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
-                          <Clock className="h-2.5 w-2.5" /> PENDING
+                          <Clock className="h-2.5 w-2.5" /> {t('student.cases.badgePending')}
                         </span>
                       )}
                     </div>
@@ -376,7 +392,7 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
                     {/* Treatment */}
                     <p className="text-base font-bold text-slate-900">{c.treatment_type}</p>
                     <p className="mt-0.5 text-sm text-slate-500">
-                      {c.age ?? '—'} yrs{c.city ? ` · ${c.city}` : ''}
+                      {c.age ?? '\u2014'} yrs{c.city ? ` \u00b7 ${c.city}` : ''}
                     </p>
 
                     {c.complaint_text && (
@@ -389,7 +405,7 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
                     <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
                       <Stethoscope className="h-4 w-4 shrink-0 text-blue-600" />
                       <span className="text-sm font-semibold text-blue-900">
-                        {c.assigned_department || 'Unassigned'}
+                        {c.assigned_department || t('student.cases.unassigned')}
                       </span>
                     </div>
 
@@ -397,13 +413,17 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
                     <div className="mt-3 space-y-1">
                       {c.target_student_level && (
                         <p className="text-xs text-slate-500">
-                          <span className="font-semibold text-slate-700">Required level:</span>{' '}
+                          <span className="font-semibold text-slate-700">
+                            {t('student.cases.requiredLevel')}
+                          </span>{' '}
                           {c.target_student_level}
                         </p>
                       )}
                       {c.preferred_days && (
                         <p className="text-xs text-slate-500">
-                          <span className="font-semibold text-slate-700">Availability:</span>{' '}
+                          <span className="font-semibold text-slate-700">
+                            {t('student.cases.availability')}
+                          </span>{' '}
                           {c.preferred_days}
                         </p>
                       )}
@@ -413,7 +433,7 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
                     {isApproved && contact && (
                       <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
                         <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-emerald-600">
-                          Patient Contact
+                          {t('student.cases.patientContact')}
                         </p>
                         <p className="text-sm font-bold text-slate-900">{contact.full_name}</p>
                         <div className="mt-1 flex items-center gap-1.5 text-sm text-slate-700">
@@ -421,7 +441,7 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
                           {contact.phone}
                         </div>
                         <p className="mt-2 text-xs text-emerald-700">
-                          Contact the patient to schedule their appointment.
+                          {t('student.cases.contactPatientMsg')}
                         </p>
                       </div>
                     )}
@@ -446,9 +466,9 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
                           className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           {isSubmitting ? (
-                            <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> Submitting…</>
+                            <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> {t('student.cases.submitting')}</>
                           ) : (
-                            'Request This Case'
+                            t('student.cases.btnRequest')
                           )}
                         </button>
                       )}
@@ -456,21 +476,21 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
                       {isPending && (
                         <div className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-700">
                           <Clock className="h-4 w-4" />
-                          Pending Faculty Review
+                          {t('student.cases.pendingFacultyReview')}
                         </div>
                       )}
 
                       {isApproved && (
                         <div className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700">
                           <CheckCircle2 className="h-4 w-4" />
-                          Approved — check your dashboard
+                          {t('student.cases.approvedCheckDashboard')}
                         </div>
                       )}
 
                       {isRejected && (
                         <div className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600">
                           <XCircle className="h-4 w-4" />
-                          Request Declined
+                          {t('student.cases.requestDeclined')}
                         </div>
                       )}
                     </div>
