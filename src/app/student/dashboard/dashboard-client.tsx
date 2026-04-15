@@ -54,6 +54,8 @@ interface Props {
   myRequests: MyRequest[]
   activeCases: ActiveCase[]
   studentEmail: string
+  studentFullName: string
+  studentPhone: string
 }
 
 function getUrgencyBadgeClass(urgency: string) {
@@ -87,7 +89,14 @@ function getStepIndex(status: string): number {
   return order.indexOf(status)
 }
 
-export function DashboardClient({ poolCases, myRequests, activeCases, studentEmail }: Props) {
+export function DashboardClient({
+  poolCases,
+  myRequests,
+  activeCases,
+  studentEmail,
+  studentFullName,
+  studentPhone,
+}: Props) {
   const router = useRouter()
   const { t } = useI18n()
 
@@ -173,8 +182,16 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
     return live === 'student_approved' || live === 'contacted' || live === 'appointment_scheduled'
   })
 
-  const studentInitial = (studentEmail[0] ?? 'S').toUpperCase()
-
+const displayName = studentFullName?.trim() || ''
+const welcomeName = displayName ? `, ${displayName}` : ''
+const studentInitials = displayName
+  ? displayName
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join('')
+  : (studentEmail[0] ?? 'S').toUpperCase()
   const steps = [
     { label: t('student.dashboard.stepContacted'),   step: 0 },
     { label: t('student.dashboard.stepApptSet'),     step: 1 },
@@ -227,7 +244,7 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
               </div>
             )}
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">
-              {studentInitial}
+             {studentInitials}
             </div>
             <button
               type="button"
@@ -248,12 +265,12 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
           <div className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
             <div className="flex items-center gap-4">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-xl font-bold text-white shadow-sm">
-                {studentInitial}
+{studentInitials}
               </div>
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-                  {t('student.dashboard.welcomeBack')}
-                </h1>
+<h1 className="text-2xl font-bold tracking-tight text-slate-900">
+  {t('student.dashboard.welcomeBack')}{welcomeName}
+</h1>
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
                   <span className="max-w-[220px] truncate text-slate-400">{studentEmail}</span>
                   <span className="hidden h-1 w-1 rounded-full bg-slate-300 sm:block" />

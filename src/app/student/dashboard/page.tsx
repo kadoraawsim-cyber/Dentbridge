@@ -15,6 +15,12 @@ export default async function StudentDashboardPage() {
     redirect('/student/login')
   }
 
+  const { data: studentProfile } = await supabase
+    .from('student_profiles')
+    .select('full_name, phone')
+    .eq('id', user.id)
+    .maybeSingle()
+
   // Pool cases — full_name and phone intentionally excluded.
   const { data: poolCases } = await supabase
     .from('patient_requests')
@@ -31,9 +37,6 @@ export default async function StudentDashboardPage() {
     .eq('student_id', user.id)
     .order('created_at', { ascending: false })
 
-  // Active cases: student_case_requests rows where this student was approved.
-  // We join the corresponding patient_requests to get current lifecycle status
-  // and — server-side only — the patient's name and phone for approved students.
   const approvedCaseIds = (myRequests ?? [])
     .filter((r) => r.status === 'approved')
     .map((r) => r.case_id)
@@ -69,6 +72,8 @@ export default async function StudentDashboardPage() {
       myRequests={myRequests ?? []}
       activeCases={activeCases}
       studentEmail={user.email ?? ''}
+      studentFullName={studentProfile?.full_name ?? ''}
+      studentPhone={studentProfile?.phone ?? ''}
     />
   )
 }
