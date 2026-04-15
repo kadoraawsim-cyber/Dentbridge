@@ -373,7 +373,6 @@ export function DashboardClient({
     { href: '/student/dashboard', labelKey: 'student.nav.dashboard', active: true },
     { href: '/student/cases', labelKey: 'student.nav.casePool', active: false },
     { href: '/student/requests', labelKey: 'student.nav.myRequests', active: false },
-    { href: '/student/exchange', labelKey: 'student.nav.exchange', active: false },
   ].map(({ href, labelKey, active }) => (
     <Link
       key={href}
@@ -387,6 +386,15 @@ export function DashboardClient({
       {t(labelKey)}
     </Link>
   ))}
+  <Link
+    href="/student/exchange"
+    className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium text-slate-400 transition hover:bg-slate-50"
+  >
+    {t('student.nav.exchange')}
+    <span className="rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-bold text-violet-600">
+      {t('student.exchange.comingSoonTitle')}
+    </span>
+  </Link>
 </nav>
 
           <div className="flex items-center gap-2">
@@ -459,13 +467,13 @@ export function DashboardClient({
                 )}
               </Link>
 
-              <Link
-                href="/student/exchange"
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-              >
+              <span className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-5 py-2.5 text-sm font-semibold text-slate-400 opacity-60">
                 <RefreshCw className="h-4 w-4" />
                 {t('student.nav.exchange')}
-              </Link>
+                <span className="rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-bold text-slate-500">
+                  {t('student.exchange.comingSoonTitle')}
+                </span>
+              </span>
             </div>
           </div>
 
@@ -1088,10 +1096,7 @@ export function DashboardClient({
                 </a>
               )}
 
-              <Link
-                href="/student/exchange"
-                className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-300 hover:shadow-md"
-              >
+              <div className="flex cursor-not-allowed items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm opacity-60">
                 <div className="flex items-center gap-3.5">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-700">
                     <RefreshCw className="h-5 w-5" />
@@ -1101,12 +1106,14 @@ export function DashboardClient({
                       {t('student.dashboard.caseExchange')}
                     </p>
                     <p className="text-xs text-slate-400">
-                      {t('student.dashboard.tradeCases')}
+                      {t('student.exchange.comingSoonTitle')}
                     </p>
                   </div>
                 </div>
-                <ArrowRight className="h-4 w-4 text-slate-300" />
-              </Link>
+                <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-600">
+                  {t('student.exchange.comingSoonTitle')}
+                </span>
+              </div>
 
               <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm opacity-60">
                 <div className="flex items-center gap-3.5">

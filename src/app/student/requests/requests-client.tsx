@@ -207,7 +207,6 @@ export function RequestsClient({ myRequests, caseMap }: Props) {
               { href: '/student/dashboard', labelKey: 'student.nav.dashboard',  active: false },
               { href: '/student/cases',     labelKey: 'student.nav.casePool',   active: false },
               { href: '/student/requests',  labelKey: 'student.nav.myRequests', active: true  },
-              { href: '/student/exchange',  labelKey: 'student.nav.exchange',   active: false },
             ].map(({ href, labelKey, active }) => (
               <Link
                 key={href}
@@ -221,6 +220,15 @@ export function RequestsClient({ myRequests, caseMap }: Props) {
                 {t(labelKey)}
               </Link>
             ))}
+            <Link
+              href="/student/exchange"
+              className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium text-slate-400 transition hover:bg-slate-50"
+            >
+              {t('student.nav.exchange')}
+              <span className="rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-bold text-violet-600">
+                {t('student.exchange.comingSoonTitle')}
+              </span>
+            </Link>
           </nav>
 
           <div className="flex items-center gap-2">

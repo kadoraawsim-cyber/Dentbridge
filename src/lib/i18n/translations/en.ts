@@ -350,6 +350,8 @@ export type TranslationShape = {
       acceptedAwaitingApproval: string
       acceptExchange: string
       availableCases: string
+      comingSoonTitle: string
+      comingSoonDesc: string
     }
     requests: {
       pageTitle: string
@@ -1061,6 +1063,8 @@ export const en: TranslationShape = {
       acceptedAwaitingApproval: 'Accepted \u2014 awaiting faculty approval',
       acceptExchange: 'Accept Exchange',
       availableCases: 'Available Cases',
+      comingSoonTitle: 'Coming Soon',
+      comingSoonDesc: 'Patient exchange will be available soon.',
     },
     requests: {
       pageTitle: 'My Requests',

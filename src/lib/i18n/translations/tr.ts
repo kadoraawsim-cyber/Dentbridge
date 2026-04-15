@@ -447,6 +447,8 @@ export const tr: TranslationShape = {
       acceptedAwaitingApproval: 'Kabul edildi \u2014 fakülte onayı bekleniyor',
       acceptExchange: 'Değişimi Kabul Et',
       availableCases: 'Uygun Vakalar',
+      comingSoonTitle: 'Yakında',
+      comingSoonDesc: 'Hasta değişimi yakında kullanıma açılacak.',
     },
     requests: {
       pageTitle: 'Başvurularım',
