@@ -67,7 +67,7 @@ function StatusStepper({ status }: { status: string }) {
           )
         })}
       </div>
-      <div className="mt-2 flex justify-between">
+      <div className="mt-2 hidden justify-between sm:flex">
         {STATUS_FLOW.map((step, i) => {
           const isDone = !isClosed && i < currentIndex
           const isCurrent = !isClosed && i === currentIndex
@@ -276,7 +276,7 @@ export default function PatientStatusPage() {
             <label className="mb-2 block text-sm font-medium text-slate-700">
               Phone Number
             </label>
-            <div className="flex gap-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
               <input
                 type="text"
                 value={phone}
@@ -287,7 +287,7 @@ export default function PatientStatusPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="inline-flex h-11 items-center gap-2 rounded-xl bg-teal-600 px-5 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-teal-600 px-5 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
               >
                 {loading ? (
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />

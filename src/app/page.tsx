@@ -191,13 +191,13 @@ export default function HomePage() {
       <section className="bg-[#1c2f6b] px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2">
           <div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-teal-400/40 bg-teal-400/10 px-4 py-1.5 text-sm font-medium text-teal-200">
+            <span className="inline-flex items-center gap-2 rounded-full border border-teal-400/40 bg-teal-400/10 px-3 py-1 text-xs font-medium text-teal-200 sm:px-4 sm:py-1.5 sm:text-sm">
               <span className="h-1.5 w-1.5 rounded-full bg-teal-400" />
               University-Supervised Clinical Access
             </span>
 
-            <h1 className="mt-7 max-w-2xl text-5xl font-bold leading-[1.1] tracking-tight text-white sm:text-6xl">
-              Affordable University&#8209;Supervised Dental Care
+            <h1 className="mt-7 max-w-2xl text-3xl font-bold leading-[1.1] tracking-tight text-white sm:text-5xl lg:text-6xl">
+              Affordable University-Supervised Dental Care
             </h1>
 
             <p className="mt-6 max-w-xl text-lg leading-8 text-slate-300">
@@ -234,8 +234,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="overflow-x-auto border-b border-slate-200 bg-teal-700 py-4">
-        <div className="mx-auto flex min-w-max max-w-7xl items-center justify-start gap-8 px-4 text-sm font-medium text-white sm:px-6 lg:justify-center lg:px-8">
+      <section className="border-b border-slate-200 bg-teal-700 py-4">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-8 gap-y-2 px-4 text-sm font-medium text-white sm:px-6 lg:px-8">
           {benefits.map((benefit) => {
             const Icon = benefit.icon
             return (
@@ -278,7 +278,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-white py-20">
+      <section className="bg-white px-4 py-20 sm:px-6 lg:px-8">
         <div className="mx-auto grid max-w-7xl items-center gap-10 rounded-3xl border border-slate-200 bg-slate-50 px-6 py-8 sm:px-8 lg:grid-cols-2">
           <div>
             <h2 className="mb-6 text-3xl font-bold text-slate-900">
@@ -406,7 +406,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-white py-16">
+      <section className="bg-white px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl rounded-3xl bg-teal-600 px-6 py-8 sm:px-8 lg:px-10">
           <div className="flex flex-col items-start justify-between gap-6 lg:flex-row lg:items-center">
             <div>

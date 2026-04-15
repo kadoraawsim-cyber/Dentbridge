@@ -548,7 +548,7 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
               </Link>
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
               {recentCases.length === 0 ? (
                 <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
                   <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
@@ -560,7 +560,7 @@ export function DashboardClient({ poolCases, myRequests, activeCases, studentEma
                   </p>
                 </div>
               ) : (
-                <table className="w-full border-collapse text-left">
+                <table className="w-full min-w-[520px] border-collapse text-left">
                   <thead>
                     <tr className="border-b border-slate-100 bg-slate-50 text-[11px] uppercase tracking-wider text-slate-400">
                       <th className="px-5 py-3.5 font-semibold">Case</th>

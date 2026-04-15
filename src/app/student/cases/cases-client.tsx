@@ -346,13 +346,13 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
                   }`}
                 >
                   {/* Card header strip */}
-                  <div className={`flex items-center justify-between border-b px-5 py-3 ${
+                  <div className={`flex flex-wrap items-center justify-between gap-y-1 border-b px-4 py-3 sm:px-5 ${
                     isApproved ? 'border-emerald-100 bg-emerald-50/60' : isPending ? 'border-amber-100 bg-amber-50/60' : 'border-slate-100 bg-slate-50/60'
                   }`}>
                     <span className="font-mono text-xs font-bold text-slate-500">
                       #{c.id.slice(0, 8).toUpperCase()}
                     </span>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
                       {/* Urgency dot + badge */}
                       <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${getUrgencyBadgeClass(c.urgency)}`}>
                         <span className={`h-1.5 w-1.5 rounded-full ${getUrgencyDot(c.urgency)}`} />
