@@ -272,13 +272,13 @@ const studentInitials = displayName
 </h1>
 
 {displayName && (
-  <p className="mt-1 text-base font-semibold text-slate-700">
+  <p className="mt-1 text-lg font-semibold text-slate-800">
     {displayName}
   </p>
 )}
 
-<div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
-  <span className="max-w-[220px] truncate text-slate-400">{studentEmail}</span>
+<div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-400">
+  <span className="max-w-[240px] truncate">{studentEmail}</span>
   <span className="hidden h-1 w-1 rounded-full bg-slate-300 sm:block" />
   <span className="flex items-center gap-1 text-teal-600">
     <CheckCircle2 className="h-3.5 w-3.5" />
