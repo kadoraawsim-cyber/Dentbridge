@@ -291,6 +291,10 @@ export type TranslationShape = {
       requestPendingReview: string
       requestsPendingReview: string
       pendingRequestsDesc: string
+      completedTreatments: string
+      completedTreatmentsDesc: string
+      treatmentCompleted: string
+      treatmentsCompleted: string
     }
     cases: {
       backToDashboard: string
@@ -346,6 +350,27 @@ export type TranslationShape = {
       acceptedAwaitingApproval: string
       acceptExchange: string
       availableCases: string
+    }
+    requests: {
+      pageTitle: string
+      pageDesc: string
+      backToDashboard: string
+      noRequests: string
+      noRequestsDesc: string
+      browseCasePool: string
+      submittedLabel: string
+      cityLabel: string
+      statusPending: string
+      statusApproved: string
+      statusRejected: string
+      messagePending: string
+      messageApproved: string
+      messageRejected: string
+      goToDashboard: string
+      sectionActive: string
+      sectionCompleted: string
+      sectionRejected: string
+      completedNote: string
     }
   }
 
@@ -925,6 +950,10 @@ export const en: TranslationShape = {
       requestPendingReview: '1 request pending review',
       requestsPendingReview: 'requests pending review',
       pendingRequestsDesc: 'Faculty will review your requests and send a decision. No action needed on your end.',
+      completedTreatments: 'Completed Treatments',
+      completedTreatmentsDesc: 'Cases you have fully completed',
+      treatmentCompleted: 'treatment completed',
+      treatmentsCompleted: 'treatments completed',
     },
     cases: {
       backToDashboard: 'Back to Dashboard',
@@ -980,6 +1009,27 @@ export const en: TranslationShape = {
       acceptedAwaitingApproval: 'Accepted \u2014 awaiting faculty approval',
       acceptExchange: 'Accept Exchange',
       availableCases: 'Available Cases',
+    },
+    requests: {
+      pageTitle: 'My Requests',
+      pageDesc: 'Track all case requests you have submitted and see their current approval status.',
+      backToDashboard: 'Back to Dashboard',
+      noRequests: 'No requests yet',
+      noRequestsDesc: 'You have not requested any cases yet. Browse the case pool to submit your first request.',
+      browseCasePool: 'Browse Case Pool',
+      submittedLabel: 'Submitted:',
+      cityLabel: 'City:',
+      statusPending: 'PENDING',
+      statusApproved: 'APPROVED',
+      statusRejected: 'REJECTED',
+      messagePending: 'Your request is waiting for faculty review.',
+      messageApproved: 'Your request was approved. Continue from the dashboard.',
+      messageRejected: 'Your request was declined for this case.',
+      goToDashboard: 'Go to Dashboard',
+      sectionActive: 'Active & Pending',
+      sectionCompleted: 'Completed Treatments',
+      sectionRejected: 'Declined Requests',
+      completedNote: 'These cases have been fully completed.',
     },
   },
 

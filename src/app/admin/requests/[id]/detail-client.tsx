@@ -4,6 +4,8 @@ import React, { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { ArrowLeft, Calendar, CheckCircle2, Clock, LogOut, Phone, ShieldCheck, XCircle } from 'lucide-react'
+import { useI18n } from '@/lib/i18n'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 type StudentCaseRequest = {
   id: string
@@ -146,15 +148,26 @@ function formatReviewDate(iso: string | null): string {
   })
 }
 
-function waitingDays(iso: string | null): string {
-  if (!iso) return '—'
-  const days = Math.floor((Date.now() - new Date(iso).getTime()) / (1000 * 60 * 60 * 24))
-  if (days === 0) return 'Submitted today'
-  if (days === 1) return 'Waiting 1 day'
-  return `Waiting ${days} days`
-}
-
 export function CaseDetailClient({ initialRequest, adminEmail, initialStudentRequests }: Props) {
+  const { t } = useI18n()
+
+  function waitingDays(iso: string | null): string {
+    if (!iso) return '—'
+    const days = Math.floor((Date.now() - new Date(iso).getTime()) / (1000 * 60 * 60 * 24))
+    if (days === 0) return t('admin.detail.submittedToday')
+    if (days === 1) return t('admin.detail.waitingOneDay')
+    return `${t('admin.detail.waitingDaysPrefix')} ${days} ${t('admin.detail.waitingDaysSuffix')}`
+  }
+
+  function tUrgency(v: string): string {
+    switch ((v || '').toLowerCase()) {
+      case 'high': return t('request.urgencyHigh')
+      case 'medium': return t('request.urgencyMedium')
+      case 'low': return t('request.urgencyLow')
+      default: return v
+    }
+  }
+
   const [request, setRequest] = useState<PatientRequest>(initialRequest)
   const [errorMessage, setErrorMessage] = useState('')
   const [saving, setSaving] = useState(false)
@@ -320,7 +333,7 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
       reviewed_by: data.reviewed_by,
       reviewed_at: data.reviewed_at,
     }))
-    showSaved(`Status updated to ${data.status.replace(/_/g, ' ')}.`)
+    showSaved(t('admin.detail.statusUpdated'))
   }
 
   async function handleSaveDraft() {
@@ -360,7 +373,7 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
       reviewed_by: data.reviewed_by,
       reviewed_at: data.reviewed_at,
     })
-    showSaved('Draft saved.')
+    showSaved(t('admin.detail.savedDraft'))
   }
 
   async function confirmApprove() {
@@ -401,7 +414,7 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
       reviewed_by: data.reviewed_by,
       reviewed_at: data.reviewed_at,
     })
-    showSaved('Approved and released to pool.')
+    showSaved(t('admin.detail.savedApproved'))
   }
 
   async function confirmReject() {
@@ -432,7 +445,7 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
       reviewed_by: data.reviewed_by,
       reviewed_at: data.reviewed_at,
     })
-    showSaved('Case marked as rejected.')
+    showSaved(t('admin.detail.savedRejected'))
   }
 
   return (
@@ -448,21 +461,22 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
             <div>
               <p className="text-lg font-bold leading-none text-slate-900">DentBridge</p>
               <p className="text-[11px] uppercase tracking-wide text-slate-500">
-                Faculty-Supported Clinical Platform
+                {t('admin.shared.clinicalPlatform')}
               </p>
             </div>
           </Link>
 
           <nav className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
             <Link href="/admin" className="hover:text-slate-900">
-              Dashboard
+              {t('admin.shared.navDashboard')}
             </Link>
             <Link href="/admin/requests" className="text-slate-900">
-              Patient Triage &amp; Case Review
+              {t('admin.shared.navTriageReview')}
             </Link>
           </nav>
 
           <div className="flex items-center gap-3">
+            <LanguageSwitcher />
             {adminEmail && (
               <div className="hidden items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 sm:flex">
                 <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-teal-500" />
@@ -475,7 +489,7 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
             >
               <LogOut className="h-3.5 w-3.5" />
-              Sign Out
+              {t('admin.shared.signOut')}
             </button>
           </div>
         </div>
@@ -488,12 +502,12 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
             className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-900"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Review List
+            {t('admin.detail.backToReviewList')}
           </Link>
 
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-4xl font-bold tracking-tight text-slate-900">
-              Case Review: {request.full_name}
+              {t('admin.detail.caseReviewPrefix')} {request.full_name}
             </h1>
             <span
               className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${getStatusBadgeClass(
@@ -506,7 +520,7 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
 
           <div className="mt-3 flex flex-wrap items-center gap-4">
             <p className="inline-block rounded-md bg-slate-100 px-2 py-1 font-mono text-sm text-slate-700">
-              Ref: {request.id.slice(0, 8)}
+              {t('admin.detail.refLabel')} {request.id.slice(0, 8)}
             </p>
             <span className="flex items-center gap-1.5 text-sm text-slate-500">
               <Calendar className="h-4 w-4 text-slate-400" />
@@ -529,22 +543,22 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
           <div className="space-y-6 md:col-span-2">
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <h3 className="mb-6 border-b border-slate-100 pb-4 text-xl font-bold text-slate-900">
-                Patient Profile &amp; Complaint
+                {t('admin.detail.patientProfileTitle')}
               </h3>
 
               <div className="mb-8 grid grid-cols-2 gap-x-8 gap-y-5">
                 <div>
-                  <p className="mb-1 text-xs text-slate-500">Age</p>
+                  <p className="mb-1 text-xs text-slate-500">{t('admin.detail.ageLabel')}</p>
                   <p className="font-medium text-slate-900">{request.age ?? '—'}</p>
                 </div>
 
                 <div>
-                  <p className="mb-1 text-xs text-slate-500">Location</p>
+                  <p className="mb-1 text-xs text-slate-500">{t('admin.detail.locationLabel')}</p>
                   <p className="font-medium text-slate-900">{request.city || '—'}</p>
                 </div>
 
                 <div>
-                  <p className="mb-1 text-xs text-slate-500">Phone</p>
+                  <p className="mb-1 text-xs text-slate-500">{t('admin.detail.phoneLabel')}</p>
                   <p className="flex items-center gap-1.5 font-medium text-slate-900">
                     <Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" />
                     {request.phone}
@@ -552,19 +566,19 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                 </div>
 
                 <div>
-                  <p className="mb-1 text-xs text-slate-500">Preferred Language</p>
+                  <p className="mb-1 text-xs text-slate-500">{t('admin.detail.langLabel')}</p>
                   <p className="font-medium text-slate-900">
                     {request.preferred_language || '—'}
                   </p>
                 </div>
 
                 <div className="col-span-2">
-                  <p className="mb-1 text-xs text-slate-500">Preferred Availability</p>
+                  <p className="mb-1 text-xs text-slate-500">{t('admin.detail.availabilityLabel')}</p>
                   <p className="font-medium text-slate-900">{request.preferred_days || '—'}</p>
                 </div>
 
                 <div className="col-span-2">
-                  <p className="mb-1 text-xs text-slate-500">Primary Complaint</p>
+                  <p className="mb-1 text-xs text-slate-500">{t('admin.detail.complaintLabel')}</p>
                   <p className="rounded-lg border border-slate-100 bg-slate-50 p-3 font-medium text-slate-900">
                     {request.complaint_text}
                   </p>
@@ -572,14 +586,14 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
               </div>
 
               <h3 className="mb-4 border-b border-slate-100 pb-4 text-xl font-bold text-slate-900">
-                Faculty Triage Decision
+                {t('admin.detail.triageTitle')}
               </h3>
 
               {isTerminal && (
                 <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
                   {(request.status || '').toLowerCase() === 'matched'
-                    ? 'This case has been released to the student pool. No further edits can be made from this view.'
-                    : 'This case is closed. No further changes can be made.'}
+                    ? t('admin.detail.triageReleasedNote')
+                    : t('admin.detail.triageClosedNote')}
                 </div>
               )}
 
@@ -587,9 +601,9 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-semibold text-slate-700">
-                      Assign Department{' '}
+                      {t('admin.detail.assignDeptLabel')}{' '}
                       <span className="text-xs font-normal text-slate-400">
-                        (keyword pre-fill — verify)
+                        {t('admin.detail.assignDeptHint')}
                       </span>
                     </label>
                     <select
@@ -608,7 +622,7 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
 
                   <div className="space-y-2">
                     <label className="text-sm font-semibold text-slate-700">
-                      Urgency Level
+                      {t('admin.detail.urgencyLabel')}
                     </label>
                     <select
                       value={urgencyLevel}
@@ -616,16 +630,16 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                       disabled={isTerminal || saving}
                       className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-blue-900 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
                     >
-                      <option>High (Emergency / Severe Pain)</option>
-                      <option>Medium (Discomfort)</option>
-                      <option>Low (Routine)</option>
+                      <option value="High (Emergency / Severe Pain)">{t('admin.detail.urgencyHighOption')}</option>
+                      <option value="Medium (Discomfort)">{t('admin.detail.urgencyMediumOption')}</option>
+                      <option value="Low (Routine)">{t('admin.detail.urgencyLowOption')}</option>
                     </select>
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-slate-700">
-                    Target Student Level
+                    {t('admin.detail.studentLevelLabel')}
                   </label>
                   <select
                     value={targetStudentLevel}
@@ -643,13 +657,13 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
 
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-slate-700">
-                    Clinical Notes &amp; Instructions
+                    {t('admin.detail.clinicalNotesLabel')}
                   </label>
                   <textarea
                     value={clinicalNotes}
                     onChange={(e) => setClinicalNotes(e.target.value)}
                     disabled={isTerminal || saving}
-                    placeholder="Add any specific instructions for the assigned student or coordinator…"
+                    placeholder={t('admin.detail.clinicalNotesPlaceholder')}
                     className="min-h-[110px] w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
                   />
                 </div>
@@ -665,11 +679,10 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                 {isTerminal ? null : pendingAction === 'reject' ? (
                   <div className="rounded-xl border border-red-200 bg-red-50 p-4">
                     <p className="mb-3 text-sm font-semibold text-red-800">
-                      Reject this case?
+                      {t('admin.detail.rejectConfirmTitle')}
                     </p>
                     <p className="mb-4 text-sm text-red-700">
-                      This will mark the case as out of scope. The patient will see it as
-                      rejected. This action cannot be undone from this view.
+                      {t('admin.detail.rejectConfirmDesc')}
                     </p>
                     <div className="flex gap-3">
                       <button
@@ -678,7 +691,7 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                         disabled={saving}
                         className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
                       >
-                        Cancel
+                        {t('admin.detail.cancel')}
                       </button>
                       <button
                         type="button"
@@ -686,24 +699,24 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                         disabled={saving}
                         className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
                       >
-                        {saving ? 'Rejecting…' : 'Confirm Reject'}
+                        {saving ? t('admin.detail.rejecting') : t('admin.detail.confirmReject')}
                       </button>
                     </div>
                   </div>
                 ) : pendingAction === 'approve' ? (
                   <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
                     <p className="mb-3 text-sm font-semibold text-blue-900">
-                      Release this case to the student pool?
+                      {t('admin.detail.releaseConfirmTitle')}
                     </p>
                     <ul className="mb-4 space-y-1 text-sm text-blue-800">
                       <li>
-                        Department: <strong>{assignedDepartment}</strong>
+                        {t('admin.detail.releaseDeptLabel')} <strong>{assignedDepartment}</strong>
                       </li>
                       <li>
-                        Urgency: <strong>{mapDetailToUrgency(urgencyLevel)}</strong>
+                        {t('admin.detail.releaseUrgencyLabel')} <strong>{tUrgency(mapDetailToUrgency(urgencyLevel))}</strong>
                       </li>
                       <li>
-                        Student level: <strong>{targetStudentLevel}</strong>
+                        {t('admin.detail.releaseStudentLevelLabel')} <strong>{targetStudentLevel}</strong>
                       </li>
                     </ul>
                     <div className="flex gap-3">
@@ -713,7 +726,7 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                         disabled={saving}
                         className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
                       >
-                        Cancel
+                        {t('admin.detail.cancel')}
                       </button>
                       <button
                         type="button"
@@ -721,7 +734,7 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                         disabled={saving}
                         className="rounded-xl bg-blue-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:opacity-60"
                       >
-                        {saving ? 'Releasing…' : 'Confirm & Release'}
+                        {saving ? t('admin.detail.releasing') : t('admin.detail.confirmRelease')}
                       </button>
                     </div>
                   </div>
@@ -733,7 +746,7 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                       disabled={saving}
                       className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
                     >
-                      Save Draft
+                      {t('admin.detail.saveDraft')}
                     </button>
 
                     <button
@@ -742,7 +755,7 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                       disabled={saving}
                       className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
                     >
-                      Reject / Out of Scope
+                      {t('admin.detail.rejectOutOfScope')}
                     </button>
 
                     <div className="ml-auto">
@@ -752,7 +765,7 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                         disabled={saving}
                         className="rounded-xl bg-blue-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:opacity-60"
                       >
-                        Approve &amp; Release to Pool
+                        {t('admin.detail.approveReleaseToPool')}
                       </button>
                     </div>
                   </div>
@@ -766,19 +779,19 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="mb-4 flex items-center gap-2">
                 <Clock className="h-4 w-4 shrink-0 text-slate-400" />
-                <h3 className="text-sm font-bold text-slate-900">Faculty Review Record</h3>
+                <h3 className="text-sm font-bold text-slate-900">{t('admin.detail.reviewRecordTitle')}</h3>
               </div>
 
               {request.reviewed_by || request.reviewed_at ? (
                 <div className="space-y-3 text-sm">
                   <div>
-                    <p className="text-xs text-slate-500">Reviewed by</p>
+                    <p className="text-xs text-slate-500">{t('admin.detail.reviewedByLabel')}</p>
                     <p className="break-all font-medium text-slate-900">
                       {request.reviewed_by ?? '—'}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-500">Last reviewed</p>
+                    <p className="text-xs text-slate-500">{t('admin.detail.lastReviewedLabel')}</p>
                     <p className="font-medium text-slate-900">
                       {formatReviewDate(request.reviewed_at)}
                     </p>
@@ -786,19 +799,19 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                 </div>
               ) : (
                 <p className="text-sm text-slate-400">
-                  No faculty action has been recorded yet.
+                  {t('admin.detail.noReviewYet')}
                 </p>
               )}
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="mb-4 text-lg font-bold text-slate-900">Uploaded Images</h3>
+              <h3 className="mb-4 text-lg font-bold text-slate-900">{t('admin.detail.uploadedImagesTitle')}</h3>
 
               <div className="mb-4 flex aspect-video items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-100">
                 {request.attachment_path ? (
                   <p className="px-4 text-center text-xs text-slate-500">{attachmentLabel}</p>
                 ) : (
-                  <p className="px-4 text-center text-xs text-slate-400">No uploaded image</p>
+                  <p className="px-4 text-center text-xs text-slate-400">{t('admin.detail.noUploadedImage')}</p>
                 )}
               </div>
 
@@ -808,19 +821,18 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                 disabled={!request.attachment_path || openingFile}
                 className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {openingFile ? 'Opening…' : 'View Full Screen'}
+                {openingFile ? t('admin.detail.openingFile') : t('admin.detail.viewFullScreen')}
               </button>
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 shadow-sm">
-              <h3 className="mb-2 text-sm font-bold text-slate-900">Prior Records</h3>
+              <h3 className="mb-2 text-sm font-bold text-slate-900">{t('admin.detail.priorRecordsTitle')}</h3>
               <p className="mb-4 text-sm text-slate-500">
-                Patient history lookup is not yet connected. Check the university system
-                separately if prior records are needed.
+                {t('admin.detail.priorRecordsDesc')}
               </p>
               <div className="flex items-center gap-2 text-xs text-slate-400">
                 <ShieldCheck className="h-4 w-4 text-slate-400" />
-                Details taken from submitted request only
+                {t('admin.detail.priorRecordsNote')}
               </div>
             </div>
           </div>
@@ -829,18 +841,18 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
         {/* Lifecycle actions — visible once the case is in the post-pool phase */}
         {(isLifecyclePhase || isClosed) && (
           <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="mb-5 text-lg font-bold text-slate-900">Case Lifecycle</h3>
+            <h3 className="mb-5 text-lg font-bold text-slate-900">{t('admin.detail.lifecycleTitle')}</h3>
 
             {/* Status trail */}
             <div className="mb-6 grid grid-cols-2 gap-x-8 gap-y-4 text-sm sm:grid-cols-4">
               {[
-                { key: 'matched',               label: 'Released to Pool' },
-                { key: 'student_approved',       label: 'Student Assigned' },
-                { key: 'contacted',              label: 'Patient Contacted' },
-                { key: 'appointment_scheduled',  label: 'Appt. Scheduled' },
-                { key: 'in_treatment',           label: 'In Treatment' },
-                { key: 'completed',              label: 'Completed' },
-                { key: 'cancelled',              label: 'Cancelled' },
+                { key: 'matched',               label: t('admin.detail.stepReleasedToPool') },
+                { key: 'student_approved',       label: t('admin.detail.stepStudentAssigned') },
+                { key: 'contacted',              label: t('admin.detail.stepPatientContacted') },
+                { key: 'appointment_scheduled',  label: t('admin.detail.stepApptScheduled') },
+                { key: 'in_treatment',           label: t('admin.detail.stepInTreatment') },
+                { key: 'completed',              label: t('admin.detail.stepCompleted') },
+                { key: 'cancelled',              label: t('admin.detail.stepCancelled') },
               ].map((step) => {
                 const reached =
                   STATUS_ORDER.indexOf(currentStatus) >= STATUS_ORDER.indexOf(step.key) ||
@@ -881,7 +893,7 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                     disabled={lifecycleLoading}
                     className="rounded-xl bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:opacity-60"
                   >
-                    {lifecycleLoading ? '…' : 'Mark Patient Contacted'}
+                    {lifecycleLoading ? '…' : t('admin.detail.markContacted')}
                   </button>
                 )}
                 {currentStatus === 'contacted' && (
@@ -891,7 +903,7 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                     disabled={lifecycleLoading}
                     className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60"
                   >
-                    {lifecycleLoading ? '…' : 'Mark Appointment Scheduled'}
+                    {lifecycleLoading ? '…' : t('admin.detail.markApptScheduled')}
                   </button>
                 )}
                 {currentStatus === 'appointment_scheduled' && (
@@ -901,7 +913,7 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                     disabled={lifecycleLoading}
                     className="rounded-xl bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-purple-700 disabled:opacity-60"
                   >
-                    {lifecycleLoading ? '…' : 'Mark In Treatment'}
+                    {lifecycleLoading ? '…' : t('admin.detail.markInTreatment')}
                   </button>
                 )}
                 {currentStatus === 'in_treatment' && (
@@ -911,7 +923,7 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                     disabled={lifecycleLoading}
                     className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
                   >
-                    {lifecycleLoading ? '…' : 'Mark Treatment Completed'}
+                    {lifecycleLoading ? '…' : t('admin.detail.markCompleted')}
                   </button>
                 )}
                 <div className="ml-auto">
@@ -921,7 +933,7 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                     disabled={lifecycleLoading}
                     className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-60"
                   >
-                    Mark Cancelled
+                    {t('admin.detail.markCancelled')}
                   </button>
                 </div>
               </div>

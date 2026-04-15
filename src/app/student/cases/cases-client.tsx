@@ -131,9 +131,50 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
     return result
   }, [initialCases, searchTerm, activeDepartment, requestFilter, localRequests])
 
+  function tTreatment(v: string): string {
+    const map: Record<string, string> = {
+      'Initial Examination / Consultation': t('request.treatments.initialExam'),
+      'Dental Cleaning': t('request.treatments.cleaning'),
+      'Fillings': t('request.treatments.fillings'),
+      'Tooth Extraction': t('request.treatments.extraction'),
+      'Root Canal Treatment': t('request.treatments.rootCanal'),
+      'Gum Treatment': t('request.treatments.gum'),
+      'Prosthetics / Crowns': t('request.treatments.prosthetics'),
+      'Orthodontics': t('request.treatments.orthodontics'),
+      'Pediatric Dentistry': t('request.treatments.pediatric'),
+      'Esthetic Dentistry': t('request.treatments.esthetic'),
+      'Other': t('request.treatments.other'),
+    }
+    return map[v] ?? v
+  }
+
+  function tDept(v: string | null): string {
+    if (!v) return ''
+    const map: Record<string, string> = {
+      'Endodontics': t('landing.depts.endodontics.name'),
+      'Oral & Maxillofacial Surgery': t('landing.depts.surgery.name'),
+      'Orthodontics': t('landing.depts.orthodontics.name'),
+      'Periodontology': t('landing.depts.periodontology.name'),
+      'Restorative Dentistry': t('landing.depts.restorative.name'),
+      'Prosthodontics': t('landing.depts.prosthodontics.name'),
+      'Pedodontics': t('landing.depts.pedodontics.name'),
+      'Oral Radiology': t('landing.depts.radiology.name'),
+    }
+    return map[v] ?? v
+  }
+
+  function tUrgency(v: string): string {
+    switch ((v || '').toLowerCase()) {
+      case 'high': return t('request.urgencyHigh').toUpperCase()
+      case 'medium': return t('request.urgencyMedium').toUpperCase()
+      case 'low': return t('request.urgencyLow').toUpperCase()
+      default: return (v || 'Unknown').toUpperCase()
+    }
+  }
+
   // Translate department display label (keep 'All' sentinel as-is for filter logic)
   function getDeptLabel(dept: string) {
-    return dept === 'All' ? t('student.cases.filterAll') : dept
+    return dept === 'All' ? t('student.cases.filterAll') : tDept(dept)
   }
 
   return (
@@ -372,7 +413,7 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
                       {/* Urgency dot + badge */}
                       <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${getUrgencyBadgeClass(c.urgency)}`}>
                         <span className={`h-1.5 w-1.5 rounded-full ${getUrgencyDot(c.urgency)}`} />
-                        {(c.urgency || 'Unknown').toUpperCase()}
+                        {tUrgency(c.urgency)}
                       </span>
                       {/* Request state indicator */}
                       {isApproved && (
@@ -390,7 +431,7 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
 
                   <div className="flex flex-1 flex-col p-5">
                     {/* Treatment */}
-                    <p className="text-base font-bold text-slate-900">{c.treatment_type}</p>
+                    <p className="text-base font-bold text-slate-900">{tTreatment(c.treatment_type)}</p>
                     <p className="mt-0.5 text-sm text-slate-500">
                       {c.age ?? '\u2014'} yrs{c.city ? ` \u00b7 ${c.city}` : ''}
                     </p>
@@ -405,7 +446,7 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
                     <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
                       <Stethoscope className="h-4 w-4 shrink-0 text-blue-600" />
                       <span className="text-sm font-semibold text-blue-900">
-                        {c.assigned_department || t('student.cases.unassigned')}
+                        {c.assigned_department ? tDept(c.assigned_department) : t('student.cases.unassigned')}
                       </span>
                     </div>
 
