@@ -229,6 +229,7 @@ export type TranslationShape = {
       dashboard: string
       casePool: string
       exchange: string
+      myRequests: string
       signOut: string
       availableCases: string
     }
@@ -857,14 +858,15 @@ export const en: TranslationShape = {
       errorNotStudentPortal: 'This account is not allowed to use the student portal.',
       errorNoRole: 'Your account does not have an assigned role. Contact the platform administrator.',
     },
-    nav: {
-      clinicalPlatform: 'Clinical Platform',
-      dashboard: 'Dashboard',
-      casePool: 'Case Pool',
-      exchange: 'Exchange',
-      signOut: 'Sign Out',
-      availableCases: 'Available Cases',
-    },
+  nav: {
+  clinicalPlatform: 'Clinical Platform',
+  dashboard: 'Dashboard',
+  casePool: 'Case Pool',
+  myRequests: 'My Requests',
+  exchange: 'Exchange',
+  signOut: 'Sign Out',
+  availableCases: 'Available Cases',
+},
     dashboard: {
       welcomeBack: 'Good to have you back',
       enrolledActive: 'Enrolled & Active',

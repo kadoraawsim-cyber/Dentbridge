@@ -325,6 +325,7 @@ export const tr: TranslationShape = {
       clinicalPlatform: 'Klinik Platform',
       dashboard: 'Panel',
       casePool: 'Vaka Havuzu',
+      myRequests: 'Başvurularım',
       exchange: 'Değişim',
       signOut: 'Çıkış Yap',
       availableCases: 'Uygun Vakalar',
