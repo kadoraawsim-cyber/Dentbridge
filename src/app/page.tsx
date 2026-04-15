@@ -3,6 +3,8 @@
 import React, { useEffect } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { useI18n } from '@/lib/i18n'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 import {
   ArrowRight,
   Baby,
@@ -13,6 +15,7 @@ import {
   ClipboardList,
   FileText,
   HeartPulse,
+  Menu,
   ScanLine,
   ShieldCheck,
   ShieldPlus,
@@ -22,14 +25,15 @@ import {
   Syringe,
   Users,
   Activity,
+  X,
 } from 'lucide-react'
 
 const benefits = [
-  { text: 'Affordable university care', icon: CheckCircle2 },
-  { text: 'Faculty supervision', icon: ShieldCheck },
-  { text: 'Structured case review', icon: ClipboardList },
-  { text: 'Easy coordination', icon: CalendarCheck },
-  { text: 'Modern digital workflow', icon: Building2 },
+  { key: 'benefits.affordableCare', icon: CheckCircle2 },
+  { key: 'benefits.facultySupervision', icon: ShieldCheck },
+  { key: 'benefits.structuredReview', icon: ClipboardList },
+  { key: 'benefits.easyCoordination', icon: CalendarCheck },
+  { key: 'benefits.modernWorkflow', icon: Building2 },
 ]
 
 const howItWorks = [
@@ -147,7 +151,9 @@ const departments = [
 ]
 
 export default function HomePage() {
+  const { t } = useI18n()
   const [openDepartment, setOpenDepartment] = React.useState<string | null>(null)
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
 
   // Clear any staff session when landing on the public home page.
   // Patients are always anonymous so signOut() is a no-op for them.
@@ -173,61 +179,120 @@ export default function HomePage() {
 
           <nav className="hidden items-center gap-6 md:flex">
             <Link href="/patient/request" className="text-sm font-medium text-slate-600 transition hover:text-slate-900">
-              Request Treatment
+              {t('nav.requestTreatment')}
             </Link>
             <Link href="/student/login" className="text-sm font-medium text-slate-600 transition hover:text-slate-900">
-              Student Portal
+              {t('nav.studentPortal')}
             </Link>
             <Link
               href="/admin/login"
               className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
             >
-              Faculty Login
+              {t('nav.facultyLogin')}
             </Link>
+            <LanguageSwitcher />
           </nav>
+
+          <button
+            type="button"
+            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+            onClick={() => setMobileMenuOpen((v) => !v)}
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 md:hidden"
+          >
+            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
         </div>
+
+        {mobileMenuOpen && (
+          <div className="border-t border-slate-100 bg-white px-4 pb-4 pt-2 md:hidden">
+            <nav className="flex flex-col gap-1">
+              <Link
+                href="/patient/request"
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                {t('nav.requestTreatment')}
+              </Link>
+              <Link
+                href="/patient/status"
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                {t('nav.checkStatus')}
+              </Link>
+              <Link
+                href="/student/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                {t('nav.studentPortal')}
+              </Link>
+              <Link
+                href="/admin/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="mt-1 rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                {t('nav.facultyAdminLogin')}
+              </Link>
+              <div className="mt-2 border-t border-slate-100 pt-2">
+                <LanguageSwitcher />
+              </div>
+            </nav>
+          </div>
+        )}
       </header>
 
-      <section className="bg-[#1c2f6b] px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2">
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#1e3480] via-[#1c2f6b] to-[#0f1e4a] px-4 py-10 sm:px-6 sm:py-16 lg:px-8 lg:py-24">
+        {/* Decorative background layers */}
+        <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+          <div className="absolute -left-40 -top-40 h-96 w-96 rounded-full bg-blue-400/10 blur-3xl" />
+          <div className="absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-teal-400/10 blur-3xl" />
+          <div className="absolute left-1/2 top-1/3 h-64 w-64 -translate-x-1/2 rounded-full bg-indigo-500/8 blur-2xl" />
+          <div
+            className="absolute inset-0 opacity-[0.025]"
+            style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '28px 28px' }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0a1533]/50" />
+        </div>
+
+        <div className="relative mx-auto grid max-w-7xl items-center gap-8 sm:gap-12 lg:grid-cols-2">
           <div>
             <span className="inline-flex items-center gap-2 rounded-full border border-teal-400/40 bg-teal-400/10 px-3 py-1 text-xs font-medium text-teal-200 sm:px-4 sm:py-1.5 sm:text-sm">
               <span className="h-1.5 w-1.5 rounded-full bg-teal-400" />
-              University-Supervised Clinical Access
+              {t('hero.badge')}
             </span>
 
-            <h1 className="mt-7 max-w-2xl text-3xl font-bold leading-[1.1] tracking-tight text-white sm:text-5xl lg:text-6xl">
-              Affordable University-Supervised Dental Care
+            <h1 className="mt-4 max-w-2xl text-3xl font-bold leading-[1.1] tracking-tight text-white sm:mt-7 sm:text-5xl lg:text-6xl">
+              {t('hero.title')}
             </h1>
 
-            <p className="mt-6 max-w-xl text-lg leading-8 text-slate-300">
-              DentBridge connects patients with affordable treatment through senior dental
-              students working under strict faculty supervision — a structured, digital workflow.
+            <p className="mt-4 max-w-xl text-base leading-7 text-slate-300 sm:mt-6 sm:text-lg sm:leading-8">
+              {t('hero.description')}
             </p>
 
-            <div className="mt-9 flex flex-wrap gap-3">
+            <div className="mt-6 flex flex-wrap gap-3 sm:mt-9">
               <Link
                 href="/patient/request"
-                className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
+                className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-slate-100 sm:px-6 sm:py-3"
               >
-                Submit Treatment Request
+                {t('cta.submitRequest')}
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 href="/patient/status"
-                className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20"
+                className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20 sm:px-6 sm:py-3"
               >
-                Check Treatment Status
+                {t('cta.checkStatus')}
               </Link>
             </div>
           </div>
 
           <div className="flex items-center justify-center">
-            <div className="w-full max-w-xl overflow-hidden rounded-3xl border border-white/10 bg-white/10 p-3 shadow-2xl backdrop-blur">
+            <div className="w-full max-w-xl overflow-hidden rounded-3xl border border-white/15 bg-white/8 p-2.5 shadow-2xl backdrop-blur sm:p-3">
               <img
                 src="/hero-dental-clinic.png"
                 alt="University dental care"
-                className="h-[420px] w-full rounded-2xl object-cover"
+                className="h-[200px] w-full rounded-2xl object-cover sm:h-[300px] lg:h-[420px]"
               />
             </div>
           </div>
@@ -235,22 +300,22 @@ export default function HomePage() {
       </section>
 
       <section className="border-b border-slate-200 bg-teal-700 py-4">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-8 gap-y-2 px-4 text-sm font-medium text-white sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-6 gap-y-2 px-4 text-xs font-medium text-white sm:gap-x-8 sm:px-6 sm:text-sm lg:px-8">
           {benefits.map((benefit) => {
             const Icon = benefit.icon
             return (
-              <div key={benefit.text} className="flex items-center gap-2">
+              <div key={benefit.key} className="flex items-center gap-2">
                 <Icon className="h-4 w-4 text-teal-100" />
-                <span>{benefit.text}</span>
+                <span>{t(benefit.key)}</span>
               </div>
             )
           })}
         </div>
       </section>
 
-      <section className="bg-slate-50 py-20">
+      <section className="bg-slate-50 py-12 sm:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-12 text-center">
+          <div className="mb-8 text-center sm:mb-12">
             <h2 className="text-3xl font-bold">How It Works</h2>
             <p className="mx-auto mt-4 max-w-2xl text-slate-600">
               Our clinical case matching platform ensures every patient gets structured
@@ -264,9 +329,9 @@ export default function HomePage() {
               return (
                 <div
                   key={step.title}
-                  className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+                  className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"
                 >
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-50 text-teal-700">
+                  <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-teal-50 text-teal-700 sm:mb-4 sm:h-12 sm:w-12">
                     <Icon className="h-6 w-6" />
                   </div>
                   <h3 className="font-semibold text-slate-900">{step.title}</h3>
@@ -279,7 +344,7 @@ export default function HomePage() {
       </section>
 
       <section className="bg-white px-4 py-20 sm:px-6 lg:px-8">
-        <div className="mx-auto grid max-w-7xl items-center gap-10 rounded-3xl border border-slate-200 bg-slate-50 px-6 py-8 sm:px-8 lg:grid-cols-2">
+        <div className="mx-auto grid max-w-7xl items-center gap-6 rounded-3xl border border-slate-200 bg-slate-50 px-4 py-6 sm:gap-10 sm:px-8 sm:py-8 lg:grid-cols-2">
           <div>
             <h2 className="mb-6 text-3xl font-bold text-slate-900">
               Why Choose University-Supervised Care?
@@ -320,7 +385,7 @@ export default function HomePage() {
             <img
               src="https://images.unsplash.com/photo-1629909613654-28e377c37b09?q=80&w=1200&auto=format&fit=crop"
               alt="Modern dental clinic"
-              className="h-[320px] w-full rounded-3xl object-cover"
+              className="h-[200px] w-full rounded-3xl object-cover sm:h-[280px] lg:h-[320px]"
             />
           </div>
         </div>
@@ -410,10 +475,9 @@ export default function HomePage() {
         <div className="mx-auto max-w-7xl rounded-3xl bg-teal-600 px-6 py-8 sm:px-8 lg:px-10">
           <div className="flex flex-col items-start justify-between gap-6 lg:flex-row lg:items-center">
             <div>
-              <h2 className="text-2xl font-bold text-white">Need a clinical evaluation?</h2>
+              <h2 className="text-2xl font-bold text-white">{t('callout.heading')}</h2>
               <p className="mt-2 max-w-2xl text-sm text-teal-50">
-                Start your treatment request today and let the university team
-                review your case.
+                {t('callout.description')}
               </p>
             </div>
 
@@ -421,7 +485,7 @@ export default function HomePage() {
               href="/patient/request"
               className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
             >
-              Submit Treatment Request <ArrowRight className="h-4 w-4" />
+              {t('cta.submitRequest')} <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
         </div>
@@ -438,28 +502,25 @@ export default function HomePage() {
               />
               <div>
                 <p className="font-bold text-white">DentBridge</p>
-                <p className="text-xs text-slate-400">
-                  Faculty-Supported Clinical Platform
-                </p>
+                <p className="text-xs text-slate-400">{t('footer.tagline')}</p>
               </div>
             </div>
             <p className="text-sm leading-relaxed text-slate-400">
-              Connecting patients with affordable, supervised dental care through
-              structured academic workflows.
+              {t('footer.description')}
             </p>
           </div>
 
           <div>
-            <h3 className="mb-4 font-semibold text-white">Patient Services</h3>
+            <h3 className="mb-4 font-semibold text-white">{t('footer.patientServices')}</h3>
             <ul className="space-y-2 text-sm text-slate-400">
               <li>
                 <Link href="/patient/request" className="hover:text-white">
-                  Request Treatment
+                  {t('footer.requestTreatment')}
                 </Link>
               </li>
               <li>
                 <Link href="/patient/status" className="hover:text-white">
-                  Check Status
+                  {t('footer.checkStatus')}
                 </Link>
               </li>
               <li>
@@ -472,21 +533,21 @@ export default function HomePage() {
           </div>
 
           <div>
-            <h3 className="mb-4 font-semibold text-white">Clinical Portals</h3>
+            <h3 className="mb-4 font-semibold text-white">{t('footer.clinicalPortals')}</h3>
             <ul className="space-y-2 text-sm text-slate-400">
               <li>
                 <Link href="/student/login" className="hover:text-white">
-                  Student Portal
+                  {t('footer.studentPortal')}
                 </Link>
               </li>
               <li>
                 <Link href="/admin/login" className="hover:text-white">
-                  Faculty Portal
+                  {t('footer.facultyPortal')}
                 </Link>
               </li>
               <li>
                 <Link href="/student/cases" className="hover:text-white">
-                  Case Pool
+                  {t('footer.casePool')}
                 </Link>
               </li>
               <li>
@@ -496,7 +557,7 @@ export default function HomePage() {
           </div>
 
           <div>
-            <h3 className="mb-4 font-semibold text-white">Contact</h3>
+            <h3 className="mb-4 font-semibold text-white">{t('footer.contact')}</h3>
             <ul className="space-y-2 text-sm text-slate-400">
               <li>Istanbul, Türkiye</li>
               <li>University-supported pilot platform</li>
@@ -506,8 +567,7 @@ export default function HomePage() {
         </div>
 
         <div className="mx-auto mt-10 max-w-7xl border-t border-slate-800 px-4 pt-6 text-xs text-slate-500 sm:px-6 lg:px-8">
-          © {new Date().getFullYear()} DentBridge. All treatments are provided under
-          academic supervision.
+          {t('footer.copyright').replace('{year}', String(new Date().getFullYear()))}
         </div>
       </footer>
     </main>
