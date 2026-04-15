@@ -102,8 +102,8 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
     }))
   }
 
-  const myRequestCount = Object.values(localRequests).length
-  const pendingCount   = Object.values(localRequests).filter(r => r.status === 'pending').length
+  const myRequestCount = Object.values(localRequests).filter(r => r.status === 'pending').length
+  const pendingCount   = myRequestCount
 
   const filtered = useMemo(() => {
     let result = initialCases

@@ -83,16 +83,16 @@ export default function HomePage() {
             </div>
           </Link>
 
-          <nav className="hidden items-center gap-6 md:flex">
-            <Link href="/patient/request" className="text-sm font-medium text-slate-600 transition hover:text-slate-900">
-              {t('nav.requestTreatment')}
-            </Link>
-            <Link href="/student/login" className="text-sm font-medium text-slate-600 transition hover:text-slate-900">
+          <nav className="hidden items-center gap-3 md:flex">
+            <Link
+              href="/student/login"
+              className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+            >
               {t('nav.studentPortal')}
             </Link>
             <Link
               href="/admin/login"
-              className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+              className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
             >
               {t('nav.facultyLogin')}
             </Link>
@@ -113,20 +113,6 @@ export default function HomePage() {
           <div className="border-t border-slate-100 bg-white px-4 pb-4 pt-2 md:hidden">
             <nav className="flex flex-col gap-1">
               <Link
-                href="/patient/request"
-                onClick={() => setMobileMenuOpen(false)}
-                className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              >
-                {t('nav.requestTreatment')}
-              </Link>
-              <Link
-                href="/patient/status"
-                onClick={() => setMobileMenuOpen(false)}
-                className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              >
-                {t('nav.checkStatus')}
-              </Link>
-              <Link
                 href="/student/login"
                 onClick={() => setMobileMenuOpen(false)}
                 className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
@@ -136,7 +122,7 @@ export default function HomePage() {
               <Link
                 href="/admin/login"
                 onClick={() => setMobileMenuOpen(false)}
-                className="mt-1 rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
               >
                 {t('nav.facultyAdminLogin')}
               </Link>
@@ -181,7 +167,7 @@ export default function HomePage() {
                 href="/patient/request"
                 className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-slate-100 sm:px-6 sm:py-3"
               >
-                {t('cta.submitRequest')}
+                {t('nav.requestTreatment')}
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
