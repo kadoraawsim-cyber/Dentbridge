@@ -534,6 +534,9 @@ export const tr: TranslationShape = {
       urgentWaitingSingle: '1 acil vaka fak\u00fclte incelemesi bekliyor. Gecikme ya\u015fanmamas\u0131 i\u00e7in l\u00fctfen inceleyin.',
       urgentWaitingPluralSuffix: 'acil vaka fak\u00fclte incelemesi bekliyor. Gecikme ya\u015fanmamas\u0131 i\u00e7in l\u00fctfen inceleyin.',
       noUrgentCases: '\u015eu anda inceleme bekleyen acil vaka yok.',
+      statCompletedLabel: 'Tamamland\u0131',
+      statCancelledLabel: '\u0130ptal Edildi',
+      statInTreatmentLabel: 'Tedavide',
     },
     requests: {
       backToDashboard: 'Panele D\u00f6n',

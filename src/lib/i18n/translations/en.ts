@@ -438,6 +438,9 @@ export type TranslationShape = {
       urgentWaitingSingle: string
       urgentWaitingPluralSuffix: string
       noUrgentCases: string
+      statCompletedLabel: string
+      statCancelledLabel: string
+      statInTreatmentLabel: string
     }
     requests: {
       backToDashboard: string
@@ -1150,6 +1153,9 @@ export const en: TranslationShape = {
       urgentWaitingSingle: '1 urgent case is waiting for faculty review. Please review to avoid delays.',
       urgentWaitingPluralSuffix: 'urgent cases are waiting for faculty review. Please review to avoid delays.',
       noUrgentCases: 'No urgent cases are currently awaiting review.',
+      statCompletedLabel: 'Completed',
+      statCancelledLabel: 'Cancelled',
+      statInTreatmentLabel: 'In Treatment',
     },
     requests: {
       backToDashboard: 'Back to Dashboard',

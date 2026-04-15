@@ -180,7 +180,19 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
 
     const total = initialRequests.length
 
-    return { newToday, pendingReview, activeTreatments, total }
+    const completed = initialRequests.filter(
+      (r) => (r.status || '').toLowerCase() === 'completed'
+    ).length
+
+    const cancelled = initialRequests.filter(
+      (r) => (r.status || '').toLowerCase() === 'cancelled'
+    ).length
+
+    const inTreatment = initialRequests.filter(
+      (r) => (r.status || '').toLowerCase() === 'in_treatment'
+    ).length
+
+    return { newToday, pendingReview, activeTreatments, total, completed, cancelled, inTreatment }
   }, [initialRequests])
 
   const recentRequests = useMemo(() => initialRequests.slice(0, 5), [initialRequests])
@@ -388,6 +400,45 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
               {dashboardStats.total}
             </div>
             <div className="mt-2 text-sm text-slate-500">{t('admin.dashboard.statTotalDesc')}</div>
+          </div>
+        </div>
+
+        {/* ── Outcome summary pills ──────────────────────────────────────── */}
+        <div className="mt-4 grid grid-cols-3 gap-3 sm:gap-4">
+          <div className="flex items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
+            <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" />
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700">
+                {t('admin.dashboard.statCompletedLabel')}
+              </p>
+              <p className="text-xl font-bold leading-tight text-emerald-800">
+                {dashboardStats.completed}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 rounded-xl border border-rose-100 bg-rose-50 px-4 py-3">
+            <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-rose-400" />
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-rose-700">
+                {t('admin.dashboard.statCancelledLabel')}
+              </p>
+              <p className="text-xl font-bold leading-tight text-rose-800">
+                {dashboardStats.cancelled}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+            <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-blue-500" />
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-blue-700">
+                {t('admin.dashboard.statInTreatmentLabel')}
+              </p>
+              <p className="text-xl font-bold leading-tight text-blue-800">
+                {dashboardStats.inTreatment}
+              </p>
+            </div>
           </div>
         </div>
 
