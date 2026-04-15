@@ -348,6 +348,196 @@ export type TranslationShape = {
     }
   }
 
+  // ── Faculty / Admin portal ─────────────────────────────────────────────────
+  admin: {
+    shared: {
+      clinicalPlatform: string
+      navDashboard: string
+      navTriageReview: string
+      signOut: string
+    }
+    login: {
+      checkingSession: string
+      title: string
+      subtitle: string
+      emailLabel: string
+      passwordLabel: string
+      showPassword: string
+      hidePassword: string
+      signingIn: string
+      signIn: string
+      facultyStaffOnly: string
+      studentQuestion: string
+      studentPortalLink: string
+      patientQuestion: string
+      submitRequest: string
+      checkStatus: string
+      noAccountNeeded: string
+      errorInvalidCredentials: string
+      errorNotFacultyPortal: string
+      errorNoRole: string
+    }
+    dashboard: {
+      pageTitle: string
+      systemsOnline: string
+      caseAwaitingReview: string
+      casesAwaitingReview: string
+      openWorkQueue: string
+      statNewTodayLabel: string
+      statNewTodayDesc: string
+      statPendingLabel: string
+      statPendingDesc: string
+      statPendingReviewLink: string
+      statMatchedLabel: string
+      statMatchedDesc: string
+      statTotalLabel: string
+      statTotalDesc: string
+      urgentQueueTitle: string
+      viewAll: string
+      reviewNow: string
+      recentRequests: string
+      viewAllLink: string
+      tablePatient: string
+      tableIssue: string
+      tableUrgency: string
+      tableStatus: string
+      tableSubmitted: string
+      noRequests: string
+      casesByDept: string
+      noDeptCases: string
+      actionRequired: string
+      queueClear: string
+      urgentWaitingSingle: string
+      urgentWaitingPluralSuffix: string
+      noUrgentCases: string
+    }
+    requests: {
+      backToDashboard: string
+      pageTitle: string
+      pageDesc: string
+      pendingReviewSuffix: string
+      urgentSuffix: string
+      searchPlaceholder: string
+      filterLabel: string
+      sortLabel: string
+      statusAll: string
+      statusSubmitted: string
+      statusUnderReview: string
+      statusMatched: string
+      statusCompleted: string
+      statusRejected: string
+      urgencyAll: string
+      urgencyHighLabel: string
+      urgencyMediumLabel: string
+      urgencyLowLabel: string
+      sortNewest: string
+      sortOldest: string
+      sortByUrgency: string
+      countOf: string
+      countCaseSuffix: string
+      countCasesSuffix: string
+      noResultsTitle: string
+      noResultsFilteredDesc: string
+      noResultsEmptyDesc: string
+      reportedIssue: string
+      assignedDept: string
+      suggestedDept: string
+      verify: string
+      openCaseFile: string
+      statusLabelSubmitted: string
+      statusLabelUnderReview: string
+      statusLabelMatched: string
+      statusLabelContacted: string
+      statusLabelCompleted: string
+      statusLabelRejected: string
+      urgencyLabelHigh: string
+      urgencyLabelMedium: string
+      urgencyLabelLow: string
+      urgencyLabelUnspecified: string
+    }
+    detail: {
+      backToReviewList: string
+      caseReviewPrefix: string
+      refLabel: string
+      submittedToday: string
+      waitingOneDay: string
+      waitingDaysPrefix: string
+      waitingDaysSuffix: string
+      patientProfileTitle: string
+      ageLabel: string
+      locationLabel: string
+      phoneLabel: string
+      langLabel: string
+      availabilityLabel: string
+      complaintLabel: string
+      triageTitle: string
+      triageReleasedNote: string
+      triageClosedNote: string
+      assignDeptLabel: string
+      assignDeptHint: string
+      urgencyLabel: string
+      urgencyHighOption: string
+      urgencyMediumOption: string
+      urgencyLowOption: string
+      studentLevelLabel: string
+      clinicalNotesLabel: string
+      clinicalNotesPlaceholder: string
+      saveDraft: string
+      rejectOutOfScope: string
+      approveReleaseToPool: string
+      rejectConfirmTitle: string
+      rejectConfirmDesc: string
+      cancel: string
+      rejecting: string
+      confirmReject: string
+      releaseConfirmTitle: string
+      releaseDeptLabel: string
+      releaseUrgencyLabel: string
+      releaseStudentLevelLabel: string
+      releasing: string
+      confirmRelease: string
+      savedDraft: string
+      savedApproved: string
+      savedRejected: string
+      statusUpdated: string
+      reviewRecordTitle: string
+      reviewedByLabel: string
+      lastReviewedLabel: string
+      noReviewYet: string
+      uploadedImagesTitle: string
+      noUploadedImage: string
+      openingFile: string
+      viewFullScreen: string
+      priorRecordsTitle: string
+      priorRecordsDesc: string
+      priorRecordsNote: string
+      lifecycleTitle: string
+      stepReleasedToPool: string
+      stepStudentAssigned: string
+      stepPatientContacted: string
+      stepApptScheduled: string
+      stepInTreatment: string
+      stepCompleted: string
+      stepCancelled: string
+      markContacted: string
+      markApptScheduled: string
+      markInTreatment: string
+      markCompleted: string
+      markCancelled: string
+      closedCompleted: string
+      closedCancelledMsg: string
+      closedGenericMsg: string
+      studentRequestsTitle: string
+      studentRequestCountSuffix: string
+      studentRequestsCountSuffix: string
+      noStudentRequests: string
+      requestedAtLabel: string
+      reviewedByAtLabel: string
+      approveBtn: string
+      rejectBtn: string
+    }
+  }
+
   // ── Footer ──────────────────────────────────────────────────────────────────
   footer: {
     tagline: string
@@ -788,6 +978,195 @@ export const en: TranslationShape = {
       acceptedAwaitingApproval: 'Accepted \u2014 awaiting faculty approval',
       acceptExchange: 'Accept Exchange',
       availableCases: 'Available Cases',
+    },
+  },
+
+  admin: {
+    shared: {
+      clinicalPlatform: 'Faculty-Supported Clinical Platform',
+      navDashboard: 'Dashboard',
+      navTriageReview: 'Patient Triage & Case Review',
+      signOut: 'Sign Out',
+    },
+    login: {
+      checkingSession: 'Checking session\u2026',
+      title: 'Faculty Administrator Sign In',
+      subtitle: 'This portal is for faculty administrators only. Use your university credentials to access the admin dashboard.',
+      emailLabel: 'Email address',
+      passwordLabel: 'Password',
+      showPassword: 'Show password',
+      hidePassword: 'Hide password',
+      signingIn: 'Signing in\u2026',
+      signIn: 'Sign In',
+      facultyStaffOnly: 'Faculty and administrative staff only',
+      studentQuestion: 'Are you a clinical student?',
+      studentPortalLink: 'Student portal login',
+      patientQuestion: 'Are you a patient?',
+      submitRequest: 'Submit a request',
+      checkStatus: 'check your status',
+      noAccountNeeded: 'No account needed.',
+      errorInvalidCredentials: 'Invalid email or password. Please try again.',
+      errorNotFacultyPortal: 'This account is not allowed to use the faculty portal.',
+      errorNoRole: 'Your account does not have an assigned role. Contact the platform administrator.',
+    },
+    dashboard: {
+      pageTitle: 'Faculty Dashboard',
+      systemsOnline: 'Systems online',
+      caseAwaitingReview: '1 case awaiting review',
+      casesAwaitingReview: 'cases awaiting review',
+      openWorkQueue: 'Open Work Queue',
+      statNewTodayLabel: 'New Today',
+      statNewTodayDesc: 'Submitted today',
+      statPendingLabel: 'Pending Review',
+      statPendingDesc: 'Needs faculty assessment',
+      statPendingReviewLink: 'Review \u2192',
+      statMatchedLabel: 'Matched Cases',
+      statMatchedDesc: 'Released to student pool',
+      statTotalLabel: 'Total Requests',
+      statTotalDesc: 'All time',
+      urgentQueueTitle: 'High-Urgency Cases Awaiting Review',
+      viewAll: 'View all \u2192',
+      reviewNow: 'Review Now',
+      recentRequests: 'Recent Requests',
+      viewAllLink: 'View All',
+      tablePatient: 'Patient',
+      tableIssue: 'Issue',
+      tableUrgency: 'Urgency',
+      tableStatus: 'Status',
+      tableSubmitted: 'Submitted',
+      noRequests: 'No requests found.',
+      casesByDept: 'Cases by Department',
+      noDeptCases: 'No cases are currently assigned to departments.',
+      actionRequired: 'Action Required',
+      queueClear: 'Queue Clear',
+      urgentWaitingSingle: '1 urgent case is waiting for faculty review. Please review to avoid delays.',
+      urgentWaitingPluralSuffix: 'urgent cases are waiting for faculty review. Please review to avoid delays.',
+      noUrgentCases: 'No urgent cases are currently awaiting review.',
+    },
+    requests: {
+      backToDashboard: 'Back to Dashboard',
+      pageTitle: 'Patient Triage & Case Review',
+      pageDesc: 'Review incoming cases, verify urgency, assign clinical routing, and release to the student pool.',
+      pendingReviewSuffix: 'pending review',
+      urgentSuffix: 'urgent',
+      searchPlaceholder: 'Search by name, ID, phone, or issue\u2026',
+      filterLabel: 'Filter:',
+      sortLabel: 'Sort:',
+      statusAll: 'All Statuses',
+      statusSubmitted: 'Submitted',
+      statusUnderReview: 'Under Review',
+      statusMatched: 'Matched',
+      statusCompleted: 'Completed',
+      statusRejected: 'Rejected',
+      urgencyAll: 'All Urgencies',
+      urgencyHighLabel: 'High Urgency',
+      urgencyMediumLabel: 'Medium',
+      urgencyLowLabel: 'Low',
+      sortNewest: 'Newest First',
+      sortOldest: 'Oldest First',
+      sortByUrgency: 'High Urgency First',
+      countOf: 'of',
+      countCaseSuffix: 'case',
+      countCasesSuffix: 'cases',
+      noResultsTitle: 'No cases found',
+      noResultsFilteredDesc: 'No cases match the current filters. Adjust or clear the filters to see more.',
+      noResultsEmptyDesc: 'No patient cases have been submitted yet.',
+      reportedIssue: 'Reported Issue',
+      assignedDept: 'Assigned dept.',
+      suggestedDept: 'Suggested dept.',
+      verify: '(verify)',
+      openCaseFile: 'Open Case File \u2192',
+      statusLabelSubmitted: 'Submitted',
+      statusLabelUnderReview: 'Under Review',
+      statusLabelMatched: 'Matched',
+      statusLabelContacted: 'Contacted',
+      statusLabelCompleted: 'Completed',
+      statusLabelRejected: 'Rejected',
+      urgencyLabelHigh: 'High Urgency',
+      urgencyLabelMedium: 'Medium',
+      urgencyLabelLow: 'Low',
+      urgencyLabelUnspecified: 'Unspecified',
+    },
+    detail: {
+      backToReviewList: 'Back to Review List',
+      caseReviewPrefix: 'Case Review:',
+      refLabel: 'Ref:',
+      submittedToday: 'Submitted today',
+      waitingOneDay: 'Waiting 1 day',
+      waitingDaysPrefix: 'Waiting',
+      waitingDaysSuffix: 'days',
+      patientProfileTitle: 'Patient Profile & Complaint',
+      ageLabel: 'Age',
+      locationLabel: 'Location',
+      phoneLabel: 'Phone',
+      langLabel: 'Preferred Language',
+      availabilityLabel: 'Preferred Availability',
+      complaintLabel: 'Primary Complaint',
+      triageTitle: 'Faculty Triage Decision',
+      triageReleasedNote: 'This case has been released to the student pool. No further edits can be made from this view.',
+      triageClosedNote: 'This case is closed. No further changes can be made.',
+      assignDeptLabel: 'Assign Department',
+      assignDeptHint: '(keyword pre-fill \u2014 verify)',
+      urgencyLabel: 'Urgency Level',
+      urgencyHighOption: 'High (Emergency / Severe Pain)',
+      urgencyMediumOption: 'Medium (Discomfort)',
+      urgencyLowOption: 'Low (Routine)',
+      studentLevelLabel: 'Target Student Level',
+      clinicalNotesLabel: 'Clinical Notes & Instructions',
+      clinicalNotesPlaceholder: 'Add any specific instructions for the assigned student or coordinator\u2026',
+      saveDraft: 'Save Draft',
+      rejectOutOfScope: 'Reject / Out of Scope',
+      approveReleaseToPool: 'Approve & Release to Pool',
+      rejectConfirmTitle: 'Reject this case?',
+      rejectConfirmDesc: 'This will mark the case as out of scope. The patient will see it as rejected. This action cannot be undone from this view.',
+      cancel: 'Cancel',
+      rejecting: 'Rejecting\u2026',
+      confirmReject: 'Confirm Reject',
+      releaseConfirmTitle: 'Release this case to the student pool?',
+      releaseDeptLabel: 'Department:',
+      releaseUrgencyLabel: 'Urgency:',
+      releaseStudentLevelLabel: 'Student level:',
+      releasing: 'Releasing\u2026',
+      confirmRelease: 'Confirm & Release',
+      savedDraft: 'Draft saved.',
+      savedApproved: 'Approved and released to pool.',
+      savedRejected: 'Case marked as rejected.',
+      statusUpdated: 'Status updated.',
+      reviewRecordTitle: 'Faculty Review Record',
+      reviewedByLabel: 'Reviewed by',
+      lastReviewedLabel: 'Last reviewed',
+      noReviewYet: 'No faculty action has been recorded yet.',
+      uploadedImagesTitle: 'Uploaded Images',
+      noUploadedImage: 'No uploaded image',
+      openingFile: 'Opening\u2026',
+      viewFullScreen: 'View Full Screen',
+      priorRecordsTitle: 'Prior Records',
+      priorRecordsDesc: 'Patient history lookup is not yet connected. Check the university system separately if prior records are needed.',
+      priorRecordsNote: 'Details taken from submitted request only',
+      lifecycleTitle: 'Case Lifecycle',
+      stepReleasedToPool: 'Released to Pool',
+      stepStudentAssigned: 'Student Assigned',
+      stepPatientContacted: 'Patient Contacted',
+      stepApptScheduled: 'Appt. Scheduled',
+      stepInTreatment: 'In Treatment',
+      stepCompleted: 'Completed',
+      stepCancelled: 'Cancelled',
+      markContacted: 'Mark Patient Contacted',
+      markApptScheduled: 'Mark Appointment Scheduled',
+      markInTreatment: 'Mark In Treatment',
+      markCompleted: 'Mark Treatment Completed',
+      markCancelled: 'Mark Cancelled',
+      closedCompleted: 'Treatment completed. This case is closed.',
+      closedCancelledMsg: 'This case has been cancelled.',
+      closedGenericMsg: 'This case is closed.',
+      studentRequestsTitle: 'Student Requests',
+      studentRequestCountSuffix: 'request',
+      studentRequestsCountSuffix: 'requests',
+      noStudentRequests: 'No students have requested this case yet.',
+      requestedAtLabel: 'Requested',
+      reviewedByAtLabel: 'Reviewed by',
+      approveBtn: 'Approve',
+      rejectBtn: 'Reject',
     },
   },
 

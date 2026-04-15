@@ -1,9 +1,11 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { AlertCircle, ArrowLeft, LogOut, Phone, Search, ShieldCheck } from 'lucide-react'
+import { useI18n } from '@/lib/i18n'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 type PatientRequest = {
   id: string
@@ -26,7 +28,7 @@ interface Props {
 }
 
 function relativeTime(iso: string | null): string {
-  if (!iso) return '—'
+  if (!iso) return '\u2014'
   const ms = Date.now() - new Date(iso).getTime()
   const mins = Math.floor(ms / 60000)
   if (mins < 2) return 'Just now'
@@ -65,19 +67,6 @@ function getUrgencyBadgeClass(urgency: string) {
   }
 }
 
-function getUrgencyLabel(urgency: string) {
-  switch ((urgency || '').toLowerCase()) {
-    case 'high':
-      return 'High Urgency'
-    case 'medium':
-      return 'Medium'
-    case 'low':
-      return 'Low'
-    default:
-      return 'Unspecified'
-  }
-}
-
 function getStatusBadgeClass(status: string) {
   switch ((status || '').toLowerCase()) {
     case 'submitted':
@@ -94,25 +83,6 @@ function getStatusBadgeClass(status: string) {
       return 'bg-rose-50 text-rose-700 border border-rose-200'
     default:
       return 'bg-slate-100 text-slate-700 border border-slate-200'
-  }
-}
-
-function getStatusLabel(status: string) {
-  switch ((status || '').toLowerCase()) {
-    case 'submitted':
-      return 'Submitted'
-    case 'under_review':
-      return 'Under Review'
-    case 'matched':
-      return 'Matched'
-    case 'contacted':
-      return 'Contacted'
-    case 'completed':
-      return 'Completed'
-    case 'rejected':
-      return 'Rejected'
-    default:
-      return status || 'Unknown'
   }
 }
 
@@ -137,6 +107,7 @@ function keywordRoutingHint(treatmentType: string, assignedDepartment: string | 
 const URGENCY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 }
 
 export function RequestsClient({ initialRequests, adminEmail }: Props) {
+  const { t } = useI18n()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [urgencyFilter, setUrgencyFilter] = useState('all')
@@ -145,6 +116,27 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
   async function handleSignOut() {
     await supabase.auth.signOut()
     window.location.href = '/admin/login'
+  }
+
+  function getStatusLabel(status: string) {
+    switch ((status || '').toLowerCase()) {
+      case 'submitted':   return t('admin.requests.statusLabelSubmitted')
+      case 'under_review': return t('admin.requests.statusLabelUnderReview')
+      case 'matched':     return t('admin.requests.statusLabelMatched')
+      case 'contacted':   return t('admin.requests.statusLabelContacted')
+      case 'completed':   return t('admin.requests.statusLabelCompleted')
+      case 'rejected':    return t('admin.requests.statusLabelRejected')
+      default:            return status || t('admin.requests.urgencyLabelUnspecified')
+    }
+  }
+
+  function getUrgencyLabel(urgency: string) {
+    switch ((urgency || '').toLowerCase()) {
+      case 'high':    return t('admin.requests.urgencyLabelHigh')
+      case 'medium':  return t('admin.requests.urgencyLabelMedium')
+      case 'low':     return t('admin.requests.urgencyLabelLow')
+      default:        return t('admin.requests.urgencyLabelUnspecified')
+    }
   }
 
   const filteredRequests = useMemo(() => {
@@ -216,17 +208,17 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
             <div>
               <p className="text-lg font-bold leading-none text-slate-900">DentBridge</p>
               <p className="text-[11px] uppercase tracking-wide text-slate-500">
-                Faculty-Supported Clinical Platform
+                {t('admin.shared.clinicalPlatform')}
               </p>
             </div>
           </Link>
 
           <nav className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
             <Link href="/admin" className="hover:text-slate-900">
-              Dashboard
+              {t('admin.shared.navDashboard')}
             </Link>
             <Link href="/admin/requests" className="text-slate-900">
-              Patient Triage &amp; Case Review
+              {t('admin.shared.navTriageReview')}
             </Link>
           </nav>
 
@@ -237,13 +229,14 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
                 <span className="max-w-[200px] truncate">{adminEmail}</span>
               </div>
             )}
+            <LanguageSwitcher />
             <button
               type="button"
               onClick={handleSignOut}
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
             >
               <LogOut className="h-3.5 w-3.5" />
-              Sign Out
+              {t('admin.shared.signOut')}
             </button>
           </div>
         </div>
@@ -258,27 +251,26 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
             className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-900"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
+            {t('admin.requests.backToDashboard')}
           </Link>
 
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-                Patient Triage &amp; Case Review
+                {t('admin.requests.pageTitle')}
               </h1>
               <p className="mt-2 text-sm text-slate-500">
-                Review incoming cases, verify urgency, assign clinical routing, and release to the
-                student pool.
+                {t('admin.requests.pageDesc')}
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
                   <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                  {queueStats.pending} pending review
+                  {queueStats.pending} {t('admin.requests.pendingReviewSuffix')}
                 </span>
                 {queueStats.urgent > 0 && (
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
                     <AlertCircle className="h-3 w-3" />
-                    {queueStats.urgent} urgent
+                    {queueStats.urgent} {t('admin.requests.urgentSuffix')}
                   </span>
                 )}
               </div>
@@ -288,7 +280,7 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                placeholder="Search by name, ID, phone, or issue…"
+                placeholder={t('admin.requests.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-slate-900"
@@ -300,7 +292,7 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
         {/* ── Filter / sort toolbar ───────────────────────────────────────── */}
         <div className="mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-            Filter:
+            {t('admin.requests.filterLabel')}
           </span>
 
           <select
@@ -308,12 +300,12 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="h-8 rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 outline-none focus:border-slate-900"
           >
-            <option value="all">All Statuses</option>
-            <option value="submitted">Submitted</option>
-            <option value="under_review">Under Review</option>
-            <option value="matched">Matched</option>
-            <option value="completed">Completed</option>
-            <option value="rejected">Rejected</option>
+            <option value="all">{t('admin.requests.statusAll')}</option>
+            <option value="submitted">{t('admin.requests.statusSubmitted')}</option>
+            <option value="under_review">{t('admin.requests.statusUnderReview')}</option>
+            <option value="matched">{t('admin.requests.statusMatched')}</option>
+            <option value="completed">{t('admin.requests.statusCompleted')}</option>
+            <option value="rejected">{t('admin.requests.statusRejected')}</option>
           </select>
 
           <select
@@ -321,14 +313,14 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
             onChange={(e) => setUrgencyFilter(e.target.value)}
             className="h-8 rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 outline-none focus:border-slate-900"
           >
-            <option value="all">All Urgencies</option>
-            <option value="high">High Urgency</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
+            <option value="all">{t('admin.requests.urgencyAll')}</option>
+            <option value="high">{t('admin.requests.urgencyHighLabel')}</option>
+            <option value="medium">{t('admin.requests.urgencyMediumLabel')}</option>
+            <option value="low">{t('admin.requests.urgencyLowLabel')}</option>
           </select>
 
           <span className="ml-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-            Sort:
+            {t('admin.requests.sortLabel')}
           </span>
 
           <select
@@ -336,15 +328,15 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
             onChange={(e) => setSortBy(e.target.value)}
             className="h-8 rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 outline-none focus:border-slate-900"
           >
-            <option value="newest">Newest First</option>
-            <option value="oldest">Oldest First</option>
-            <option value="urgency">High Urgency First</option>
+            <option value="newest">{t('admin.requests.sortNewest')}</option>
+            <option value="oldest">{t('admin.requests.sortOldest')}</option>
+            <option value="urgency">{t('admin.requests.sortByUrgency')}</option>
           </select>
 
           <span className="ml-auto text-xs text-slate-500">
             {isFiltered
-              ? `${filteredRequests.length} of ${initialRequests.length} cases`
-              : `${initialRequests.length} ${initialRequests.length === 1 ? 'case' : 'cases'}`}
+              ? `${filteredRequests.length} ${t('admin.requests.countOf')} ${initialRequests.length} ${t('admin.requests.countCasesSuffix')}`
+              : `${initialRequests.length} ${initialRequests.length === 1 ? t('admin.requests.countCaseSuffix') : t('admin.requests.countCasesSuffix')}`}
           </span>
         </div>
 
@@ -353,11 +345,11 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
             <div className="flex items-start gap-3">
               <Search className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
               <div>
-                <p className="text-sm font-semibold text-slate-700">No cases found</p>
+                <p className="text-sm font-semibold text-slate-700">{t('admin.requests.noResultsTitle')}</p>
                 <p className="mt-1 text-sm text-slate-500">
                   {isFiltered
-                    ? 'No cases match the current filters. Adjust or clear the filters to see more.'
-                    : 'No patient cases have been submitted yet.'}
+                    ? t('admin.requests.noResultsFilteredDesc')
+                    : t('admin.requests.noResultsEmptyDesc')}
                 </p>
               </div>
             </div>
@@ -401,17 +393,17 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
                     </Link>
 
                     <p className="mt-1 text-sm text-slate-500">
-                      {request.age ?? '—'} yrs
-                      {request.city ? ` · ${request.city}` : ''}
+                      {request.age ?? '\u2014'} yrs
+                      {request.city ? ` \u00b7 ${request.city}` : ''}
                       {request.preferred_language &&
                       request.preferred_language.toLowerCase() !== 'english'
-                        ? ` · ${request.preferred_language}`
+                        ? ` \u00b7 ${request.preferred_language}`
                         : ''}
                     </p>
 
                     <div className="mt-4">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                        Reported Issue
+                        {t('admin.requests.reportedIssue')}
                       </p>
                       <p className="mt-1 text-base font-semibold text-slate-900">
                         {request.treatment_type}
@@ -426,7 +418,7 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
 
                     <div className="mt-4 flex items-center gap-2">
                       <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                        {isAssigned ? 'Assigned dept.' : 'Suggested dept.'}
+                        {isAssigned ? t('admin.requests.assignedDept') : t('admin.requests.suggestedDept')}
                       </span>
                       <span
                         className={`text-sm font-semibold ${isAssigned ? 'text-blue-900' : 'text-slate-600'}`}
@@ -434,7 +426,7 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
                         {hint}
                       </span>
                       {!isAssigned && (
-                        <span className="text-[10px] text-slate-400">(verify)</span>
+                        <span className="text-[10px] text-slate-400">{t('admin.requests.verify')}</span>
                       )}
                     </div>
                   </div>
@@ -456,7 +448,7 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
                           : 'bg-blue-900 hover:bg-blue-800'
                       }`}
                     >
-                      Open Case File →
+                      {t('admin.requests.openCaseFile')}
                     </Link>
                   </div>
                 </article>

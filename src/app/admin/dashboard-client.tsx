@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo } from 'react'
+import { useMemo } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import {
@@ -13,6 +13,8 @@ import {
   Inbox,
   Activity,
 } from 'lucide-react'
+import { useI18n } from '@/lib/i18n'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 type PatientRequest = {
   id: string
@@ -68,7 +70,7 @@ function getStatusBadgeClass(status: string) {
 }
 
 function relativeTime(iso: string | null): string {
-  if (!iso) return '—'
+  if (!iso) return '\u2014'
   const ms = Date.now() - new Date(iso).getTime()
   const mins = Math.floor(ms / 60000)
   if (mins < 2) return 'Just now'
@@ -93,6 +95,8 @@ function RelativeBar({ value }: { value: number }) {
 }
 
 export function DashboardClient({ initialRequests, adminEmail }: Props) {
+  const { t } = useI18n()
+
   async function handleSignOut() {
     await supabase.auth.signOut()
     window.location.href = '/admin/login'
@@ -189,17 +193,17 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
             <div>
               <p className="text-lg font-bold leading-none text-slate-900">DentBridge</p>
               <p className="text-[11px] uppercase tracking-wide text-slate-500">
-                Faculty-Supported Clinical Platform
+                {t('admin.shared.clinicalPlatform')}
               </p>
             </div>
           </Link>
 
           <nav className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
             <Link href="/admin" className="text-slate-900">
-              Dashboard
+              {t('admin.shared.navDashboard')}
             </Link>
             <Link href="/admin/requests" className="hover:text-slate-900">
-              Patient Triage &amp; Case Review
+              {t('admin.shared.navTriageReview')}
             </Link>
           </nav>
 
@@ -210,13 +214,14 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
                 <span className="max-w-[200px] truncate">{adminEmail}</span>
               </div>
             )}
+            <LanguageSwitcher />
             <button
               type="button"
               onClick={handleSignOut}
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
             >
               <LogOut className="h-3.5 w-3.5" />
-              Sign Out
+              {t('admin.shared.signOut')}
             </button>
           </div>
         </div>
@@ -228,17 +233,18 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-              Faculty Dashboard
+              {t('admin.dashboard.pageTitle')}
             </h1>
             <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
               <CheckCircle2 className="h-4 w-4 text-teal-500" />
-              Systems online
+              {t('admin.dashboard.systemsOnline')}
               {dashboardStats.pendingReview > 0 && (
                 <>
                   <span className="h-1 w-1 rounded-full bg-slate-300" />
                   <span className="font-semibold text-amber-600">
-                    {dashboardStats.pendingReview} case
-                    {dashboardStats.pendingReview !== 1 ? 's' : ''} awaiting review
+                    {dashboardStats.pendingReview === 1
+                      ? t('admin.dashboard.caseAwaitingReview')
+                      : `${dashboardStats.pendingReview} ${t('admin.dashboard.casesAwaitingReview')}`}
                   </span>
                 </>
               )}
@@ -248,7 +254,7 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
             href="/admin/requests"
             className="inline-flex items-center gap-2 self-start rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 sm:self-auto"
           >
-            Open Work Queue
+            {t('admin.dashboard.openWorkQueue')}
             <ChevronRight className="h-4 w-4" />
           </Link>
         </div>
@@ -259,13 +265,13 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
             <div className="mb-3 flex items-center gap-2">
               <Inbox className="h-4 w-4 text-slate-400" />
               <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                New Today
+                {t('admin.dashboard.statNewTodayLabel')}
               </span>
             </div>
             <div className="text-5xl font-bold tracking-tight text-blue-900">
               {dashboardStats.newToday}
             </div>
-            <div className="mt-2 text-sm text-slate-500">Submitted today</div>
+            <div className="mt-2 text-sm text-slate-500">{t('admin.dashboard.statNewTodayDesc')}</div>
           </div>
 
           <div
@@ -276,7 +282,7 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
             <div className="mb-3 flex items-center gap-2">
               <Clock className="h-4 w-4 text-amber-500" />
               <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Pending Review
+                {t('admin.dashboard.statPendingLabel')}
               </span>
             </div>
             <div
@@ -287,13 +293,13 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
               {dashboardStats.pendingReview}
             </div>
             <div className="mt-2 flex items-center justify-between">
-              <span className="text-sm text-slate-500">Needs faculty assessment</span>
+              <span className="text-sm text-slate-500">{t('admin.dashboard.statPendingDesc')}</span>
               {dashboardStats.pendingReview > 0 && (
                 <Link
                   href="/admin/requests"
                   className="text-xs font-semibold text-amber-600 hover:underline"
                 >
-                  Review →
+                  {t('admin.dashboard.statPendingReviewLink')}
                 </Link>
               )}
             </div>
@@ -303,26 +309,26 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
             <div className="mb-3 flex items-center gap-2">
               <Activity className="h-4 w-4 text-violet-500" />
               <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Matched Cases
+                {t('admin.dashboard.statMatchedLabel')}
               </span>
             </div>
             <div className="text-5xl font-bold tracking-tight text-violet-700">
               {dashboardStats.activeTreatments}
             </div>
-            <div className="mt-2 text-sm text-slate-500">Released to student pool</div>
+            <div className="mt-2 text-sm text-slate-500">{t('admin.dashboard.statMatchedDesc')}</div>
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="mb-3 flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-teal-500" />
               <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Total Requests
+                {t('admin.dashboard.statTotalLabel')}
               </span>
             </div>
             <div className="text-5xl font-bold tracking-tight text-teal-600">
               {dashboardStats.total}
             </div>
-            <div className="mt-2 text-sm text-slate-500">All time</div>
+            <div className="mt-2 text-sm text-slate-500">{t('admin.dashboard.statTotalDesc')}</div>
           </div>
         </div>
 
@@ -333,7 +339,7 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
               <div className="flex items-center gap-2.5">
                 <AlertCircle className="h-5 w-5 text-red-600" />
                 <h2 className="text-lg font-bold text-slate-900">
-                  High-Urgency Cases Awaiting Review
+                  {t('admin.dashboard.urgentQueueTitle')}
                 </h2>
                 <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-bold text-red-700">
                   {urgentUnreviewedList.length}
@@ -343,7 +349,7 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
                 href="/admin/requests"
                 className="text-sm font-semibold text-blue-600 hover:underline"
               >
-                View all →
+                {t('admin.dashboard.viewAll')}
               </Link>
             </div>
 
@@ -372,7 +378,7 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
                     href={`/admin/requests/${r.id}`}
                     className="shrink-0 rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-red-700"
                   >
-                    Review Now
+                    {t('admin.dashboard.reviewNow')}
                   </Link>
                 </div>
               ))}
@@ -385,13 +391,13 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
           <div>
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-bold tracking-tight text-slate-900">
-                Recent Requests
+                {t('admin.dashboard.recentRequests')}
               </h2>
               <Link
                 href="/admin/requests"
                 className="text-sm font-semibold text-blue-600 hover:underline"
               >
-                View All
+                {t('admin.dashboard.viewAllLink')}
               </Link>
             </div>
 
@@ -399,11 +405,11 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
               <table className="w-full border-collapse text-left">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
-                    <th className="px-5 py-3 font-semibold">Patient</th>
-                    <th className="px-5 py-3 font-semibold">Issue</th>
-                    <th className="px-5 py-3 font-semibold">Urgency</th>
-                    <th className="px-5 py-3 font-semibold">Status</th>
-                    <th className="px-5 py-3 font-semibold text-right">Submitted</th>
+                    <th className="px-5 py-3 font-semibold">{t('admin.dashboard.tablePatient')}</th>
+                    <th className="px-5 py-3 font-semibold">{t('admin.dashboard.tableIssue')}</th>
+                    <th className="px-5 py-3 font-semibold">{t('admin.dashboard.tableUrgency')}</th>
+                    <th className="px-5 py-3 font-semibold">{t('admin.dashboard.tableStatus')}</th>
+                    <th className="px-5 py-3 font-semibold text-right">{t('admin.dashboard.tableSubmitted')}</th>
                   </tr>
                 </thead>
 
@@ -411,7 +417,7 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
                   {recentRequests.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="px-5 py-8 text-sm text-slate-500">
-                        No requests found.
+                        {t('admin.dashboard.noRequests')}
                       </td>
                     </tr>
                   ) : (
@@ -471,13 +477,13 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
           <div className="space-y-6">
             <div>
               <h2 className="mb-4 text-xl font-bold tracking-tight text-slate-900">
-                Cases by Department
+                {t('admin.dashboard.casesByDept')}
               </h2>
 
               <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 {departmentCases.length === 0 ? (
                   <p className="text-sm text-slate-500">
-                    No cases are currently assigned to departments.
+                    {t('admin.dashboard.noDeptCases')}
                   </p>
                 ) : (
                   <div className="space-y-5">
@@ -514,7 +520,7 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
                       urgentCasesCount > 0 ? 'text-amber-900' : 'text-slate-700'
                     }`}
                   >
-                    {urgentCasesCount > 0 ? 'Action Required' : 'Queue Clear'}
+                    {urgentCasesCount > 0 ? t('admin.dashboard.actionRequired') : t('admin.dashboard.queueClear')}
                   </h3>
                   <p
                     className={`mt-2 text-sm leading-relaxed ${
@@ -522,14 +528,16 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
                     }`}
                   >
                     {urgentCasesCount > 0
-                      ? `${urgentCasesCount} urgent case${urgentCasesCount > 1 ? 's are' : ' is'} waiting for faculty review. Please review to avoid delays.`
-                      : 'No urgent cases are currently awaiting review.'}
+                      ? urgentCasesCount === 1
+                        ? t('admin.dashboard.urgentWaitingSingle')
+                        : `${urgentCasesCount} ${t('admin.dashboard.urgentWaitingPluralSuffix')}`
+                      : t('admin.dashboard.noUrgentCases')}
                   </p>
 
                   {urgentCasesCount > 0 && (
                     <Link href="/admin/requests">
                       <button className="mt-4 rounded-xl border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-800 transition hover:bg-amber-100">
-                        Review Now
+                        {t('admin.dashboard.reviewNow')}
                       </button>
                     </Link>
                   )}
