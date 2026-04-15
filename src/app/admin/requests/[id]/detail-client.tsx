@@ -201,9 +201,9 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
   }
 
   const attachmentLabel = useMemo(() => {
-    if (!request.attachment_name) return 'Uploaded file'
+    if (!request.attachment_name) return t('admin.detail.uploadedFileFallback')
     return request.attachment_name
-  }, [request])
+  }, [request, t])
 
   const currentStatus = (request.status || '').toLowerCase()
 
@@ -947,10 +947,10 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                   <XCircle className="h-4 w-4 shrink-0 text-slate-400" />
                 )}
                 {currentStatus === 'completed'
-                  ? 'Treatment completed. This case is closed.'
+                  ? t('admin.detail.closedCompleted')
                   : currentStatus === 'cancelled'
-                  ? 'This case has been cancelled.'
-                  : 'This case is closed.'}
+                  ? t('admin.detail.closedCancelledMsg')
+                  : t('admin.detail.closedGenericMsg')}
               </div>
             )}
           </div>
@@ -960,17 +960,20 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
         {(isLifecyclePhase || isClosed || studentRequests.length > 0) && (
           <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-slate-900">Student Requests</h3>
+              <h3 className="text-lg font-bold text-slate-900">{t('admin.detail.studentRequestsTitle')}</h3>
               {studentRequests.length > 0 && (
                 <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                  {studentRequests.length} request{studentRequests.length !== 1 ? 's' : ''}
+                  {studentRequests.length}{' '}
+                  {studentRequests.length === 1
+                    ? t('admin.detail.studentRequestCountSuffix')
+                    : t('admin.detail.studentRequestsCountSuffix')}
                 </span>
               )}
             </div>
 
             {studentRequests.length === 0 ? (
               <p className="text-sm text-slate-400">
-                No students have requested this case yet.
+                {t('admin.detail.noStudentRequests')}
               </p>
             ) : (
               <div className="divide-y divide-slate-100">
@@ -984,11 +987,11 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                         {req.student_email}
                       </p>
                       <p className="mt-0.5 text-xs text-slate-400">
-                        Requested {formatReviewDate(req.created_at)}
+                        {t('admin.detail.requestedAtLabel')} {formatReviewDate(req.created_at)}
                       </p>
                       {req.reviewed_by && (
                         <p className="mt-0.5 text-xs text-slate-400">
-                          Reviewed by {req.reviewed_by} · {formatReviewDate(req.reviewed_at)}
+                          {t('admin.detail.reviewedByAtLabel')} {req.reviewed_by} · {formatReviewDate(req.reviewed_at)}
                         </p>
                       )}
                     </div>
@@ -1016,7 +1019,7 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                             disabled={requestActionId === req.id}
                             className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
                           >
-                            {requestActionId === req.id ? '…' : 'Approve'}
+                            {requestActionId === req.id ? '…' : t('admin.detail.approveBtn')}
                           </button>
                           <button
                             type="button"
@@ -1026,7 +1029,7 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                             disabled={requestActionId === req.id}
                             className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-60"
                           >
-                            Reject
+                            {t('admin.detail.rejectBtn')}
                           </button>
                         </>
                       )}

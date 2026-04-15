@@ -561,6 +561,7 @@ export type TranslationShape = {
       reviewedByAtLabel: string
       approveBtn: string
       rejectBtn: string
+      uploadedFileFallback: string
     }
   }
 
@@ -1219,6 +1220,7 @@ export const en: TranslationShape = {
       reviewedByAtLabel: 'Reviewed by',
       approveBtn: 'Approve',
       rejectBtn: 'Reject',
+      uploadedFileFallback: 'Uploaded file',
     },
   },
 

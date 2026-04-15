@@ -657,6 +657,7 @@ export const tr: TranslationShape = {
       reviewedByAtLabel: '\u0130nceleyen',
       approveBtn: 'Onayla',
       rejectBtn: 'Reddet',
+      uploadedFileFallback: 'Yüklenen dosya',
     },
   },
 }
