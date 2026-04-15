@@ -36,119 +36,25 @@ const benefits = [
   { key: 'benefits.modernWorkflow', icon: Building2 },
 ]
 
-const howItWorks = [
-  {
-    title: '1. Submit Request',
-    desc: 'Patient completes a short form explaining their dental needs.',
-    icon: FileText,
-  },
-  {
-    title: '2. Faculty Review',
-    desc: 'Our academic team reviews and categorizes your request.',
-    icon: ShieldCheck,
-  },
-  {
-    title: '3. Smart Match',
-    desc: 'Matched with the right department and clinical student.',
-    icon: Users,
-  },
-  {
-    title: '4. Treatment',
-    desc: 'Care provided under direct supervision of experienced faculty.',
-    icon: Stethoscope,
-  },
-]
+// Translation-key arrays — text is resolved via t() at render time so
+// hardcoded English strings no longer live in this file.
+const HOW_IT_WORKS = [
+  { step: 1, icon: FileText },
+  { step: 2, icon: ShieldCheck },
+  { step: 3, icon: Users },
+  { step: 4, icon: Stethoscope },
+] as const
 
-const departments = [
-  {
-    name: 'Oral & Maxillofacial Surgery',
-    short: 'Surgical care for teeth, jaws, and oral tissues.',
-    icon: Syringe,
-    description:
-      'This department deals with conditions that require surgical treatment involving the teeth, jaws, mouth, and surrounding soft tissues.',
-    when:
-      'a tooth that needs extraction, impacted wisdom teeth, swelling, cysts, jaw-related problems, or oral lesions that require surgical evaluation.',
-    treatments:
-      'tooth extractions, wisdom tooth removal, surgical removal of impacted teeth, and treatment of oral soft tissue or jaw-related surgical conditions.',
-  },
-  {
-    name: 'Endodontics',
-    short: 'Treatment of root canals, pulp infection, and tooth pain.',
-    icon: HeartPulse,
-    description:
-      'Endodontics focuses on problems inside the tooth, especially the dental pulp and root canals.',
-    when:
-      'severe tooth pain, long-lasting sensitivity to hot or cold, swelling around a tooth, infection, or a failed previous root canal treatment.',
-    treatments:
-      'root canal treatment, root canal retreatment, endodontic surgery in selected cases, treatment of traumatized teeth, and internal whitening after endodontic care.',
-  },
-  {
-    name: 'Periodontology',
-    short: 'Care for gums and the tissues supporting the teeth.',
-    icon: ShieldPlus,
-    description:
-      'Periodontology focuses on the gums and the tissues that support the teeth.',
-    when:
-      'bleeding gums, swollen gums, gum recession, bad breath related to gum disease, loose teeth, or signs of periodontal inflammation.',
-    treatments:
-      'gum disease evaluation, periodontal cleaning, treatment of gingivitis and periodontitis, and maintenance care to protect natural teeth.',
-  },
-  {
-    name: 'Restorative Dentistry',
-    short: 'Repair of cavities, tooth damage, and non-surgical esthetic issues.',
-    icon: Sparkles,
-    description:
-      'Restorative Dentistry repairs teeth damaged by decay, wear, fractures, or other non-surgical causes.',
-    when:
-      'cavities, chipped or broken teeth, worn tooth surfaces, or esthetic concerns that can be improved without surgery.',
-    treatments:
-      'fillings, repair of damaged tooth structure, direct restorations, and conservative esthetic corrections.',
-  },
-  {
-    name: 'Prosthodontics',
-    short: 'Replacement of missing teeth and restoration of oral function.',
-    icon: Smile,
-    description:
-      'Prosthodontics focuses on restoring missing teeth and rebuilding oral function, comfort, and appearance.',
-    when:
-      'one or more missing teeth, difficulty chewing because of tooth loss, or teeth that require major restoration.',
-    treatments:
-      'crowns, bridges, removable dentures, and implant-supported prosthetic restorations.',
-  },
-  {
-    name: 'Orthodontics',
-    short: 'Alignment of teeth and correction of bite problems.',
-    icon: Activity,
-    description:
-      'Orthodontics is concerned with the alignment of teeth and jaws to improve function, bite, and appearance.',
-    when:
-      'crooked teeth, crowding, spacing, bite problems, jaw position issues, or if you are considering braces or clear aligners.',
-    treatments:
-      'metal braces, clear aligners, removable appliances, and orthodontic treatment planning for children, adolescents, and adults.',
-  },
-  {
-    name: 'Pedodontics',
-    short: 'Dental care for infants, children, and adolescents.',
-    icon: Baby,
-    description:
-      'Pedodontics, also called pediatric dentistry, focuses on the oral and dental health of children from infancy through adolescence.',
-    when:
-      'the patient is a child with tooth decay, dental pain, broken teeth, dental trauma, or preventive care needs.',
-    treatments:
-      'children’s examinations, preventive care, fillings for primary teeth, and management of dental trauma in young patients.',
-  },
-  {
-    name: 'Oral Radiology',
-    short: 'Dental imaging for diagnosis and treatment planning.',
-    icon: ScanLine,
-    description:
-      'Oral Radiology provides the imaging needed to diagnose dental and jaw conditions accurately and to support treatment planning.',
-    when:
-      'diagnostic imaging before treatment, evaluation of impacted teeth, assessment of infection or bone loss, or advanced imaging for surgery or implants.',
-    treatments:
-      'intraoral digital radiographs, panoramic radiography, and CBCT 3D dental imaging.',
-  },
-]
+const DEPARTMENTS = [
+  { slug: 'surgery',        icon: Syringe },
+  { slug: 'endodontics',    icon: HeartPulse },
+  { slug: 'periodontology', icon: ShieldPlus },
+  { slug: 'restorative',    icon: Sparkles },
+  { slug: 'prosthodontics', icon: Smile },
+  { slug: 'orthodontics',   icon: Activity },
+  { slug: 'pedodontics',    icon: Baby },
+  { slug: 'radiology',      icon: ScanLine },
+] as const
 
 export default function HomePage() {
   const { t } = useI18n()
@@ -316,26 +222,25 @@ export default function HomePage() {
       <section className="bg-slate-50 py-12 sm:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-8 text-center sm:mb-12">
-            <h2 className="text-3xl font-bold">How It Works</h2>
+            <h2 className="text-3xl font-bold">{t('landing.howItWorksTitle')}</h2>
             <p className="mx-auto mt-4 max-w-2xl text-slate-600">
-              Our clinical case matching platform ensures every patient gets structured
-              care while empowering the next generation of dentists.
+              {t('landing.howItWorksDesc')}
             </p>
           </div>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {howItWorks.map((step) => {
-              const Icon = step.icon
+            {HOW_IT_WORKS.map((item) => {
+              const Icon = item.icon
               return (
                 <div
-                  key={step.title}
+                  key={item.step}
                   className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"
                 >
                   <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-teal-50 text-teal-700 sm:mb-4 sm:h-12 sm:w-12">
                     <Icon className="h-6 w-6" />
                   </div>
-                  <h3 className="font-semibold text-slate-900">{step.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">{step.desc}</p>
+                  <h3 className="font-semibold text-slate-900">{t(`landing.step${item.step}Title`)}</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">{t(`landing.step${item.step}Desc`)}</p>
                 </div>
               )
             })}
@@ -347,36 +252,25 @@ export default function HomePage() {
         <div className="mx-auto grid max-w-7xl items-center gap-6 rounded-3xl border border-slate-200 bg-slate-50 px-4 py-6 sm:gap-10 sm:px-8 sm:py-8 lg:grid-cols-2">
           <div>
             <h2 className="mb-6 text-3xl font-bold text-slate-900">
-              Why Choose University-Supervised Care?
+              {t('landing.whyTitle')}
             </h2>
 
             <div className="space-y-5">
               <div>
-                <p className="font-semibold text-slate-900">Affordable Care</p>
-                <p className="text-sm text-slate-600">
-                  Access high-quality treatment at lower cost than many private clinics.
-                </p>
+                <p className="font-semibold text-slate-900">{t('landing.whyCareTitle')}</p>
+                <p className="text-sm text-slate-600">{t('landing.whyCareDesc')}</p>
               </div>
-
               <div>
-                <p className="font-semibold text-slate-900">Expert Oversight</p>
-                <p className="text-sm text-slate-600">
-                  Every step is monitored and approved by qualified faculty members.
-                </p>
+                <p className="font-semibold text-slate-900">{t('landing.whyOversightTitle')}</p>
+                <p className="text-sm text-slate-600">{t('landing.whyOversightDesc')}</p>
               </div>
-
               <div>
-                <p className="font-semibold text-slate-900">Multidisciplinary Approach</p>
-                <p className="text-sm text-slate-600">
-                  Complex cases can receive coordinated consultation across different departments.
-                </p>
+                <p className="font-semibold text-slate-900">{t('landing.whyMultiTitle')}</p>
+                <p className="text-sm text-slate-600">{t('landing.whyMultiDesc')}</p>
               </div>
-
               <div>
-                <p className="font-semibold text-slate-900">Digital Dentistry</p>
-                <p className="text-sm text-slate-600">
-                  Access to modern diagnostic tools, digital imaging, and contemporary treatment planning.
-                </p>
+                <p className="font-semibold text-slate-900">{t('landing.whyDigitalTitle')}</p>
+                <p className="text-sm text-slate-600">{t('landing.whyDigitalDesc')}</p>
               </div>
             </div>
           </div>
@@ -394,39 +288,35 @@ export default function HomePage() {
       <section className="border-t border-slate-200 bg-white py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-12 text-center">
-            <h2 className="mb-4 text-3xl font-bold">Our Clinical Departments</h2>
-            <p className="mx-auto max-w-3xl text-slate-600">
-              DentBridge helps route each patient to the most appropriate university
-              dental department based on symptoms, treatment needs, and faculty review.
-            </p>
+            <h2 className="mb-4 text-3xl font-bold">{t('landing.deptsTitle')}</h2>
+            <p className="mx-auto max-w-3xl text-slate-600">{t('landing.deptsDesc')}</p>
           </div>
 
           <div className="grid items-start gap-4 md:grid-cols-2">
-            {departments.map((department) => {
-              const Icon = department.icon
-              const isOpen = openDepartment === department.name
+            {DEPARTMENTS.map((dept) => {
+              const Icon = dept.icon
+              const isOpen = openDepartment === dept.slug
 
               return (
                 <div
-                  key={department.name}
+                  key={dept.slug}
                   className="self-start overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
                 >
                   <button
                     type="button"
-                    onClick={() => setOpenDepartment(isOpen ? null : department.name)}
+                    onClick={() => setOpenDepartment(isOpen ? null : dept.slug)}
                     className="flex w-full items-center justify-between gap-4 px-5 py-5 text-left"
                   >
                     <div className="flex items-start gap-4">
                       <div className="mt-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-teal-50 text-teal-700">
                         <Icon className="h-6 w-6" />
                       </div>
-
                       <div>
                         <h3 className="text-base font-semibold text-slate-900">
-                          {department.name}
+                          {t(`landing.depts.${dept.slug}.name`)}
                         </h3>
                         <p className="mt-1 text-sm text-slate-600">
-                          {department.short}
+                          {t(`landing.depts.${dept.slug}.short`)}
                         </p>
                       </div>
                     </div>
@@ -443,23 +333,21 @@ export default function HomePage() {
                       <div className="space-y-5 text-sm leading-7 text-slate-700">
                         <div>
                           <p className="mb-1 font-semibold text-slate-900">
-                            What this department treats
+                            {t('landing.deptWhatTreats')}
                           </p>
-                          <p>{department.description}</p>
+                          <p>{t(`landing.depts.${dept.slug}.description`)}</p>
                         </div>
-
                         <div>
                           <p className="mb-1 font-semibold text-slate-900">
-                            You may need this department if...
+                            {t('landing.deptYouMayNeed')}
                           </p>
-                          <p>{department.when}</p>
+                          <p>{t(`landing.depts.${dept.slug}.when`)}</p>
                         </div>
-
                         <div>
                           <p className="mb-1 font-semibold text-slate-900">
-                            Common treatments include
+                            {t('landing.deptCommonTreatments')}
                           </p>
-                          <p>{department.treatments}</p>
+                          <p>{t(`landing.depts.${dept.slug}.treatments`)}</p>
                         </div>
                       </div>
                     </div>
@@ -524,10 +412,10 @@ export default function HomePage() {
                 </Link>
               </li>
               <li>
-                <span className="cursor-default text-slate-600">Affordable Care Information</span>
+                <span className="cursor-default text-slate-600">{t('footer.affordableCareInfo')}</span>
               </li>
               <li>
-                <span className="cursor-default text-slate-600">FAQ</span>
+                <span className="cursor-default text-slate-600">{t('footer.faq')}</span>
               </li>
             </ul>
           </div>
