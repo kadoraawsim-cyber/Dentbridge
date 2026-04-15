@@ -168,6 +168,74 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
     }
   }
 
+  function tStatus(status: string): string {
+    switch ((status || '').toLowerCase()) {
+      case 'submitted':             return t('admin.db.statusSubmitted')
+      case 'under_review':          return t('admin.db.statusUnderReview')
+      case 'matched':               return t('admin.db.statusMatched')
+      case 'student_approved':      return t('admin.db.statusStudentApproved')
+      case 'contacted':             return t('admin.db.statusContacted')
+      case 'appointment_scheduled': return t('admin.db.statusApptScheduled')
+      case 'in_treatment':          return t('admin.db.statusInTreatment')
+      case 'completed':             return t('admin.db.statusCompleted')
+      case 'rejected':              return t('admin.db.statusRejected')
+      case 'cancelled':             return t('admin.db.statusCancelled')
+      default:                      return status
+    }
+  }
+
+  function tDepartment(dept: string): string {
+    switch ((dept || '').toLowerCase()) {
+      case 'endodontics':                  return t('admin.db.deptEndodontics')
+      case 'oral & maxillofacial surgery': return t('admin.db.deptSurgery')
+      case 'orthodontics':                 return t('admin.db.deptOrthodontics')
+      case 'periodontology':               return t('admin.db.deptPeriodontology')
+      case 'restorative dentistry':        return t('admin.db.deptRestorative')
+      case 'prosthodontics':               return t('admin.db.deptProsthodontics')
+      case 'pedodontics':                  return t('admin.db.deptPedodontics')
+      case 'oral radiology':               return t('admin.db.deptRadiology')
+      case 'general review':               return t('admin.db.deptGeneralReview')
+      default:                             return dept
+    }
+  }
+
+  function tStudentLevel(level: string): string {
+    switch ((level || '').toLowerCase()) {
+      case 'year 4 clinical student': return t('admin.db.levelYear4')
+      case 'year 5 clinical student': return t('admin.db.levelYear5')
+      case 'specialist dentist':      return t('admin.db.levelSpecialist')
+      default:                        return level
+    }
+  }
+
+  function tLanguage(lang: string | null): string {
+    switch ((lang || '').toLowerCase()) {
+      case 'turkish': return t('admin.db.langTurkish')
+      case 'english': return t('admin.db.langEnglish')
+      case 'arabic':  return t('admin.db.langArabic')
+      default:        return lang || '—'
+    }
+  }
+
+  function tDays(days: string | null): string {
+    switch ((days || '').toLowerCase()) {
+      case 'no preference':        return t('admin.db.daysNoPreference')
+      case 'weekday mornings':     return t('admin.db.daysWeekdayMornings')
+      case 'weekday afternoons':   return t('admin.db.daysWeekdayAfternoons')
+      case 'as soon as possible':  return t('admin.db.daysAsSoonAsPossible')
+      default:                     return days || '—'
+    }
+  }
+
+  function tStudentReqStatus(status: string): string {
+    switch ((status || '').toLowerCase()) {
+      case 'pending':  return t('admin.db.studentReqPending')
+      case 'approved': return t('admin.db.studentReqApproved')
+      case 'rejected': return t('admin.db.studentReqRejected')
+      default:         return status
+    }
+  }
+
   const [request, setRequest] = useState<PatientRequest>(initialRequest)
   const [errorMessage, setErrorMessage] = useState('')
   const [saving, setSaving] = useState(false)
@@ -514,7 +582,7 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                 request.status
               )}`}
             >
-              {request.status}
+              {tStatus(request.status)}
             </span>
           </div>
 
@@ -568,13 +636,13 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                 <div>
                   <p className="mb-1 text-xs text-slate-500">{t('admin.detail.langLabel')}</p>
                   <p className="font-medium text-slate-900">
-                    {request.preferred_language || '—'}
+                    {tLanguage(request.preferred_language)}
                   </p>
                 </div>
 
                 <div className="col-span-2">
                   <p className="mb-1 text-xs text-slate-500">{t('admin.detail.availabilityLabel')}</p>
-                  <p className="font-medium text-slate-900">{request.preferred_days || '—'}</p>
+                  <p className="font-medium text-slate-900">{tDays(request.preferred_days)}</p>
                 </div>
 
                 <div className="col-span-2">
@@ -614,7 +682,7 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                     >
                       {departmentOptions.map((dept) => (
                         <option key={dept} value={dept}>
-                          {dept}
+                          {tDepartment(dept)}
                         </option>
                       ))}
                     </select>
@@ -649,7 +717,7 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                   >
                     {studentLevelOptions.map((opt) => (
                       <option key={opt} value={opt}>
-                        {opt}
+                        {tStudentLevel(opt)}
                       </option>
                     ))}
                   </select>
@@ -710,13 +778,13 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                     </p>
                     <ul className="mb-4 space-y-1 text-sm text-blue-800">
                       <li>
-                        {t('admin.detail.releaseDeptLabel')} <strong>{assignedDepartment}</strong>
+                        {t('admin.detail.releaseDeptLabel')} <strong>{tDepartment(assignedDepartment)}</strong>
                       </li>
                       <li>
                         {t('admin.detail.releaseUrgencyLabel')} <strong>{tUrgency(mapDetailToUrgency(urgencyLevel))}</strong>
                       </li>
                       <li>
-                        {t('admin.detail.releaseStudentLevelLabel')} <strong>{targetStudentLevel}</strong>
+                        {t('admin.detail.releaseStudentLevelLabel')} <strong>{tStudentLevel(targetStudentLevel)}</strong>
                       </li>
                     </ul>
                     <div className="flex gap-3">
@@ -1006,7 +1074,7 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                               : 'border border-amber-200 bg-amber-50 text-amber-700'
                         }`}
                       >
-                        {req.status.toUpperCase()}
+                        {tStudentReqStatus(req.status).toUpperCase()}
                       </span>
 
                       {req.status === 'pending' && (

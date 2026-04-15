@@ -69,19 +69,6 @@ function getStatusBadgeClass(status: string) {
   }
 }
 
-function relativeTime(iso: string | null): string {
-  if (!iso) return '\u2014'
-  const ms = Date.now() - new Date(iso).getTime()
-  const mins = Math.floor(ms / 60000)
-  if (mins < 2) return 'Just now'
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
-  const days = Math.floor(hrs / 24)
-  if (days === 1) return 'Yesterday'
-  if (days < 7) return `${days}d ago`
-  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-}
 
 function RelativeBar({ value }: { value: number }) {
   return (
@@ -96,6 +83,77 @@ function RelativeBar({ value }: { value: number }) {
 
 export function DashboardClient({ initialRequests, adminEmail }: Props) {
   const { t } = useI18n()
+
+  function relativeTime(iso: string | null): string {
+    if (!iso) return '\u2014'
+    const ms = Date.now() - new Date(iso).getTime()
+    const mins = Math.floor(ms / 60000)
+    if (mins < 2) return t('admin.db.timeJustNow')
+    if (mins < 60) return `${mins}${t('admin.db.timeMinutesSuffix')}`
+    const hrs = Math.floor(mins / 60)
+    if (hrs < 24) return `${hrs}${t('admin.db.timeHoursSuffix')}`
+    const days = Math.floor(hrs / 24)
+    if (days === 1) return t('admin.db.timeYesterday')
+    if (days < 7) return `${days}${t('admin.db.timeDaysSuffix')}`
+    return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  }
+
+  function tStatus(status: string): string {
+    switch ((status || '').toLowerCase()) {
+      case 'submitted':            return t('admin.db.statusSubmitted')
+      case 'under_review':         return t('admin.db.statusUnderReview')
+      case 'matched':              return t('admin.db.statusMatched')
+      case 'student_approved':     return t('admin.db.statusStudentApproved')
+      case 'contacted':            return t('admin.db.statusContacted')
+      case 'appointment_scheduled':return t('admin.db.statusApptScheduled')
+      case 'in_treatment':         return t('admin.db.statusInTreatment')
+      case 'completed':            return t('admin.db.statusCompleted')
+      case 'rejected':             return t('admin.db.statusRejected')
+      case 'cancelled':            return t('admin.db.statusCancelled')
+      default:                     return status
+    }
+  }
+
+  function tTreatment(type: string): string {
+    switch ((type || '').toLowerCase()) {
+      case 'initial examination / consultation': return t('admin.db.treatmentInitialExam')
+      case 'dental cleaning':                    return t('admin.db.treatmentCleaning')
+      case 'fillings':                           return t('admin.db.treatmentFillings')
+      case 'tooth extraction':                   return t('admin.db.treatmentExtraction')
+      case 'root canal treatment':               return t('admin.db.treatmentRootCanal')
+      case 'gum treatment':                      return t('admin.db.treatmentGum')
+      case 'prosthetics / crowns':               return t('admin.db.treatmentProsthetics')
+      case 'orthodontics':                       return t('admin.db.treatmentOrthodontics')
+      case 'pediatric dentistry':                return t('admin.db.treatmentPediatric')
+      case 'esthetic dentistry':                 return t('admin.db.treatmentEsthetic')
+      case 'other':                              return t('admin.db.treatmentOther')
+      default:                                   return type
+    }
+  }
+
+  function tDepartment(dept: string): string {
+    switch ((dept || '').toLowerCase()) {
+      case 'endodontics':                   return t('admin.db.deptEndodontics')
+      case 'oral & maxillofacial surgery':  return t('admin.db.deptSurgery')
+      case 'orthodontics':                  return t('admin.db.deptOrthodontics')
+      case 'periodontology':                return t('admin.db.deptPeriodontology')
+      case 'restorative dentistry':         return t('admin.db.deptRestorative')
+      case 'prosthodontics':                return t('admin.db.deptProsthodontics')
+      case 'pedodontics':                   return t('admin.db.deptPedodontics')
+      case 'oral radiology':                return t('admin.db.deptRadiology')
+      case 'general review':                return t('admin.db.deptGeneralReview')
+      default:                              return dept
+    }
+  }
+
+  function tUrgency(urgency: string): string {
+    switch ((urgency || '').toLowerCase()) {
+      case 'high':   return t('request.urgencyHigh')
+      case 'medium': return t('request.urgencyMedium')
+      case 'low':    return t('request.urgencyLow')
+      default:       return urgency || t('admin.requests.urgencyLabelUnspecified')
+    }
+  }
 
   async function handleSignOut() {
     await supabase.auth.signOut()
@@ -364,14 +422,14 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
                   <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-red-500" />
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-slate-900">{r.full_name}</p>
-                    <p className="mt-0.5 truncate text-sm text-slate-500">{r.treatment_type}</p>
+                    <p className="mt-0.5 truncate text-sm text-slate-500">{tTreatment(r.treatment_type)}</p>
                   </div>
                   <div className="hidden shrink-0 text-right sm:block">
                     <p className="text-xs text-slate-400">{relativeTime(r.created_at)}</p>
                     <span
                       className={`mt-1 inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${getStatusBadgeClass(r.status)}`}
                     >
-                      {r.status}
+                      {tStatus(r.status)}
                     </span>
                   </div>
                   <Link
@@ -434,7 +492,7 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
                           </Link>
                         </td>
 
-                        <td className="px-5 py-4 text-sm text-slate-600">{r.treatment_type}</td>
+                        <td className="px-5 py-4 text-sm text-slate-600">{tTreatment(r.treatment_type)}</td>
 
                         <td className="px-5 py-4">
                           <span
@@ -442,7 +500,7 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
                               r.urgency
                             )}`}
                           >
-                            {(r.urgency || 'Unknown').toUpperCase()}
+                            {tUrgency(r.urgency).toUpperCase()}
                           </span>
                         </td>
 
@@ -452,7 +510,7 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
                               r.status
                             )}`}
                           >
-                            {r.status}
+                            {tStatus(r.status)}
                           </span>
                         </td>
 
@@ -490,7 +548,7 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
                     {departmentCases.map((dept) => (
                       <div key={dept.name}>
                         <div className="mb-1.5 flex items-center justify-between text-sm">
-                          <span className="font-medium text-slate-700">{dept.name}</span>
+                          <span className="font-medium text-slate-700">{tDepartment(dept.name)}</span>
                           <span className="font-bold text-slate-700">{dept.count}</span>
                         </div>
                         <RelativeBar value={dept.barWidth} />

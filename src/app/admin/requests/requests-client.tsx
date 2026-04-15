@@ -27,19 +27,6 @@ interface Props {
   adminEmail: string
 }
 
-function relativeTime(iso: string | null): string {
-  if (!iso) return '\u2014'
-  const ms = Date.now() - new Date(iso).getTime()
-  const mins = Math.floor(ms / 60000)
-  if (mins < 2) return 'Just now'
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
-  const days = Math.floor(hrs / 24)
-  if (days === 1) return 'Yesterday'
-  if (days < 7) return `${days}d ago`
-  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-}
 
 function getUrgencyBorderClass(urgency: string): string {
   switch ((urgency || '').toLowerCase()) {
@@ -108,6 +95,62 @@ const URGENCY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 }
 
 export function RequestsClient({ initialRequests, adminEmail }: Props) {
   const { t } = useI18n()
+
+  function relativeTime(iso: string | null): string {
+    if (!iso) return '\u2014'
+    const ms = Date.now() - new Date(iso).getTime()
+    const mins = Math.floor(ms / 60000)
+    if (mins < 2) return t('admin.db.timeJustNow')
+    if (mins < 60) return `${mins}${t('admin.db.timeMinutesSuffix')}`
+    const hrs = Math.floor(mins / 60)
+    if (hrs < 24) return `${hrs}${t('admin.db.timeHoursSuffix')}`
+    const days = Math.floor(hrs / 24)
+    if (days === 1) return t('admin.db.timeYesterday')
+    if (days < 7) return `${days}${t('admin.db.timeDaysSuffix')}`
+    return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  }
+
+  function tTreatment(type: string): string {
+    switch ((type || '').toLowerCase()) {
+      case 'initial examination / consultation': return t('admin.db.treatmentInitialExam')
+      case 'dental cleaning':                    return t('admin.db.treatmentCleaning')
+      case 'fillings':                           return t('admin.db.treatmentFillings')
+      case 'tooth extraction':                   return t('admin.db.treatmentExtraction')
+      case 'root canal treatment':               return t('admin.db.treatmentRootCanal')
+      case 'gum treatment':                      return t('admin.db.treatmentGum')
+      case 'prosthetics / crowns':               return t('admin.db.treatmentProsthetics')
+      case 'orthodontics':                       return t('admin.db.treatmentOrthodontics')
+      case 'pediatric dentistry':                return t('admin.db.treatmentPediatric')
+      case 'esthetic dentistry':                 return t('admin.db.treatmentEsthetic')
+      case 'other':                              return t('admin.db.treatmentOther')
+      default:                                   return type
+    }
+  }
+
+  function tDepartment(dept: string): string {
+    switch ((dept || '').toLowerCase()) {
+      case 'endodontics':                   return t('admin.db.deptEndodontics')
+      case 'oral & maxillofacial surgery':  return t('admin.db.deptSurgery')
+      case 'orthodontics':                  return t('admin.db.deptOrthodontics')
+      case 'periodontology':                return t('admin.db.deptPeriodontology')
+      case 'restorative dentistry':         return t('admin.db.deptRestorative')
+      case 'prosthodontics':                return t('admin.db.deptProsthodontics')
+      case 'pedodontics':                   return t('admin.db.deptPedodontics')
+      case 'oral radiology':                return t('admin.db.deptRadiology')
+      case 'general review':                return t('admin.db.deptGeneralReview')
+      default:                              return dept
+    }
+  }
+
+  function tLanguage(lang: string | null): string {
+    switch ((lang || '').toLowerCase()) {
+      case 'turkish': return t('admin.db.langTurkish')
+      case 'english': return t('admin.db.langEnglish')
+      case 'arabic':  return t('admin.db.langArabic')
+      default:        return lang || ''
+    }
+  }
+
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [urgencyFilter, setUrgencyFilter] = useState('all')
@@ -397,7 +440,7 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
                       {request.city ? ` \u00b7 ${request.city}` : ''}
                       {request.preferred_language &&
                       request.preferred_language.toLowerCase() !== 'english'
-                        ? ` \u00b7 ${request.preferred_language}`
+                        ? ` \u00b7 ${tLanguage(request.preferred_language)}`
                         : ''}
                     </p>
 
@@ -406,7 +449,7 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
                         {t('admin.requests.reportedIssue')}
                       </p>
                       <p className="mt-1 text-base font-semibold text-slate-900">
-                        {request.treatment_type}
+                        {tTreatment(request.treatment_type)}
                       </p>
                     </div>
 
@@ -423,7 +466,7 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
                       <span
                         className={`text-sm font-semibold ${isAssigned ? 'text-blue-900' : 'text-slate-600'}`}
                       >
-                        {hint}
+                        {tDepartment(hint)}
                       </span>
                       {!isAssigned && (
                         <span className="text-[10px] text-slate-400">{t('admin.requests.verify')}</span>

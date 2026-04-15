@@ -563,6 +563,57 @@ export type TranslationShape = {
       rejectBtn: string
       uploadedFileFallback: string
     }
+    // ── DB-backed display values shown in the admin portal ──────────────────
+    db: {
+      statusSubmitted: string
+      statusUnderReview: string
+      statusMatched: string
+      statusStudentApproved: string
+      statusContacted: string
+      statusApptScheduled: string
+      statusInTreatment: string
+      statusCompleted: string
+      statusRejected: string
+      statusCancelled: string
+      treatmentInitialExam: string
+      treatmentCleaning: string
+      treatmentFillings: string
+      treatmentExtraction: string
+      treatmentRootCanal: string
+      treatmentGum: string
+      treatmentProsthetics: string
+      treatmentOrthodontics: string
+      treatmentPediatric: string
+      treatmentEsthetic: string
+      treatmentOther: string
+      deptEndodontics: string
+      deptSurgery: string
+      deptOrthodontics: string
+      deptPeriodontology: string
+      deptRestorative: string
+      deptProsthodontics: string
+      deptPedodontics: string
+      deptRadiology: string
+      deptGeneralReview: string
+      langTurkish: string
+      langEnglish: string
+      langArabic: string
+      daysNoPreference: string
+      daysWeekdayMornings: string
+      daysWeekdayAfternoons: string
+      daysAsSoonAsPossible: string
+      levelYear4: string
+      levelYear5: string
+      levelSpecialist: string
+      studentReqPending: string
+      studentReqApproved: string
+      studentReqRejected: string
+      timeJustNow: string
+      timeYesterday: string
+      timeMinutesSuffix: string
+      timeHoursSuffix: string
+      timeDaysSuffix: string
+    }
   }
 
   // ── Footer ──────────────────────────────────────────────────────────────────
@@ -1221,6 +1272,56 @@ export const en: TranslationShape = {
       approveBtn: 'Approve',
       rejectBtn: 'Reject',
       uploadedFileFallback: 'Uploaded file',
+    },
+    db: {
+      statusSubmitted: 'Submitted',
+      statusUnderReview: 'Under Review',
+      statusMatched: 'Matched',
+      statusStudentApproved: 'Student Assigned',
+      statusContacted: 'Contacted',
+      statusApptScheduled: 'Appt. Scheduled',
+      statusInTreatment: 'In Treatment',
+      statusCompleted: 'Completed',
+      statusRejected: 'Rejected',
+      statusCancelled: 'Cancelled',
+      treatmentInitialExam: 'Initial Exam / Consultation',
+      treatmentCleaning: 'Dental Cleaning',
+      treatmentFillings: 'Fillings',
+      treatmentExtraction: 'Tooth Extraction',
+      treatmentRootCanal: 'Root Canal Treatment',
+      treatmentGum: 'Gum Treatment',
+      treatmentProsthetics: 'Prosthetics / Crowns',
+      treatmentOrthodontics: 'Orthodontics',
+      treatmentPediatric: 'Pediatric Dentistry',
+      treatmentEsthetic: 'Esthetic Dentistry',
+      treatmentOther: 'Other',
+      deptEndodontics: 'Endodontics',
+      deptSurgery: 'Oral & Maxillofacial Surgery',
+      deptOrthodontics: 'Orthodontics',
+      deptPeriodontology: 'Periodontology',
+      deptRestorative: 'Restorative Dentistry',
+      deptProsthodontics: 'Prosthodontics',
+      deptPedodontics: 'Pedodontics',
+      deptRadiology: 'Oral Radiology',
+      deptGeneralReview: 'General Review',
+      langTurkish: 'Turkish',
+      langEnglish: 'English',
+      langArabic: 'Arabic',
+      daysNoPreference: 'No Preference',
+      daysWeekdayMornings: 'Weekday Mornings',
+      daysWeekdayAfternoons: 'Weekday Afternoons',
+      daysAsSoonAsPossible: 'As Soon As Possible',
+      levelYear4: 'Year 4 Clinical Student',
+      levelYear5: 'Year 5 Clinical Student',
+      levelSpecialist: 'Specialist Dentist',
+      studentReqPending: 'Pending',
+      studentReqApproved: 'Approved',
+      studentReqRejected: 'Rejected',
+      timeJustNow: 'Just now',
+      timeYesterday: 'Yesterday',
+      timeMinutesSuffix: 'm ago',
+      timeHoursSuffix: 'h ago',
+      timeDaysSuffix: 'd ago',
     },
   },
 
