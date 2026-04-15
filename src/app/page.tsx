@@ -439,7 +439,7 @@ export default function HomePage() {
                 </Link>
               </li>
               <li>
-                <span className="cursor-default text-slate-600">Clinical Requirements</span>
+                <span className="cursor-default text-slate-600">{t('footer.clinicalRequirements')}</span>
               </li>
             </ul>
           </div>
@@ -448,8 +448,8 @@ export default function HomePage() {
             <h3 className="mb-4 font-semibold text-white">{t('footer.contact')}</h3>
             <ul className="space-y-2 text-sm text-slate-400">
               <li>Istanbul, Türkiye</li>
-              <li>University-supported pilot platform</li>
-              <li>WhatsApp support available</li>
+              <li>{t('footer.universityPilot')}</li>
+              <li>{t('footer.whatsappSupport')}</li>
             </ul>
           </div>
         </div>
