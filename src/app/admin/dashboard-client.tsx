@@ -82,7 +82,8 @@ function RelativeBar({ value }: { value: number }) {
 }
 
 export function DashboardClient({ initialRequests, adminEmail }: Props) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
+  const dateLocale = locale === 'tr' ? 'tr-TR' : 'en-GB'
 
   function relativeTime(iso: string | null): string {
     if (!iso) return '\u2014'
@@ -95,7 +96,7 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
     const days = Math.floor(hrs / 24)
     if (days === 1) return t('admin.db.timeYesterday')
     if (days < 7) return `${days}${t('admin.db.timeDaysSuffix')}`
-    return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+    return new Date(iso).toLocaleDateString(dateLocale, { month: 'short', day: 'numeric' })
   }
 
   function tStatus(status: string): string {

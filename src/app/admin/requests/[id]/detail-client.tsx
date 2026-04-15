@@ -140,16 +140,17 @@ function getStatusBadgeClass(status: string) {
   }
 }
 
-function formatReviewDate(iso: string | null): string {
-  if (!iso) return '—'
-  return new Date(iso).toLocaleString(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  })
-}
-
 export function CaseDetailClient({ initialRequest, adminEmail, initialStudentRequests }: Props) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
+  const dateLocale = locale === 'tr' ? 'tr-TR' : 'en-GB'
+
+  function formatReviewDate(iso: string | null): string {
+    if (!iso) return '—'
+    return new Date(iso).toLocaleString(dateLocale, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    })
+  }
 
   function waitingDays(iso: string | null): string {
     if (!iso) return '—'

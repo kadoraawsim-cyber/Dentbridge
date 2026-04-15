@@ -94,7 +94,8 @@ function keywordRoutingHint(treatmentType: string, assignedDepartment: string | 
 const URGENCY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 }
 
 export function RequestsClient({ initialRequests, adminEmail }: Props) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
+  const dateLocale = locale === 'tr' ? 'tr-TR' : 'en-GB'
 
   function relativeTime(iso: string | null): string {
     if (!iso) return '\u2014'
@@ -107,7 +108,7 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
     const days = Math.floor(hrs / 24)
     if (days === 1) return t('admin.db.timeYesterday')
     if (days < 7) return `${days}${t('admin.db.timeDaysSuffix')}`
-    return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+    return new Date(iso).toLocaleDateString(dateLocale, { month: 'short', day: 'numeric' })
   }
 
   function tTreatment(type: string): string {
