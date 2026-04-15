@@ -88,28 +88,26 @@ const filePath = fileName
       attachmentPath = filePath
     }
 
-    const { data: insertedRow, error } = await supabase
-      .from('patient_requests')
-      .insert([
-        {
-          full_name: fullName,
-          age: age ? Number(age) : null,
-          phone,
-          city,
-          preferred_university: preferredUniversity,
-          preferred_language: preferredLanguage,
-          treatment_type: treatmentType,
-          complaint_text: complaintText,
-          urgency,
-          preferred_days: preferredDays,
-          consent,
-          attachment_path: attachmentPath,
-          attachment_name: attachment ? attachment.name : null,
-          status: 'submitted',
-        },
-      ])
-      .select('id')
-      .single()
+const { error } = await supabase
+  .from('patient_requests')
+  .insert([
+    {
+      full_name: fullName,
+      age: age ? Number(age) : null,
+      phone,
+      city,
+      preferred_university: preferredUniversity,
+      preferred_language: preferredLanguage,
+      treatment_type: treatmentType,
+      complaint_text: complaintText,
+      urgency,
+      preferred_days: preferredDays,
+      consent,
+      attachment_path: attachmentPath,
+      attachment_name: attachment ? attachment.name : null,
+      status: 'submitted',
+    },
+  ])
 
     setIsSubmitting(false)
 
@@ -118,7 +116,7 @@ const filePath = fileName
       return
     }
 
-    setSubmittedId(insertedRow?.id ?? 'submitted')
+setSubmittedId('submitted')
     setFullName('')
     setAge('')
     setPhone('')
