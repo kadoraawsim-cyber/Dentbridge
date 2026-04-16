@@ -105,6 +105,7 @@ export type TranslationShape = {
     sectionConsent: string
     fullName: string
     age: string
+    dateOfBirth: string
     phone: string
     preferredLanguage: string
     city: string
@@ -112,6 +113,7 @@ export type TranslationShape = {
     optional: string
     fullNamePlaceholder: string
     agePlaceholder: string
+    dateOfBirthPlaceholder: string
     phonePlaceholder: string
     cityPlaceholder: string
     universityPlaceholder: string
@@ -856,6 +858,7 @@ export const en: TranslationShape = {
     sectionConsent: 'Consent',
     fullName: 'Full Name',
     age: 'Age',
+    dateOfBirth: 'Date of Birth',
     phone: 'Phone Number',
     preferredLanguage: 'Preferred Language',
     city: 'City',
@@ -863,7 +866,8 @@ export const en: TranslationShape = {
     optional: '(optional)',
     fullNamePlaceholder: 'Enter your full name',
     agePlaceholder: 'Your age',
-    phonePlaceholder: '+90 5XX XXX XX XX',
+    dateOfBirthPlaceholder: 'Select your date of birth',
+    phonePlaceholder: 'Enter phone number with country code',
     cityPlaceholder: 'City',
     universityPlaceholder: 'Preferred clinic',
     painScoreLabel: 'Pain Score (0–10)',

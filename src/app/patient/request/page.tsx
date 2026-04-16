@@ -58,6 +58,27 @@ function getUrgencyFromPainScore(painScore: string) {
   return 'Low'
 }
 
+function calculateAgeFromDateOfBirth(dateOfBirth: string) {
+  const dob = new Date(`${dateOfBirth}T00:00:00`)
+  const today = new Date()
+  let age = today.getFullYear() - dob.getFullYear()
+  const monthDiff = today.getMonth() - dob.getMonth()
+
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+    age -= 1
+  }
+
+  return age
+}
+
+function getTodayDateInputValue() {
+  const today = new Date()
+  const month = String(today.getMonth() + 1).padStart(2, '0')
+  const day = String(today.getDate()).padStart(2, '0')
+
+  return `${today.getFullYear()}-${month}-${day}`
+}
+
 const CONTACT_METHOD_OPTIONS = [
   { value: 'WhatsApp', tKey: 'request.contactMethodWhatsapp' },
   { value: 'Phone Call', tKey: 'request.contactMethodPhone' },
@@ -127,7 +148,7 @@ export default function PatientRequestPage() {
   const { t, locale } = useI18n()
 
   const [fullName, setFullName] = useState('')
-  const [age, setAge] = useState('')
+  const [dateOfBirth, setDateOfBirth] = useState('')
   const [phone, setPhone] = useState('')
   const [preferredLanguage, setPreferredLanguage] = useState('English')
   const [city, setCity] = useState('Istanbul')
@@ -203,6 +224,7 @@ const sgkText =
   locale === 'tr'
       ? {
           label: 'SGK güvenceniz var mı?',
+          helper: 'SGK, Türkiye’nin kamu sağlık sigortası sistemidir.',
           yes: 'Evet, SGK güvencem var',
           no: 'Hayır, SGK güvencem yok',
           placeholder: 'Seçiniz',
@@ -210,6 +232,7 @@ const sgkText =
         }
       : {
           label: 'Do you have SGK?',
+          helper: 'SGK is Türkiye’s public health insurance system.',
           yes: 'Yes, I have SGK',
           no: 'No, I do not have SGK',
           placeholder: 'Select an option',
@@ -223,7 +246,7 @@ const sgkText =
 
 if (
   !fullName ||
-  !age ||
+  !dateOfBirth ||
   !phone ||
   !preferredUniversity ||
   !countryCode ||
@@ -250,6 +273,7 @@ if (
 
     setIsSubmitting(true)
     const urgency = getUrgencyFromPainScore(painScore)
+    const age = calculateAgeFromDateOfBirth(dateOfBirth)
 
     let attachmentPath: string | null = null
 
@@ -276,7 +300,7 @@ if (
       .insert([
 {
  full_name: fullName,
-age: age ? Number(age) : null,
+age: Number.isFinite(age) && age >= 0 ? age : null,
 phone,
 city,
 country: countryOptions.find((c) => c.code === countryCode)?.label ?? countryCode,
@@ -310,7 +334,7 @@ status: 'submitted',
 
     setSubmittedId('submitted')
     setFullName('')
-    setAge('')
+    setDateOfBirth('')
     setPhone('')
     setPreferredLanguage('English')
     setCity('Istanbul')
@@ -440,14 +464,14 @@ setMedicalCondition('None')
 
                   <div>
                     <label className="mb-2 block text-sm font-medium text-slate-700">
-                      {t('request.age')} *
+                      {t('request.dateOfBirth')} *
                     </label>
                     <input
-                      type="number"
-                      value={age}
-                      onChange={(e) => setAge(e.target.value)}
-                      placeholder={t('request.agePlaceholder')}
-                      min="1"
+                      type="date"
+                      value={dateOfBirth}
+                      onChange={(e) => setDateOfBirth(e.target.value)}
+                      max={getTodayDateInputValue()}
+                      placeholder={t('request.dateOfBirthPlaceholder')}
                       className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-900"
                     />
                   </div>
@@ -571,6 +595,10 @@ setMedicalCondition('None')
   <label className="mb-2 block text-sm font-medium text-slate-700">
     {sgkText.label} *
   </label>
+  <p className="mb-2 flex items-start gap-1 text-xs text-slate-500">
+    <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+    <span>{sgkText.helper}</span>
+  </p>
   <select
     value={hasSgk}
     onChange={(e) => setHasSgk(e.target.value)}
