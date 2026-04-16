@@ -69,7 +69,6 @@ function getStatusBadgeClass(status: string) {
   }
 }
 
-
 function RelativeBar({ value }: { value: number }) {
   return (
     <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
@@ -251,19 +250,20 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
   )
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
+    
+    <main className="min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-slate-50 text-slate-900">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center gap-3">
+          <Link href="/" className="flex min-w-0 items-center gap-3">
             <img
               src="/dentbridge-icon.png"
               alt="DentBridge icon"
-              className="h-10 w-10 object-contain"
+              className="h-10 w-10 shrink-0 object-contain"
             />
-            <div>
-              <p className="text-lg font-bold leading-none text-slate-900">DentBridge</p>
-              <p className="text-[11px] uppercase tracking-wide text-slate-500">
+            <div className="min-w-0">
+              <p className="truncate text-lg font-bold leading-none text-slate-900">DentBridge</p>
+              <p className="truncate text-[11px] uppercase tracking-wide text-slate-500">
                 {t('admin.shared.clinicalPlatform')}
               </p>
             </div>
@@ -278,11 +278,11 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
             </Link>
           </nav>
 
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-3">
             {adminEmail && (
               <div className="hidden items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 sm:flex">
                 <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-teal-500" />
-                <span className="max-w-[200px] truncate">{adminEmail}</span>
+                <span className="max-w-[150px] truncate">{adminEmail}</span>
               </div>
             )}
             <LanguageSwitcher />
@@ -291,27 +291,26 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
               onClick={handleSignOut}
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
             >
-              <LogOut className="h-3.5 w-3.5" />
-              {t('admin.shared.signOut')}
+              <LogOut className="h-3.5 w-3.5 shrink-0" />
+              <span className="hidden sm:inline">{t('admin.shared.signOut')}</span>
             </button>
           </div>
         </div>
       </header>
 
-      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-
+      <section className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* ── Page title + CTA ───────────────────────────────────────────── */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+          <div className="min-w-0">
+            <h1 className="truncate text-3xl font-bold tracking-tight text-slate-900">
               {t('admin.dashboard.pageTitle')}
             </h1>
             <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
-              <CheckCircle2 className="h-4 w-4 text-teal-500" />
-              {t('admin.dashboard.systemsOnline')}
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-teal-500" />
+              <span>{t('admin.dashboard.systemsOnline')}</span>
               {dashboardStats.pendingReview > 0 && (
                 <>
-                  <span className="h-1 w-1 rounded-full bg-slate-300" />
+                  <span className="h-1 w-1 shrink-0 rounded-full bg-slate-300" />
                   <span className="font-semibold text-amber-600">
                     {dashboardStats.pendingReview === 1
                       ? t('admin.dashboard.caseAwaitingReview')
@@ -323,7 +322,7 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
           </div>
           <Link
             href="/admin/requests"
-            className="inline-flex items-center gap-2 self-start rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 sm:self-auto"
+            className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 sm:w-auto sm:px-5 sm:py-3"
           >
             {t('admin.dashboard.openWorkQueue')}
             <ChevronRight className="h-4 w-4" />
@@ -331,44 +330,44 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
         </div>
 
         {/* ── Stats ──────────────────────────────────────────────────────── */}
-        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="mb-3 flex items-center gap-2">
-              <Inbox className="h-4 w-4 text-slate-400" />
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <Inbox className="h-4 w-4 shrink-0 text-slate-400" />
+              <span className="truncate text-xs font-semibold uppercase tracking-wider text-slate-500">
                 {t('admin.dashboard.statNewTodayLabel')}
               </span>
             </div>
-            <div className="text-5xl font-bold tracking-tight text-blue-900">
+            <div className="truncate text-5xl font-bold tracking-tight text-blue-900">
               {dashboardStats.newToday}
             </div>
-            <div className="mt-2 text-sm text-slate-500">{t('admin.dashboard.statNewTodayDesc')}</div>
+            <div className="mt-2 truncate text-sm text-slate-500">{t('admin.dashboard.statNewTodayDesc')}</div>
           </div>
 
           <div
-            className={`rounded-2xl border bg-white p-6 shadow-sm transition ${
+            className={`min-w-0 rounded-2xl border bg-white p-6 shadow-sm transition ${
               dashboardStats.pendingReview > 0 ? 'border-amber-200' : 'border-slate-200'
             }`}
           >
             <div className="mb-3 flex items-center gap-2">
-              <Clock className="h-4 w-4 text-amber-500" />
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <Clock className="h-4 w-4 shrink-0 text-amber-500" />
+              <span className="truncate text-xs font-semibold uppercase tracking-wider text-slate-500">
                 {t('admin.dashboard.statPendingLabel')}
               </span>
             </div>
             <div
-              className={`text-5xl font-bold tracking-tight ${
+              className={`truncate text-5xl font-bold tracking-tight ${
                 dashboardStats.pendingReview > 0 ? 'text-amber-600' : 'text-slate-400'
               }`}
             >
               {dashboardStats.pendingReview}
             </div>
-            <div className="mt-2 flex items-center justify-between">
-              <span className="text-sm text-slate-500">{t('admin.dashboard.statPendingDesc')}</span>
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+              <span className="truncate text-sm text-slate-500">{t('admin.dashboard.statPendingDesc')}</span>
               {dashboardStats.pendingReview > 0 && (
                 <Link
                   href="/admin/requests"
-                  className="text-xs font-semibold text-amber-600 hover:underline"
+                  className="shrink-0 text-xs font-semibold text-amber-600 hover:underline"
                 >
                   {t('admin.dashboard.statPendingReviewLink')}
                 </Link>
@@ -376,221 +375,279 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="mb-3 flex items-center gap-2">
-              <Activity className="h-4 w-4 text-violet-500" />
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <Activity className="h-4 w-4 shrink-0 text-violet-500" />
+              <span className="truncate text-xs font-semibold uppercase tracking-wider text-slate-500">
                 {t('admin.dashboard.statMatchedLabel')}
               </span>
             </div>
-            <div className="text-5xl font-bold tracking-tight text-violet-700">
+            <div className="truncate text-5xl font-bold tracking-tight text-violet-700">
               {dashboardStats.activeTreatments}
             </div>
-            <div className="mt-2 text-sm text-slate-500">{t('admin.dashboard.statMatchedDesc')}</div>
+            <div className="mt-2 truncate text-sm text-slate-500">{t('admin.dashboard.statMatchedDesc')}</div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="mb-3 flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-teal-500" />
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <ShieldCheck className="h-4 w-4 shrink-0 text-teal-500" />
+              <span className="truncate text-xs font-semibold uppercase tracking-wider text-slate-500">
                 {t('admin.dashboard.statTotalLabel')}
               </span>
             </div>
-            <div className="text-5xl font-bold tracking-tight text-teal-600">
+            <div className="truncate text-5xl font-bold tracking-tight text-teal-600">
               {dashboardStats.total}
             </div>
-            <div className="mt-2 text-sm text-slate-500">{t('admin.dashboard.statTotalDesc')}</div>
+            <div className="mt-2 truncate text-sm text-slate-500">{t('admin.dashboard.statTotalDesc')}</div>
           </div>
         </div>
 
         {/* ── Outcome summary pills ──────────────────────────────────────── */}
-        <div className="mt-4 grid grid-cols-3 gap-3 sm:gap-4">
-          <div className="flex items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
+        <div className="mt-4 grid w-full grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+          <div className="flex min-w-0 items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
             <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" />
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700">
+              <p className="truncate text-[10px] font-semibold uppercase tracking-wider text-emerald-700">
                 {t('admin.dashboard.statCompletedLabel')}
               </p>
-              <p className="text-xl font-bold leading-tight text-emerald-800">
+              <p className="truncate text-xl font-bold leading-tight text-emerald-800">
                 {dashboardStats.completed}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 rounded-xl border border-rose-100 bg-rose-50 px-4 py-3">
+          <div className="flex min-w-0 items-center gap-3 rounded-xl border border-rose-100 bg-rose-50 px-4 py-3">
             <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-rose-400" />
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-rose-700">
+              <p className="truncate text-[10px] font-semibold uppercase tracking-wider text-rose-700">
                 {t('admin.dashboard.statCancelledLabel')}
               </p>
-              <p className="text-xl font-bold leading-tight text-rose-800">
+              <p className="truncate text-xl font-bold leading-tight text-rose-800">
                 {dashboardStats.cancelled}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+          <div className="flex min-w-0 items-center gap-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
             <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-blue-500" />
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-blue-700">
+              <p className="truncate text-[10px] font-semibold uppercase tracking-wider text-blue-700">
                 {t('admin.dashboard.statInTreatmentLabel')}
               </p>
-              <p className="text-xl font-bold leading-tight text-blue-800">
+              <p className="truncate text-xl font-bold leading-tight text-blue-800">
                 {dashboardStats.inTreatment}
               </p>
             </div>
           </div>
         </div>
 
-        {/* ── Priority queue: urgent unreviewed cases ─────────────────────── */}
-        {urgentUnreviewedList.length > 0 && (
-          <div className="mt-8">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <AlertCircle className="h-5 w-5 text-red-600" />
-                <h2 className="text-lg font-bold text-slate-900">
-                  {t('admin.dashboard.urgentQueueTitle')}
-                </h2>
-                <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-bold text-red-700">
-                  {urgentUnreviewedList.length}
-                </span>
-              </div>
-              <Link
-                href="/admin/requests"
-                className="text-sm font-semibold text-blue-600 hover:underline"
-              >
-                {t('admin.dashboard.viewAll')}
-              </Link>
-            </div>
-
-            <div className="overflow-hidden rounded-2xl border border-red-200 bg-white shadow-sm">
-              {urgentUnreviewedList.map((r, i) => (
-                <div
-                  key={r.id}
-                  className={`flex items-center gap-4 px-6 py-4 ${
-                    i < urgentUnreviewedList.length - 1 ? 'border-b border-slate-100' : ''
-                  }`}
-                >
-                  <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-red-500" />
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-slate-900">{r.full_name}</p>
-                    <p className="mt-0.5 truncate text-sm text-slate-500">{tTreatment(r.treatment_type)}</p>
-                  </div>
-                  <div className="hidden shrink-0 text-right sm:block">
-                    <p className="text-xs text-slate-400">{relativeTime(r.created_at)}</p>
-                    <span
-                      className={`mt-1 inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${getStatusBadgeClass(r.status)}`}
-                    >
-                      {tStatus(r.status)}
+        {/* ── Layout מותאם למובייל ומחשב: הכל נכנס למסגרות שלא חורגות מהרוחב ── */}
+        <div className="mt-8 flex w-full flex-col gap-8 lg:flex-row lg:items-start">
+          
+          {/* ── Left Column (Tables & Queues) ── */}
+          <div className="min-w-0 flex-1 space-y-8 w-full">
+            
+            {/* Priority queue: urgent unreviewed cases */}
+            {urgentUnreviewedList.length > 0 && (
+              <div className="w-full">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <AlertCircle className="h-5 w-5 shrink-0 text-red-600" />
+                    <h2 className="text-lg font-bold text-slate-900">
+                      {t('admin.dashboard.urgentQueueTitle')}
+                    </h2>
+                    <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-bold text-red-700">
+                      {urgentUnreviewedList.length}
                     </span>
                   </div>
                   <Link
-                    href={`/admin/requests/${r.id}`}
-                    className="shrink-0 rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-red-700"
+                    href="/admin/requests"
+                    className="text-sm font-semibold text-blue-600 hover:underline"
                   >
-                    {t('admin.dashboard.reviewNow')}
+                    {t('admin.dashboard.viewAll')}
                   </Link>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
 
-        <div className="mt-10 grid gap-8 xl:grid-cols-[1.9fr_1fr]">
-          {/* ── Recent requests table ────────────────────────────────────── */}
-          <div>
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold tracking-tight text-slate-900">
-                {t('admin.dashboard.recentRequests')}
-              </h2>
-              <Link
-                href="/admin/requests"
-                className="text-sm font-semibold text-blue-600 hover:underline"
-              >
-                {t('admin.dashboard.viewAllLink')}
-              </Link>
-            </div>
+                <div className="w-full overflow-hidden rounded-2xl border border-red-200 bg-white shadow-sm">
+                  {urgentUnreviewedList.map((r, i) => (
+                    <div
+                      key={r.id}
+                      className={`flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:gap-4 sm:px-6 ${
+                        i < urgentUnreviewedList.length - 1 ? 'border-b border-slate-100' : ''
+                      }`}
+                    >
+                      <div className="flex min-w-0 items-start gap-3 sm:flex-1 sm:items-center">
+                        <div className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-red-500 sm:mt-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-semibold text-slate-900">{r.full_name}</p>
+                          <p className="mt-0.5 break-words text-sm text-slate-500">
+                            {tTreatment(r.treatment_type)}
+                          </p>
+                        </div>
+                      </div>
 
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <table className="w-full border-collapse text-left">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
-                    <th className="px-5 py-3 font-semibold">{t('admin.dashboard.tablePatient')}</th>
-                    <th className="px-5 py-3 font-semibold">{t('admin.dashboard.tableIssue')}</th>
-                    <th className="px-5 py-3 font-semibold">{t('admin.dashboard.tableUrgency')}</th>
-                    <th className="px-5 py-3 font-semibold">{t('admin.dashboard.tableStatus')}</th>
-                    <th className="px-5 py-3 font-semibold text-right">{t('admin.dashboard.tableSubmitted')}</th>
-                  </tr>
-                </thead>
+                      <div className="flex flex-wrap items-center gap-2 sm:ml-auto sm:block sm:text-right">
+                        <p className="text-xs text-slate-400">{relativeTime(r.created_at)}</p>
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${getStatusBadgeClass(
+                            r.status
+                          )}`}
+                        >
+                          {tStatus(r.status)}
+                        </span>
+                      </div>
 
-                <tbody className="divide-y divide-slate-100">
-                  {recentRequests.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="px-5 py-8 text-sm text-slate-500">
-                        {t('admin.dashboard.noRequests')}
-                      </td>
+                      <Link
+                        href={`/admin/requests/${r.id}`}
+                        className="inline-flex w-full shrink-0 items-center justify-center rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-red-700 sm:w-auto"
+                      >
+                        {t('admin.dashboard.reviewNow')}
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Recent Requests Table */}
+            <div className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              {/* Mobile cards */}
+              <div className="divide-y divide-slate-100 md:hidden">
+                {recentRequests.length === 0 ? (
+                  <div className="px-5 py-8 text-sm text-slate-500">
+                    {t('admin.dashboard.noRequests')}
+                  </div>
+                ) : (
+                  recentRequests.map((r) => (
+                    <Link
+                      key={r.id}
+                      href={`/admin/requests/${r.id}`}
+                      className="block w-full px-4 py-4 transition hover:bg-slate-50"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-semibold text-slate-900">{r.full_name}</p>
+                          <p className="mt-0.5 font-mono text-[11px] text-slate-400">
+                            {r.id.slice(0, 8)}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-xs text-slate-400">
+                          {relativeTime(r.created_at)}
+                        </span>
+                      </div>
+
+                      <p className="mt-3 break-words text-sm text-slate-600">
+                        {tTreatment(r.treatment_type)}
+                      </p>
+
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${getUrgencyBadgeClass(
+                            r.urgency
+                          )}`}
+                        >
+                          {tUrgency(r.urgency)}
+                        </span>
+
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider ${getStatusBadgeClass(
+                            r.status
+                          )}`}
+                        >
+                          {tStatus(r.status)}
+                        </span>
+                      </div>
+                    </Link>
+                  ))
+                )}
+              </div>
+              
+              {/* Desktop / tablet table */}
+              <div className="hidden w-full overflow-x-auto md:block">
+                <table className="w-full min-w-[600px] border-collapse text-left">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
+                      <th className="px-5 py-3 font-semibold">{t('admin.dashboard.tablePatient')}</th>
+                      <th className="px-5 py-3 font-semibold">{t('admin.dashboard.tableIssue')}</th>
+                      <th className="px-5 py-3 font-semibold">{t('admin.dashboard.tableUrgency')}</th>
+                      <th className="px-5 py-3 font-semibold">{t('admin.dashboard.tableStatus')}</th>
+                      <th className="px-5 py-3 text-right font-semibold">
+                        {t('admin.dashboard.tableSubmitted')}
+                      </th>
                     </tr>
-                  ) : (
-                    recentRequests.map((r) => (
-                      <tr key={r.id} className="group transition hover:bg-slate-50">
-                        <td className="px-5 py-4">
-                          <Link href={`/admin/requests/${r.id}`} className="block">
-                            <div className="font-semibold text-slate-900 group-hover:text-blue-900">
-                              {r.full_name}
-                            </div>
-                            <div className="mt-0.5 font-mono text-[11px] text-slate-400">
-                              {r.id.slice(0, 8)}
-                            </div>
-                          </Link>
-                        </td>
+                  </thead>
 
-                        <td className="px-5 py-4 text-sm text-slate-600">{tTreatment(r.treatment_type)}</td>
-
-                        <td className="px-5 py-4">
-                          <span
-                            className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${getUrgencyBadgeClass(
-                              r.urgency
-                            )}`}
-                          >
-                            {tUrgency(r.urgency).toUpperCase()}
-                          </span>
-                        </td>
-
-                        <td className="px-5 py-4">
-                          <span
-                            className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${getStatusBadgeClass(
-                              r.status
-                            )}`}
-                          >
-                            {tStatus(r.status)}
-                          </span>
-                        </td>
-
-                        <td className="px-5 py-4 text-right">
-                          <Link
-                            href={`/admin/requests/${r.id}`}
-                            className="flex items-center justify-end gap-1 text-xs text-slate-400 hover:text-blue-700"
-                          >
-                            {relativeTime(r.created_at)}
-                            <ChevronRight className="h-3.5 w-3.5" />
-                          </Link>
+                  <tbody className="divide-y divide-slate-100">
+                    {recentRequests.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-5 py-8 text-sm text-slate-500">
+                          {t('admin.dashboard.noRequests')}
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ) : (
+                      recentRequests.map((r) => (
+                        <tr key={r.id} className="group transition hover:bg-slate-50">
+                          <td className="px-5 py-4">
+                            <Link href={`/admin/requests/${r.id}`} className="block">
+                              <div className="font-semibold text-slate-900 group-hover:text-blue-900">
+                                {r.full_name}
+                              </div>
+                              <div className="mt-0.5 font-mono text-[11px] text-slate-400">
+                                {r.id.slice(0, 8)}
+                              </div>
+                            </Link>
+                          </td>
+
+                          <td className="px-5 py-4 text-sm text-slate-600">
+                            {tTreatment(r.treatment_type)}
+                          </td>
+
+                          <td className="px-5 py-4">
+                            <span
+                              className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${getUrgencyBadgeClass(
+                                r.urgency
+                              )}`}
+                            >
+                              {tUrgency(r.urgency).toUpperCase()}
+                            </span>
+                          </td>
+
+                          <td className="px-5 py-4">
+                            <span
+                              className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${getStatusBadgeClass(
+                                r.status
+                              )}`}
+                            >
+                              {tStatus(r.status)}
+                            </span>
+                          </td>
+
+                          <td className="px-5 py-4 text-right">
+                            <Link
+                              href={`/admin/requests/${r.id}`}
+                              className="flex items-center justify-end gap-1 whitespace-nowrap text-xs text-slate-400 hover:text-blue-700"
+                            >
+                              {relativeTime(r.created_at)}
+                              <ChevronRight className="h-3.5 w-3.5" />
+                            </Link>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 
           {/* ── Right column ─────────────────────────────────────────────── */}
-          <div className="space-y-6">
-            <div>
+          <div className="w-full min-w-0 space-y-6 lg:w-80 lg:shrink-0 xl:w-96">
+            <div className="w-full">
               <h2 className="mb-4 text-xl font-bold tracking-tight text-slate-900">
                 {t('admin.dashboard.casesByDept')}
               </h2>
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                 {departmentCases.length === 0 ? (
                   <p className="text-sm text-slate-500">
                     {t('admin.dashboard.noDeptCases')}
@@ -598,9 +655,9 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
                 ) : (
                   <div className="space-y-5">
                     {departmentCases.map((dept) => (
-                      <div key={dept.name}>
+                      <div key={dept.name} className="w-full">
                         <div className="mb-1.5 flex items-center justify-between text-sm">
-                          <span className="font-medium text-slate-700">{tDepartment(dept.name)}</span>
+                          <span className="truncate pr-2 font-medium text-slate-700">{tDepartment(dept.name)}</span>
                           <span className="font-bold text-slate-700">{dept.count}</span>
                         </div>
                         <RelativeBar value={dept.barWidth} />
@@ -612,7 +669,7 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
             </div>
 
             <div
-              className={`rounded-2xl border p-6 shadow-sm ${
+              className={`min-w-0 w-full rounded-2xl border p-5 shadow-sm sm:p-6 ${
                 urgentCasesCount > 0
                   ? 'border-amber-200 bg-amber-50'
                   : 'border-slate-200 bg-white'
@@ -624,16 +681,19 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
                     urgentCasesCount > 0 ? 'text-amber-600' : 'text-slate-400'
                   }`}
                 />
-                <div>
+                <div className="min-w-0">
                   <h3
-                    className={`text-base font-bold ${
+                    className={`truncate text-base font-bold ${
                       urgentCasesCount > 0 ? 'text-amber-900' : 'text-slate-700'
                     }`}
                   >
-                    {urgentCasesCount > 0 ? t('admin.dashboard.actionRequired') : t('admin.dashboard.queueClear')}
+                    {urgentCasesCount > 0
+                      ? t('admin.dashboard.actionRequired')
+                      : t('admin.dashboard.queueClear')}
                   </h3>
+
                   <p
-                    className={`mt-2 text-sm leading-relaxed ${
+                    className={`mt-2 break-words text-sm leading-relaxed ${
                       urgentCasesCount > 0 ? 'text-amber-800' : 'text-slate-500'
                     }`}
                   >
@@ -645,10 +705,11 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
                   </p>
 
                   {urgentCasesCount > 0 && (
-                    <Link href="/admin/requests">
-                      <button className="mt-4 rounded-xl border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-800 transition hover:bg-amber-100">
-                        {t('admin.dashboard.reviewNow')}
-                      </button>
+                    <Link
+                      href="/admin/requests"
+                      className="mt-4 inline-flex w-full justify-center rounded-xl border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-800 transition hover:bg-amber-100 sm:w-auto"
+                    >
+                      {t('admin.dashboard.reviewNow')}
                     </Link>
                   )}
                 </div>
