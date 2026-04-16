@@ -41,6 +41,40 @@ const DAY_OPTIONS = [
   { value: 'Weekday Afternoons',  tKey: 'request.dayWeekdayAfternoons' },
   { value: 'As Soon As Possible', tKey: 'request.dayAsSoonAsPossible' },
 ] as const
+const DURATION_OPTIONS = [
+  { value: 'Today', tKey: 'request.duration.today' },
+  { value: 'A few days', tKey: 'request.duration.fewDays' },
+  { value: '1-2 weeks', tKey: 'request.duration.oneToTwoWeeks' },
+  { value: 'More than a month', tKey: 'request.duration.moreThanMonth' },
+] as const
+
+const CONTACT_METHOD_OPTIONS = [
+  { value: 'WhatsApp', tKey: 'request.contactMethod.whatsapp' },
+  { value: 'Phone Call', tKey: 'request.contactMethod.phone' },
+  { value: 'SMS', tKey: 'request.contactMethod.sms' },
+] as const
+
+const CONTACT_TIME_OPTIONS = [
+  { value: 'Morning', tKey: 'request.contactTime.morning' },
+  { value: 'Afternoon', tKey: 'request.contactTime.afternoon' },
+  { value: 'Evening', tKey: 'request.contactTime.evening' },
+  { value: 'Anytime', tKey: 'request.contactTime.anytime' },
+] as const
+
+const PRIOR_TREATMENT_OPTIONS = [
+  { value: 'yes', tKey: 'request.yes' },
+  { value: 'no', tKey: 'request.no' },
+] as const
+
+const MEDICAL_CONDITION_OPTIONS = [
+  { value: 'None', tKey: 'request.medical.none' },
+  { value: 'Diabetes', tKey: 'request.medical.diabetes' },
+  { value: 'Pregnancy', tKey: 'request.medical.pregnancy' },
+  { value: 'Blood thinner use', tKey: 'request.medical.bloodThinner' },
+  { value: 'Allergy', tKey: 'request.medical.allergy' },
+  { value: 'Other', tKey: 'request.medical.other' },
+] as const
+
 const COUNTRY_CODES = [
   'TR',
   'AF','AL','DZ','AD','AO','AG','AR','AM','AU','AT','AZ',
@@ -97,6 +131,12 @@ export default function PatientRequestPage() {
   const [complaintText, setComplaintText] = useState('')
   const [urgency, setUrgency] = useState('')
   const [preferredDays, setPreferredDays] = useState('No Preference')
+  const [painScore, setPainScore] = useState('')
+const [symptomDuration, setSymptomDuration] = useState('')
+const [contactMethod, setContactMethod] = useState('WhatsApp')
+const [bestContactTime, setBestContactTime] = useState('Anytime')
+const [priorTreatment, setPriorTreatment] = useState('')
+const [medicalCondition, setMedicalCondition] = useState('None')
   const [consent, setConsent] = useState(false)
   const [attachment, setAttachment] = useState<File | null>(null)
 
@@ -180,11 +220,14 @@ if (
   hasSgk === '' ||
   !treatmentType ||
   !complaintText ||
-  !urgency
+  !urgency ||
+  !painScore ||
+  !symptomDuration ||
+  !priorTreatment
 ) {
-      setErrorMessage(t('request.errorRequiredFields'))
-      return
-    }
+  setErrorMessage(t('request.errorRequiredFields'))
+  return
+}
 
     if (!consent) {
       setErrorMessage(t('request.errorConsent'))
@@ -222,23 +265,29 @@ if (
       .from('patient_requests')
       .insert([
 {
-  full_name: fullName,
-  age: age ? Number(age) : null,
-  phone,
-  city,
-  country: countryOptions.find((c) => c.code === countryCode)?.label ?? countryCode,
-  country_code: countryCode,
-  has_sgk: hasSgk === 'yes',
-  preferred_university: preferredUniversity,
-  preferred_language: preferredLanguage,
-  treatment_type: treatmentType,
-  complaint_text: complaintText,
-  urgency,
-  preferred_days: preferredDays,
-  consent,
-  attachment_path: attachmentPath,
-  attachment_name: attachment ? attachment.name : null,
-  status: 'submitted',
+ full_name: fullName,
+age: age ? Number(age) : null,
+phone,
+city,
+country: countryOptions.find((c) => c.code === countryCode)?.label ?? countryCode,
+country_code: countryCode,
+has_sgk: hasSgk === 'yes',
+preferred_university: preferredUniversity,
+preferred_language: preferredLanguage,
+treatment_type: treatmentType,
+complaint_text: complaintText,
+urgency,
+preferred_days: preferredDays,
+pain_score: painScore ? Number(painScore) : null,
+symptom_duration: symptomDuration,
+contact_method: contactMethod,
+best_contact_time: bestContactTime,
+prior_treatment: priorTreatment === 'yes',
+medical_condition: medicalCondition,
+consent,
+attachment_path: attachmentPath,
+attachment_name: attachment ? attachment.name : null,
+status: 'submitted',
 }
  ])
 
@@ -258,6 +307,12 @@ if (
     setPreferredUniversity('İstinye Dental Hospital')
     setCountryCode('TR')
 setHasSgk('')
+setPainScore('')
+setSymptomDuration('')
+setContactMethod('WhatsApp')
+setBestContactTime('Anytime')
+setPriorTreatment('')
+setMedicalCondition('None')
 setCountrySearch('')
 setCountryOpen(false)
     setTreatmentType('')
@@ -582,6 +637,114 @@ setCountryOpen(false)
                     className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-900"
                   />
                 </div>
+                <div className="mb-6 grid gap-5 md:grid-cols-2">
+  <div>
+    <label className="mb-2 block text-sm font-medium text-slate-700">
+      Pain Score (0–10) *
+    </label>
+    <select
+      value={painScore}
+      onChange={(e) => setPainScore(e.target.value)}
+      className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-900"
+    >
+      <option value="">Select pain score</option>
+      {Array.from({ length: 11 }, (_, i) => (
+        <option key={i} value={String(i)}>
+          {i}
+        </option>
+      ))}
+    </select>
+  </div>
+
+  <div>
+    <label className="mb-2 block text-sm font-medium text-slate-700">
+      How long has this problem been present? *
+    </label>
+    <select
+      value={symptomDuration}
+      onChange={(e) => setSymptomDuration(e.target.value)}
+      className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-900"
+    >
+      <option value="">Select duration</option>
+      {DURATION_OPTIONS.map((opt) => (
+        <option key={opt.value} value={opt.value}>
+          {opt.value}
+        </option>
+      ))}
+    </select>
+  </div>
+</div>
+<div className="mb-6 grid gap-5 md:grid-cols-2">
+  <div>
+    <label className="mb-2 block text-sm font-medium text-slate-700">
+      Have you received treatment for this issue before? *
+    </label>
+    <select
+      value={priorTreatment}
+      onChange={(e) => setPriorTreatment(e.target.value)}
+      className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-900"
+    >
+      <option value="">Select an option</option>
+      {PRIOR_TREATMENT_OPTIONS.map((opt) => (
+        <option key={opt.value} value={opt.value}>
+          {opt.value === 'yes' ? 'Yes' : 'No'}
+        </option>
+      ))}
+    </select>
+  </div>
+
+  <div>
+    <label className="mb-2 block text-sm font-medium text-slate-700">
+      Any important medical condition?
+    </label>
+    <select
+      value={medicalCondition}
+      onChange={(e) => setMedicalCondition(e.target.value)}
+      className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-900"
+    >
+      {MEDICAL_CONDITION_OPTIONS.map((opt) => (
+        <option key={opt.value} value={opt.value}>
+          {opt.value}
+        </option>
+      ))}
+    </select>
+  </div>
+</div>
+<div className="mb-6 grid gap-5 md:grid-cols-2">
+  <div>
+    <label className="mb-2 block text-sm font-medium text-slate-700">
+      Preferred Contact Method
+    </label>
+    <select
+      value={contactMethod}
+      onChange={(e) => setContactMethod(e.target.value)}
+      className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-900"
+    >
+      {CONTACT_METHOD_OPTIONS.map((opt) => (
+        <option key={opt.value} value={opt.value}>
+          {opt.value}
+        </option>
+      ))}
+    </select>
+  </div>
+
+  <div>
+    <label className="mb-2 block text-sm font-medium text-slate-700">
+      Best Time to Contact You
+    </label>
+    <select
+      value={bestContactTime}
+      onChange={(e) => setBestContactTime(e.target.value)}
+      className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-900"
+    >
+      {CONTACT_TIME_OPTIONS.map((opt) => (
+        <option key={opt.value} value={opt.value}>
+          {opt.value}
+        </option>
+      ))}
+    </select>
+  </div>
+</div>
 
                 <div className="grid gap-5 md:grid-cols-2">
                   <div>
@@ -639,6 +802,9 @@ setCountryOpen(false)
                       <UploadCloud className="mx-auto mb-3 h-8 w-8 text-slate-400" />
                       <p className="font-medium text-slate-700">{t('request.uploadTitle')}</p>
                       <p className="mt-1 text-sm text-slate-500">{t('request.uploadSubtitle')}</p>
+                      <p className="mt-2 text-xs text-slate-500">
+  Uploading a photo or x-ray helps our faculty review your case faster and more accurately.
+</p>
                     </div>
 
                     <input
