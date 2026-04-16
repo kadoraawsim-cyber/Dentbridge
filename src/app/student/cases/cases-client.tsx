@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -67,31 +67,11 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
 
   const [localRequests, setLocalRequests] =
     useState<Record<string, RequestInfo>>(requestsByCaseId)
-  const [imageUrls, setImageUrls] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState<string | null>(null)
   const [requestErrors, setRequestErrors] = useState<Record<string, string>>({})
   const [searchTerm, setSearchTerm] = useState('')
   const [activeDepartment, setActiveDepartment] = useState('All')
   const [requestFilter, setRequestFilter] = useState<RequestFilter>('all')
-
-  useEffect(() => {
-    const withAttachment = initialCases.filter((c) => c.attachment_path)
-    if (withAttachment.length === 0) return
-    Promise.all(
-      withAttachment.map(async (c) => {
-        const { data } = await supabase.storage
-          .from('patient-uploads')
-          .createSignedUrl(c.attachment_path!, 3600)
-        return { id: c.id, url: data?.signedUrl ?? null }
-      })
-    ).then((results) => {
-      const urls: Record<string, string> = {}
-      for (const r of results) {
-        if (r.url) urls[r.id] = r.url
-      }
-      setImageUrls(urls)
-    })
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSignOut() {
     await supabase.auth.signOut()
@@ -193,13 +173,44 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
     return map[v] ?? v
   }
 
+  function tDuration(v: string): string {
+    const map: Record<string, string> = {
+      Today: t('request.durationToday'),
+      'A few days': t('request.durationFewDays'),
+      '1-2 weeks': t('request.durationOneToTwoWeeks'),
+      'More than a month': t('request.durationMoreThanMonth'),
+    }
+    return map[v] ?? v
+  }
+
   function tUrgency(v: string): string {
     switch ((v || '').toLowerCase()) {
-      case 'high': return t('request.urgencyHigh').toUpperCase()
-      case 'medium': return t('request.urgencyMedium').toUpperCase()
-      case 'low': return t('request.urgencyLow').toUpperCase()
-      default: return (v || 'Unknown').toUpperCase()
+      case 'high': return t('request.urgencyHigh')
+      case 'medium': return t('request.urgencyMedium')
+      case 'low': return t('request.urgencyLow')
+      default: return v || 'Unknown'
     }
+  }
+
+  function tMedicalCondition(v: string | null): string {
+    if (!v) return t('student.cases.noMedicalNote')
+
+    const map: Record<string, string> = {
+      None: t('request.medicalNone'),
+      Diabetes: t('request.medicalDiabetes'),
+      Pregnancy: t('request.medicalPregnancy'),
+      'Blood thinner use': t('request.medicalBloodThinner'),
+      Allergy: t('request.medicalAllergy'),
+      Other: t('request.medicalOther'),
+    }
+
+    return map[v] ?? v
+  }
+
+  function tAttachmentSummary(caseItem: PoolCase): string {
+    return caseItem.attachment_path
+      ? t('student.cases.oneImageAttachment')
+      : t('student.cases.noAttachments')
   }
 
   // Translate department display label (keep 'All' sentinel as-is for filter logic)
@@ -470,50 +481,58 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
                   <div className="flex flex-1 flex-col p-5">
                     {/* Treatment */}
                     <p className="text-base font-bold text-slate-900">{tTreatment(c.treatment_type)}</p>
-                    <p className="mt-0.5 text-sm text-slate-500">
-                      {c.age ?? '\u2014'} yrs
-                    </p>
-
-                    {c.complaint_text && (
-                      <p className="mt-2.5 line-clamp-2 text-sm leading-relaxed text-slate-500">
-                        {c.complaint_text}
+                    <div className="mt-3 space-y-2 text-sm leading-relaxed text-slate-600">
+                      <p>
+                        <span className="font-semibold text-slate-700">{t('student.cases.ageLabel')}:</span>{' '}
+                        {c.age ?? '\u2014'} yrs
                       </p>
-                    )}
 
-                    {/* Attachment thumbnail */}
-                    {imageUrls[c.id] && (
-                      <button
-                        type="button"
-                        onClick={() => window.open(imageUrls[c.id], '_blank')}
-                        title={t('student.cases.viewFullSize')}
-                        className="mt-3 block w-full cursor-zoom-in overflow-hidden rounded-xl border border-slate-200 bg-slate-100"
-                      >
-                        <img
-                          src={imageUrls[c.id]}
-                          alt={t('student.cases.imageAlt')}
-                          className="h-36 w-full object-contain"
-                        />
-                      </button>
-                    )}
+                      <p className="line-clamp-2">
+                        <span className="font-semibold text-slate-700">
+                          {t('student.cases.mainComplaint')}:
+                        </span>{' '}
+                        {c.complaint_text || t('student.cases.noComplaint')}
+                      </p>
 
-                    {/* Dept block */}
-                    <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
-                      <Stethoscope className="h-4 w-4 shrink-0 text-blue-600" />
-                      <span className="text-sm font-semibold text-blue-900">
-                        {c.assigned_department ? tDept(c.assigned_department) : t('student.cases.unassigned')}
-                      </span>
-                    </div>
+                      <p>
+                        <span className="font-semibold text-slate-700">{t('student.cases.department')}:</span>{' '}
+                        <span className="inline-flex items-center gap-1.5">
+                          <Stethoscope className="h-3.5 w-3.5 shrink-0 text-blue-600" />
+                          <span className="text-blue-900">
+                            {c.assigned_department ? tDept(c.assigned_department) : t('student.cases.unassigned')}
+                          </span>
+                        </span>
+                      </p>
 
-                    {/* Meta */}
-                    <div className="mt-3 space-y-1">
-                      {c.preferred_days && (
-                        <p className="text-xs text-slate-500">
-                          <span className="font-semibold text-slate-700">
-                            {t('student.cases.availability')}
-                          </span>{' '}
-                          {tAvailability(c.preferred_days)}
-                        </p>
-                      )}
+                      <p>
+                        <span className="font-semibold text-slate-700">{t('student.cases.urgency')}:</span>{' '}
+                        {tUrgency(c.urgency)}
+                      </p>
+
+                      <p>
+                        <span className="font-semibold text-slate-700">{t('student.cases.painScore')}:</span>{' '}
+                        {c.pain_score ?? '\u2014'}/10
+                      </p>
+
+                      <p>
+                        <span className="font-semibold text-slate-700">{t('student.cases.duration')}:</span>{' '}
+                        {c.symptom_duration ? tDuration(c.symptom_duration) : '\u2014'}
+                      </p>
+
+                      <p>
+                        <span className="font-semibold text-slate-700">{t('student.cases.availability')}:</span>{' '}
+                        {c.preferred_days ? tAvailability(c.preferred_days) : '\u2014'}
+                      </p>
+
+                      <p className="line-clamp-2">
+                        <span className="font-semibold text-slate-700">{t('student.cases.medicalNote')}:</span>{' '}
+                        {tMedicalCondition(c.medical_condition)}
+                      </p>
+
+                      <p>
+                        <span className="font-semibold text-slate-700">{t('student.cases.attachments')}:</span>{' '}
+                        {tAttachmentSummary(c)}
+                      </p>
                     </div>
 
                     {/* Contact — approved only */}

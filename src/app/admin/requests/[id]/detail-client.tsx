@@ -140,6 +140,62 @@ function getStatusBadgeClass(status: string) {
   }
 }
 
+type ActivityLogType =
+  | 'case_released'
+  | 'student_request_submitted'
+  | 'student_request_approved'
+  | 'student_request_rejected'
+  | 'rejection_undone'
+  | 'department_changed'
+  | 'clinical_notes_updated'
+  | 'case_cancelled'
+
+type ActivityLogEntry = {
+  id: string
+  type: ActivityLogType
+  timestamp: string
+  detail?: string | null
+}
+
+function makeLogEntry(type: ActivityLogType, timestamp: string, detail?: string | null): ActivityLogEntry {
+  return {
+    id: `${type}-${timestamp}-${Math.random().toString(36).slice(2, 8)}`,
+    type,
+    timestamp,
+    detail: detail ?? null,
+  }
+}
+
+function buildInitialActivityLog(
+  request: PatientRequest,
+  studentRequests: StudentCaseRequest[]
+): ActivityLogEntry[] {
+  const entries: ActivityLogEntry[] = []
+  const status = (request.status || '').toLowerCase()
+
+  if (request.reviewed_at && ['matched', 'student_approved', 'contacted', 'appointment_scheduled', 'in_treatment', 'completed'].includes(status)) {
+    entries.push(makeLogEntry('case_released', request.reviewed_at, request.assigned_department))
+  }
+
+  for (const studentRequest of studentRequests) {
+    if (studentRequest.created_at) {
+      entries.push(makeLogEntry('student_request_submitted', studentRequest.created_at, studentRequest.student_email))
+    }
+
+    if (studentRequest.reviewed_at) {
+      if (studentRequest.status === 'approved') {
+        entries.push(makeLogEntry('student_request_approved', studentRequest.reviewed_at, studentRequest.student_email))
+      }
+
+      if (studentRequest.status === 'rejected') {
+        entries.push(makeLogEntry('student_request_rejected', studentRequest.reviewed_at, studentRequest.student_email))
+      }
+    }
+  }
+
+  return entries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+}
+
 export function CaseDetailClient({ initialRequest, adminEmail, initialStudentRequests }: Props) {
   const { t, locale } = useI18n()
   const dateLocale = locale === 'tr' ? 'tr-TR' : 'en-GB'
@@ -237,6 +293,29 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
     }
   }
 
+  function activityLabel(entry: ActivityLogEntry): string {
+    switch (entry.type) {
+      case 'case_released':
+        return t('admin.detail.historyCaseReleased')
+      case 'student_request_submitted':
+        return t('admin.detail.historyStudentSubmitted')
+      case 'student_request_approved':
+        return t('admin.detail.historyStudentApproved')
+      case 'student_request_rejected':
+        return t('admin.detail.historyStudentRejected')
+      case 'rejection_undone':
+        return t('admin.detail.historyRejectionUndone')
+      case 'department_changed':
+        return t('admin.detail.historyDepartmentChanged')
+      case 'clinical_notes_updated':
+        return t('admin.detail.historyClinicalNotesUpdated')
+      case 'case_cancelled':
+        return t('admin.detail.historyCaseCancelled')
+      default:
+        return entry.type
+    }
+  }
+
   const [request, setRequest] = useState<PatientRequest>(initialRequest)
   const [errorMessage, setErrorMessage] = useState('')
   const [saving, setSaving] = useState(false)
@@ -256,6 +335,17 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
     useState<StudentCaseRequest[]>(initialStudentRequests)
   // Which request_id is currently being approved/rejected (disables that row's buttons)
   const [requestActionId, setRequestActionId] = useState<string | null>(null)
+  const [pendingStudentAction, setPendingStudentAction] = useState<{
+    requestId: string
+    kind: 'reject' | 'undo'
+  } | null>(null)
+  const [studentActionReason, setStudentActionReason] = useState('')
+  const [pendingCancel, setPendingCancel] = useState(false)
+  const [cancelReason, setCancelReason] = useState('')
+  const [triageReason, setTriageReason] = useState('')
+  const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>(
+    () => buildInitialActivityLog(initialRequest, initialStudentRequests)
+  )
 
   const [assignedDepartment, setAssignedDepartment] = useState(
     keywordRoutingHint(initialRequest.treatment_type, initialRequest.assigned_department)
@@ -265,6 +355,7 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
     initialRequest.target_student_level || 'Year 4 Clinical Student'
   )
   const [clinicalNotes, setClinicalNotes] = useState(initialRequest.clinical_notes || '')
+  const [isEditingTriage, setIsEditingTriage] = useState(false)
 
   useEffect(() => {
     if (!request.attachment_path) return
@@ -292,6 +383,11 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
     return request.attachment_name
   }, [request, t])
 
+  const sortedActivityLog = useMemo(
+    () => [...activityLog].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()),
+    [activityLog]
+  )
+
   const currentStatus = (request.status || '').toLowerCase()
 
   // Triage phase: faculty can edit department/urgency/notes and approve/reject
@@ -306,8 +402,15 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
   // Closed: no further actions possible
   const isClosed = ['rejected', 'completed', 'cancelled'].includes(currentStatus)
 
+  // Allow post-release triage edits without changing the current case status.
+  const canEditTriage = ['matched', 'student_approved', 'contacted', 'appointment_scheduled', 'in_treatment'].includes(currentStatus)
+
   // Keep the old isTerminal alias so the triage form disable logic still works
   const isTerminal = !isTriagePhase
+  const originalDepartment =
+    request.assigned_department || keywordRoutingHint(request.treatment_type, request.assigned_department)
+  const departmentChanged = assignedDepartment !== originalDepartment
+  const departmentChangeWarning = !isTriagePhase && departmentChanged && ['student_approved', 'contacted', 'appointment_scheduled', 'in_treatment'].includes(currentStatus)
 
   async function handleViewAttachment() {
     if (!request.attachment_path) return
@@ -336,9 +439,19 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
     setTimeout(() => setSaveSuccess(''), 3000)
   }
 
+  function resetTriageForm() {
+    setAssignedDepartment(
+      keywordRoutingHint(request.treatment_type, request.assigned_department)
+    )
+    setUrgencyLevel(mapUrgencyToDetail(request.urgency))
+    setTargetStudentLevel(request.target_student_level || 'Year 4 Clinical Student')
+    setClinicalNotes(request.clinical_notes || '')
+  }
+
   async function handleStudentRequestAction(
     requestId: string,
-    action: 'approve_student_request' | 'reject_student_request'
+    action: 'approve_student_request' | 'reject_student_request' | 'undo_reject_student_request',
+    reason?: string
   ) {
     setRequestActionId(requestId)
     setErrorMessage('')
@@ -346,7 +459,7 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
     const res = await fetch(`/api/admin/cases/${request.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, request_id: requestId }),
+      body: JSON.stringify({ action, request_id: requestId, reason }),
     })
 
     setRequestActionId(null)
@@ -357,7 +470,21 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
       return
     }
 
-    const { data: resultData } = (await res.json()) as { data: { status: string } }
+    const { data: resultData } = (await res.json()) as {
+      data: {
+        status: string
+        reviewed_by: string | null
+        reviewed_at: string | null
+      }
+    }
+    const reviewedAt =
+      action === 'undo_reject_student_request'
+        ? null
+        : resultData.reviewed_at ?? new Date().toISOString()
+    const reviewedBy =
+      action === 'undo_reject_student_request'
+        ? null
+        : resultData.reviewed_by ?? adminEmail
 
     setStudentRequests((prev) =>
       prev.map((r) =>
@@ -365,15 +492,36 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
           ? {
               ...r,
               status: resultData.status,
-              reviewed_by: adminEmail,
-              reviewed_at: new Date().toISOString(),
+              reviewed_by: reviewedBy,
+              reviewed_at: reviewedAt,
             }
           : // auto-reject other pending rows when one is approved
             action === 'approve_student_request' && r.status === 'pending'
-            ? { ...r, status: 'rejected', reviewed_by: adminEmail, reviewed_at: new Date().toISOString() }
+            ? { ...r, status: 'rejected', reviewed_by: adminEmail, reviewed_at: reviewedAt ?? new Date().toISOString() }
             : r
       )
     )
+
+    if (action === 'reject_student_request' && resultData.status === 'rejected') {
+      setActivityLog((prev) => [
+        makeLogEntry('student_request_rejected', reviewedAt ?? new Date().toISOString()),
+        ...prev,
+      ])
+    }
+
+    if (action === 'undo_reject_student_request' && resultData.status === 'pending') {
+      setActivityLog((prev) => [
+        makeLogEntry('rejection_undone', new Date().toISOString()),
+        ...prev,
+      ])
+    }
+
+    if (action === 'approve_student_request' && resultData.status === 'approved') {
+      setActivityLog((prev) => [
+        makeLogEntry('student_request_approved', reviewedAt ?? new Date().toISOString()),
+        ...prev,
+      ])
+    }
 
     // Approving a student advances the case to student_approved
     if (action === 'approve_student_request') {
@@ -384,6 +532,73 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
         reviewed_at: new Date().toISOString(),
       }))
     }
+
+    setPendingStudentAction(null)
+    setStudentActionReason('')
+  }
+
+  async function handleUpdateTriage() {
+    setSaving(true)
+    setErrorMessage('')
+
+    const originalDepartment =
+      request.assigned_department || keywordRoutingHint(request.treatment_type, request.assigned_department)
+    const departmentChanged = assignedDepartment !== originalDepartment
+    const notesChanged = clinicalNotes !== (request.clinical_notes || '')
+
+    if (departmentChanged && !triageReason.trim()) {
+      setSaving(false)
+      setErrorMessage(t('admin.detail.reasonRequired'))
+      return
+    }
+
+    const res = await fetch(`/api/admin/cases/${request.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'update_triage',
+        assigned_department: assignedDepartment,
+        urgency: mapDetailToUrgency(urgencyLevel),
+        target_student_level: targetStudentLevel,
+        clinical_notes: clinicalNotes,
+        reason: triageReason.trim() || undefined,
+      }),
+    })
+
+    setSaving(false)
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Unknown error' }))
+      setErrorMessage((err as { error?: string }).error ?? 'Failed to update triage.')
+      return
+    }
+
+    const { data } = (await res.json()) as {
+      data: { reviewed_by: string | null; reviewed_at: string }
+    }
+
+    setRequest((prev) => ({
+      ...prev,
+      assigned_department: assignedDepartment,
+      urgency: mapDetailToUrgency(urgencyLevel),
+      target_student_level: targetStudentLevel,
+      clinical_notes: clinicalNotes,
+      reviewed_by: data.reviewed_by,
+      reviewed_at: data.reviewed_at,
+    }))
+    const nextEntries: ActivityLogEntry[] = []
+    if (departmentChanged) {
+      nextEntries.push(makeLogEntry('department_changed', data.reviewed_at, assignedDepartment))
+    }
+    if (notesChanged) {
+      nextEntries.push(makeLogEntry('clinical_notes_updated', data.reviewed_at))
+    }
+    if (nextEntries.length > 0) {
+      setActivityLog((prev) => [...nextEntries, ...prev])
+    }
+    setTriageReason('')
+    setIsEditingTriage(false)
+    showSaved(t('admin.detail.savedTriageUpdated'))
   }
 
   async function handleLifecycleAction(
@@ -392,7 +607,8 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
       | 'mark_appointment_scheduled'
       | 'mark_in_treatment'
       | 'mark_completed'
-      | 'mark_cancelled'
+      | 'mark_cancelled',
+    reason?: string
   ) {
     setLifecycleLoading(true)
     setErrorMessage('')
@@ -400,7 +616,7 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
     const res = await fetch(`/api/admin/cases/${request.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action }),
+      body: JSON.stringify({ action, reason }),
     })
 
     setLifecycleLoading(false)
@@ -420,6 +636,14 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
       reviewed_by: data.reviewed_by,
       reviewed_at: data.reviewed_at,
     }))
+    if (action === 'mark_cancelled') {
+      setActivityLog((prev) => [
+        makeLogEntry('case_cancelled', data.reviewed_at),
+        ...prev,
+      ])
+      setPendingCancel(false)
+      setCancelReason('')
+    }
     showSaved(t('admin.detail.statusUpdated'))
   }
 
@@ -460,6 +684,8 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
       reviewed_by: data.reviewed_by,
       reviewed_at: data.reviewed_at,
     })
+    setIsEditingTriage(false)
+    setTriageReason('')
     showSaved(t('admin.detail.savedDraft'))
   }
 
@@ -501,6 +727,12 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
       reviewed_by: data.reviewed_by,
       reviewed_at: data.reviewed_at,
     })
+    setActivityLog((prev) => [
+      makeLogEntry('case_released', data.reviewed_at, assignedDepartment),
+      ...prev,
+    ])
+    setIsEditingTriage(false)
+    setTriageReason('')
     showSaved(t('admin.detail.savedApproved'))
   }
 
@@ -532,6 +764,8 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
       reviewed_by: data.reviewed_by,
       reviewed_at: data.reviewed_at,
     })
+    setIsEditingTriage(false)
+    setTriageReason('')
     showSaved(t('admin.detail.savedRejected'))
   }
 
@@ -684,6 +918,18 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                 </div>
               )}
 
+              {!isTriagePhase && canEditTriage && !isEditingTriage && (
+                <div className="mb-4 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingTriage(true)}
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                  >
+                    {t('admin.detail.editCase')}
+                  </button>
+                </div>
+              )}
+
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -696,7 +942,7 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                     <select
                       value={assignedDepartment}
                       onChange={(e) => setAssignedDepartment(e.target.value)}
-                      disabled={isTerminal || saving}
+                      disabled={saving || (!isTriagePhase && !isEditingTriage)}
                       className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-blue-900 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
                     >
                       {departmentOptions.map((dept) => (
@@ -714,7 +960,7 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                     <select
                       value={urgencyLevel}
                       onChange={(e) => setUrgencyLevel(e.target.value)}
-                      disabled={isTerminal || saving}
+                      disabled={saving || (!isTriagePhase && !isEditingTriage)}
                       className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-blue-900 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
                     >
                       <option value="High (Emergency / Severe Pain)">{t('admin.detail.urgencyHighOption')}</option>
@@ -731,7 +977,7 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                   <select
                     value={targetStudentLevel}
                     onChange={(e) => setTargetStudentLevel(e.target.value)}
-                    disabled={isTerminal || saving}
+                    disabled={saving || (!isTriagePhase && !isEditingTriage)}
                     className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-blue-900 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
                   >
                     {studentLevelOptions.map((opt) => (
@@ -749,11 +995,34 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                   <textarea
                     value={clinicalNotes}
                     onChange={(e) => setClinicalNotes(e.target.value)}
-                    disabled={isTerminal || saving}
+                    disabled={saving || (!isTriagePhase && !isEditingTriage)}
                     placeholder={t('admin.detail.clinicalNotesPlaceholder')}
                     className="min-h-[110px] w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
                   />
                 </div>
+
+                {!isTriagePhase && canEditTriage && departmentChanged && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    {departmentChangeWarning
+                      ? t('admin.detail.deptChangeWarningAssigned')
+                      : t('admin.detail.deptChangeWarningGeneral')}
+                  </div>
+                )}
+
+                {departmentChanged && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-slate-700">
+                      {t('admin.detail.reasonLabel')} *
+                    </label>
+                    <input
+                      type="text"
+                      value={triageReason}
+                      onChange={(e) => setTriageReason(e.target.value)}
+                      placeholder={t('admin.detail.reasonPlaceholder')}
+                      className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-blue-900"
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="mt-8 border-t border-slate-100 pt-6">
@@ -763,7 +1032,7 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                   </p>
                 )}
 
-                {isTerminal ? null : pendingAction === 'reject' ? (
+                {isTriagePhase ? pendingAction === 'reject' ? (
                   <div className="rounded-xl border border-red-200 bg-red-50 p-4">
                     <p className="mb-3 text-sm font-semibold text-red-800">
                       {t('admin.detail.rejectConfirmTitle')}
@@ -856,7 +1125,30 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                       </button>
                     </div>
                   </div>
-                )}
+                ) : canEditTriage && isEditingTriage ? (
+                  <div className="flex gap-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        resetTriageForm()
+                        setIsEditingTriage(false)
+                      }}
+                      disabled={saving}
+                      className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+                    >
+                      {t('admin.detail.cancel')}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleUpdateTriage}
+                      disabled={saving}
+                      className="rounded-xl bg-blue-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:opacity-60"
+                    >
+                      {saving ? '…' : t('admin.detail.updateTriage')}
+                    </button>
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
@@ -888,6 +1180,41 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                 <p className="text-sm text-slate-400">
                   {t('admin.detail.noReviewYet')}
                 </p>
+              )}
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h3 className="mb-4 text-sm font-bold text-slate-900">
+                {t('admin.detail.historyTitle')}
+              </h3>
+
+              {sortedActivityLog.length === 0 ? (
+                <p className="text-sm text-slate-400">{t('admin.detail.historyEmpty')}</p>
+              ) : (
+                <div className="space-y-3">
+                  {sortedActivityLog.map((entry) => {
+                    const detailText =
+                      entry.type === 'case_released' || entry.type === 'department_changed'
+                        ? entry.detail
+                          ? tDepartment(entry.detail)
+                          : null
+                        : entry.detail
+
+                    return (
+                      <div key={entry.id} className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+                        <p className="text-sm font-medium text-slate-900">
+                          {activityLabel(entry)}
+                        </p>
+                        {detailText && (
+                          <p className="mt-0.5 text-xs text-slate-500">{detailText}</p>
+                        )}
+                        <p className="mt-1 text-xs text-slate-400">
+                          {formatReviewDate(entry.timestamp)}
+                        </p>
+                      </div>
+                    )
+                  })}
+                </div>
               )}
             </div>
 
@@ -990,7 +1317,8 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
 
             {/* Action buttons */}
             {isLifecyclePhase && (
-              <div className="flex flex-wrap gap-3 border-t border-slate-100 pt-5">
+              <>
+                <div className="flex flex-wrap gap-3 border-t border-slate-100 pt-5">
                 {currentStatus === 'student_approved' && (
                   <button
                     type="button"
@@ -1034,14 +1362,60 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                 <div className="ml-auto">
                   <button
                     type="button"
-                    onClick={() => handleLifecycleAction('mark_cancelled')}
+                    onClick={() => {
+                      setPendingCancel(true)
+                      setCancelReason('')
+                    }}
                     disabled={lifecycleLoading}
                     className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-60"
                   >
                     {t('admin.detail.markCancelled')}
                   </button>
                 </div>
-              </div>
+                </div>
+
+                {pendingCancel && (
+                <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4">
+                  <p className="mb-2 text-sm font-semibold text-red-800">
+                    {t('admin.detail.cancelCaseConfirmTitle')}
+                  </p>
+                  <p className="mb-3 text-sm text-red-700">
+                    {t('admin.detail.cancelCaseWarning')}
+                  </p>
+                  <label className="mb-2 block text-sm font-semibold text-red-800">
+                    {t('admin.detail.reasonLabel')} *
+                  </label>
+                  <input
+                    type="text"
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    placeholder={t('admin.detail.reasonPlaceholder')}
+                    className="h-11 w-full rounded-lg border border-red-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-red-500"
+                  />
+                  <div className="mt-4 flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPendingCancel(false)
+                        setCancelReason('')
+                      }}
+                      disabled={lifecycleLoading}
+                      className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+                    >
+                      {t('admin.detail.cancel')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleLifecycleAction('mark_cancelled', cancelReason.trim())}
+                      disabled={lifecycleLoading || !cancelReason.trim()}
+                      className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
+                    >
+                      {lifecycleLoading ? t('admin.detail.cancelling') : t('admin.detail.confirmCancelCase')}
+                    </button>
+                  </div>
+                </div>
+              )}
+              </>
             )}
 
             {isClosed && (
@@ -1101,42 +1475,114 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                       )}
                     </div>
 
-                    <div className="flex shrink-0 items-center gap-3">
-                      <span
-                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-                          req.status === 'approved'
-                            ? 'border border-emerald-200 bg-emerald-50 text-emerald-700'
-                            : req.status === 'rejected'
-                              ? 'border border-red-200 bg-red-50 text-red-700'
-                              : 'border border-amber-200 bg-amber-50 text-amber-700'
-                        }`}
-                      >
-                        {tStudentReqStatus(req.status).toUpperCase()}
-                      </span>
+                    <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                            req.status === 'approved'
+                              ? 'border border-emerald-200 bg-emerald-50 text-emerald-700'
+                              : req.status === 'rejected'
+                                ? 'border border-red-200 bg-red-50 text-red-700'
+                                : 'border border-amber-200 bg-amber-50 text-amber-700'
+                          }`}
+                        >
+                          {tStudentReqStatus(req.status).toUpperCase()}
+                        </span>
 
-                      {req.status === 'pending' && (
-                        <>
+                        {req.status === 'pending' && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleStudentRequestAction(req.id, 'approve_student_request')
+                              }
+                              disabled={requestActionId === req.id}
+                              className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+                            >
+                              {requestActionId === req.id ? '…' : t('admin.detail.approveBtn')}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPendingStudentAction({ requestId: req.id, kind: 'reject' })
+                                setStudentActionReason('')
+                              }}
+                              disabled={requestActionId === req.id}
+                              className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-60"
+                            >
+                              {t('admin.detail.rejectBtn')}
+                            </button>
+                          </>
+                        )}
+
+                        {req.status === 'rejected' && (
                           <button
                             type="button"
-                            onClick={() =>
-                              handleStudentRequestAction(req.id, 'approve_student_request')
-                            }
+                            onClick={() => {
+                              setPendingStudentAction({ requestId: req.id, kind: 'undo' })
+                              setStudentActionReason('')
+                            }}
                             disabled={requestActionId === req.id}
-                            className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+                            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
                           >
-                            {requestActionId === req.id ? '…' : t('admin.detail.approveBtn')}
+                            {requestActionId === req.id ? '…' : t('admin.detail.undoRejection')}
                           </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleStudentRequestAction(req.id, 'reject_student_request')
-                            }
-                            disabled={requestActionId === req.id}
-                            className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-60"
-                          >
-                            {t('admin.detail.rejectBtn')}
-                          </button>
-                        </>
+                        )}
+                      </div>
+
+                      {pendingStudentAction?.requestId === req.id && (
+                        <div className="w-full max-w-md rounded-xl border border-slate-200 bg-slate-50 p-3">
+                          <p className="text-xs font-semibold text-slate-700">
+                            {pendingStudentAction.kind === 'reject'
+                              ? t('admin.detail.confirmStudentReject')
+                              : t('admin.detail.confirmUndoRejection')}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {t('admin.detail.reasonLabel')} *
+                          </p>
+                          <input
+                            type="text"
+                            value={studentActionReason}
+                            onChange={(e) => setStudentActionReason(e.target.value)}
+                            placeholder={t('admin.detail.reasonPlaceholder')}
+                            className="mt-2 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-slate-900"
+                          />
+                          <div className="mt-3 flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPendingStudentAction(null)
+                                setStudentActionReason('')
+                              }}
+                              disabled={requestActionId === req.id}
+                              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+                            >
+                              {t('admin.detail.cancel')}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleStudentRequestAction(
+                                  req.id,
+                                  pendingStudentAction.kind === 'reject'
+                                    ? 'reject_student_request'
+                                    : 'undo_reject_student_request',
+                                  studentActionReason.trim()
+                                )
+                              }
+                              disabled={requestActionId === req.id || !studentActionReason.trim()}
+                              className={`rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition disabled:opacity-60 ${
+                                pendingStudentAction.kind === 'reject'
+                                  ? 'bg-red-600 hover:bg-red-700'
+                                  : 'bg-slate-900 hover:bg-slate-800'
+                              }`}
+                            >
+                              {pendingStudentAction.kind === 'reject'
+                                ? t('admin.detail.confirmStudentReject')
+                                : t('admin.detail.confirmUndoRejection')}
+                            </button>
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>

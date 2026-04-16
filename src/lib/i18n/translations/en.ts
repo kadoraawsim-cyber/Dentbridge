@@ -354,6 +354,18 @@ no: string
       clearFilters: string
       requiredLevel: string
       availability: string
+      ageLabel: string
+      department: string
+      urgency: string
+      painScore: string
+      duration: string
+      mainComplaint: string
+      medicalNote: string
+      attachments: string
+      noComplaint: string
+      noMedicalNote: string
+      noAttachments: string
+      oneImageAttachment: string
       patientContact: string
       contactPatientMsg: string
       btnRequest: string
@@ -553,14 +565,27 @@ no: string
       studentLevelLabel: string
       clinicalNotesLabel: string
       clinicalNotesPlaceholder: string
+      editCase: string
+      updateTriage: string
+      reasonLabel: string
+      reasonPlaceholder: string
+      reasonRequired: string
+      deptChangeWarningGeneral: string
+      deptChangeWarningAssigned: string
       saveDraft: string
       rejectOutOfScope: string
       approveReleaseToPool: string
+      cancelCaseConfirmTitle: string
+      cancelCaseWarning: string
+      confirmCancelCase: string
+      cancelling: string
       rejectConfirmTitle: string
       rejectConfirmDesc: string
       cancel: string
       rejecting: string
       confirmReject: string
+      confirmStudentReject: string
+      confirmUndoRejection: string
       releaseConfirmTitle: string
       releaseDeptLabel: string
       releaseUrgencyLabel: string
@@ -570,7 +595,18 @@ no: string
       savedDraft: string
       savedApproved: string
       savedRejected: string
+      savedTriageUpdated: string
       statusUpdated: string
+      historyTitle: string
+      historyEmpty: string
+      historyCaseReleased: string
+      historyStudentSubmitted: string
+      historyStudentApproved: string
+      historyStudentRejected: string
+      historyRejectionUndone: string
+      historyDepartmentChanged: string
+      historyClinicalNotesUpdated: string
+      historyCaseCancelled: string
       reviewRecordTitle: string
       reviewedByLabel: string
       lastReviewedLabel: string
@@ -606,6 +642,7 @@ no: string
       reviewedByAtLabel: string
       approveBtn: string
       rejectBtn: string
+      undoRejection: string
       uploadedFileFallback: string
     }
     // ── DB-backed display values shown in the admin portal ──────────────────
@@ -1112,6 +1149,18 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       clearFilters: 'Clear filters',
       requiredLevel: 'Required level:',
       availability: 'Patient Availability:',
+      ageLabel: 'Age',
+      department: 'Dept:',
+      urgency: 'Urgency',
+      painScore: 'Pain score',
+      duration: 'Duration',
+      mainComplaint: 'Main complaint',
+      medicalNote: 'Medical note',
+      attachments: 'Attachments',
+      noComplaint: 'No complaint provided',
+      noMedicalNote: 'None',
+      noAttachments: 'No attachments',
+      oneImageAttachment: '1 image',
       patientContact: 'Patient Contact',
       contactPatientMsg: 'Contact the patient to schedule their appointment.',
       btnRequest: 'Request This Case',
@@ -1310,14 +1359,27 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       studentLevelLabel: 'Target Student Level',
       clinicalNotesLabel: 'Clinical Notes & Instructions',
       clinicalNotesPlaceholder: 'Add any specific instructions for the assigned student or coordinator\u2026',
+      editCase: 'Edit Case',
+      updateTriage: 'Update Triage',
+      reasonLabel: 'Reason',
+      reasonPlaceholder: 'Enter a short reason',
+      reasonRequired: 'A short reason is required.',
+      deptChangeWarningGeneral: 'Changing the department will update the case routing.',
+      deptChangeWarningAssigned: 'Warning: this case already has a student assigned. Changing the department may affect the active assignment.',
       saveDraft: 'Save Draft',
       rejectOutOfScope: 'Reject / Out of Scope',
       approveReleaseToPool: 'Approve & Release to Pool',
+      cancelCaseConfirmTitle: 'Cancel this case?',
+      cancelCaseWarning: 'This will cancel the active case. Please add a short reason before confirming.',
+      confirmCancelCase: 'Confirm Cancel',
+      cancelling: 'Cancelling\u2026',
       rejectConfirmTitle: 'Reject this case?',
       rejectConfirmDesc: 'This will mark the case as out of scope. The patient will see it as rejected. This action cannot be undone from this view.',
       cancel: 'Cancel',
       rejecting: 'Rejecting\u2026',
       confirmReject: 'Confirm Reject',
+      confirmStudentReject: 'Confirm Reject',
+      confirmUndoRejection: 'Confirm Undo',
       releaseConfirmTitle: 'Release this case to the student pool?',
       releaseDeptLabel: 'Department:',
       releaseUrgencyLabel: 'Urgency:',
@@ -1327,7 +1389,18 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       savedDraft: 'Draft saved.',
       savedApproved: 'Approved and released to pool.',
       savedRejected: 'Case marked as rejected.',
+      savedTriageUpdated: 'Triage updated.',
       statusUpdated: 'Status updated.',
+      historyTitle: 'Case History / Activity Log',
+      historyEmpty: 'No case activity recorded yet.',
+      historyCaseReleased: 'Case released to pool',
+      historyStudentSubmitted: 'Student request submitted',
+      historyStudentApproved: 'Student request approved',
+      historyStudentRejected: 'Student request rejected',
+      historyRejectionUndone: 'Rejection undone',
+      historyDepartmentChanged: 'Department changed',
+      historyClinicalNotesUpdated: 'Clinical notes updated',
+      historyCaseCancelled: 'Case cancelled',
       reviewRecordTitle: 'Faculty Review Record',
       reviewedByLabel: 'Reviewed by',
       lastReviewedLabel: 'Last reviewed',
@@ -1363,6 +1436,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       reviewedByAtLabel: 'Reviewed by',
       approveBtn: 'Approve',
       rejectBtn: 'Reject',
+      undoRejection: 'Undo Rejection',
       uploadedFileFallback: 'Uploaded file',
     },
     db: {

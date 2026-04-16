@@ -12,7 +12,10 @@ export type PoolCase = {
   urgency: string
   assigned_department: string | null
   target_student_level: string | null
+  pain_score: number | null
   preferred_days: string | null
+  symptom_duration: string | null
+  medical_condition: string | null
   created_at: string | null
   attachment_path: string | null
 }
@@ -44,7 +47,7 @@ export default async function StudentCasesPage() {
   const { data: casesData } = await supabase
     .from('patient_requests')
     .select(
-      'id, age, city, treatment_type, complaint_text, urgency, assigned_department, target_student_level, preferred_days, created_at, attachment_path'
+      'id, age, city, treatment_type, complaint_text, urgency, assigned_department, target_student_level, pain_score, preferred_days, symptom_duration, medical_condition, created_at, attachment_path'
     )
     .eq('status', 'matched')
     .order('created_at', { ascending: false })
