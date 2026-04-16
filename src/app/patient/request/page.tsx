@@ -29,12 +29,6 @@ const LANGUAGE_OPTIONS = [
   { value: 'Arabic',  tKey: 'request.langArabic' },
 ] as const
 
-const URGENCY_OPTIONS = [
-  { value: 'Low',    tKey: 'request.urgencyLow' },
-  { value: 'Medium', tKey: 'request.urgencyMedium' },
-  { value: 'High',   tKey: 'request.urgencyHigh' },
-] as const
-
 const DAY_OPTIONS = [
   { value: 'No Preference',       tKey: 'request.dayNoPreference' },
   { value: 'Weekday Mornings',    tKey: 'request.dayWeekdayMornings' },
@@ -49,6 +43,20 @@ const DURATION_OPTIONS = [
   { value: '1-2 weeks', tKey: 'request.durationOneToTwoWeeks' },
   { value: 'More than a month', tKey: 'request.durationMoreThanMonth' },
 ] as const
+
+function getUrgencyFromPainScore(painScore: string) {
+  const score = Number(painScore)
+
+  if (score >= 7) {
+    return 'High'
+  }
+
+  if (score >= 4) {
+    return 'Medium'
+  }
+
+  return 'Low'
+}
 
 const CONTACT_METHOD_OPTIONS = [
   { value: 'WhatsApp', tKey: 'request.contactMethodWhatsapp' },
@@ -132,7 +140,6 @@ export default function PatientRequestPage() {
 
   const [treatmentType, setTreatmentType] = useState('')
   const [complaintText, setComplaintText] = useState('')
-  const [urgency, setUrgency] = useState('')
   const [preferredDays, setPreferredDays] = useState('No Preference')
   const [painScore, setPainScore] = useState('')
   const [symptomDuration, setSymptomDuration] = useState('')
@@ -223,7 +230,6 @@ if (
   hasSgk === '' ||
   !treatmentType ||
   !complaintText ||
-  !urgency ||
   !painScore ||
   !symptomDuration ||
   !priorTreatment
@@ -243,6 +249,7 @@ if (
     }
 
     setIsSubmitting(true)
+    const urgency = getUrgencyFromPainScore(painScore)
 
     let attachmentPath: string | null = null
 
@@ -316,11 +323,10 @@ setContactMethod('WhatsApp')
 setBestContactTime('Anytime')
 setPriorTreatment('')
 setMedicalCondition('None')
-setCountrySearch('')
-setCountryOpen(false)
+    setCountrySearch('')
+    setCountryOpen(false)
     setTreatmentType('')
     setComplaintText('')
-    setUrgency('')
     setPreferredDays('No Preference')
     setConsent(false)
     setAttachment(null)
@@ -750,24 +756,6 @@ setCountryOpen(false)
 </div>
 
                 <div className="grid gap-5 md:grid-cols-2">
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700">
-                      {t('request.urgency')} *
-                    </label>
-                    <select
-                      value={urgency}
-                      onChange={(e) => setUrgency(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-900"
-                    >
-                      <option value="">{t('request.urgencyPlaceholder')}</option>
-                      {URGENCY_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {t(opt.tKey)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
                   <div>
                     <label className="mb-2 block text-sm font-medium text-slate-700">
                       {t('request.availability')}{' '}
