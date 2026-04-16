@@ -355,53 +355,53 @@ export function DashboardClient({
   ]
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
+    <main className="min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-slate-50 text-slate-900">
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center gap-3">
-            <img src="/dentbridge-icon.png" alt="DentBridge" className="h-9 w-9 object-contain" />
-            <div>
-              <p className="text-[15px] font-bold leading-none text-slate-900">DentBridge</p>
-              <p className="text-[10px] uppercase tracking-wider text-slate-400">
+          <Link href="/" className="flex min-w-0 items-center gap-3">
+            <img src="/dentbridge-icon.png" alt="DentBridge" className="h-9 w-9 shrink-0 object-contain" />
+            <div className="min-w-0">
+              <p className="truncate text-[15px] font-bold leading-none text-slate-900">DentBridge</p>
+              <p className="truncate text-[10px] uppercase tracking-wider text-slate-400">
                 {t('student.nav.clinicalPlatform')}
               </p>
             </div>
           </Link>
 
-<nav className="hidden items-center gap-1 md:flex">
-  {[
-    { href: '/student/dashboard', labelKey: 'student.nav.dashboard', active: true },
-    { href: '/student/cases', labelKey: 'student.nav.casePool', active: false },
-    { href: '/student/requests', labelKey: 'student.nav.myRequests', active: false },
-  ].map(({ href, labelKey, active }) => (
-    <Link
-      key={href}
-      href={href}
-      className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-        active
-          ? 'bg-slate-100 text-slate-900'
-          : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-      }`}
-    >
-      {t(labelKey)}
-    </Link>
-  ))}
-  <Link
-    href="/student/exchange"
-    className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium text-slate-400 transition hover:bg-slate-50"
-  >
-    {t('student.nav.exchange')}
-    <span className="rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-bold text-violet-600">
-      {t('student.exchange.comingSoonTitle')}
-    </span>
-  </Link>
-</nav>
+          <nav className="hidden items-center gap-1 md:flex">
+            {[
+              { href: '/student/dashboard', labelKey: 'student.nav.dashboard', active: true },
+              { href: '/student/cases', labelKey: 'student.nav.casePool', active: false },
+              { href: '/student/requests', labelKey: 'student.nav.myRequests', active: false },
+            ].map(({ href, labelKey, active }) => (
+              <Link
+                key={href}
+                href={href}
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+                  active
+                    ? 'bg-slate-100 text-slate-900'
+                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                {t(labelKey)}
+              </Link>
+            ))}
+            <Link
+              href="/student/exchange"
+              className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium text-slate-400 transition hover:bg-slate-50"
+            >
+              {t('student.nav.exchange')}
+              <span className="rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-bold text-violet-600">
+                {t('student.exchange.comingSoonTitle')}
+              </span>
+            </Link>
+          </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <LanguageSwitcher />
 
             {actionRequiredCases.length > 0 && (
-              <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+              <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-50 text-amber-600">
                 <Bell className="h-4 w-4" />
                 <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-bold text-white">
                   {actionRequiredCases.length}
@@ -409,7 +409,7 @@ export function DashboardClient({
               </div>
             )}
 
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white shadow-sm ring-2 ring-slate-100">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white shadow-sm ring-2 ring-slate-100">
               {studentInitials}
             </div>
 
@@ -418,34 +418,34 @@ export function DashboardClient({
               onClick={handleSignOut}
               className="hidden items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 sm:inline-flex"
             >
-              <LogOut className="h-3.5 w-3.5" />
+              <LogOut className="h-3.5 w-3.5 shrink-0" />
               {t('student.nav.signOut')}
             </button>
           </div>
         </div>
       </header>
 
-      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <section className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-8 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
-            <div className="flex items-center gap-4">
+            <div className="flex min-w-0 flex-1 items-center gap-4">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-xl font-bold text-white shadow-sm">
                 {studentInitials}
               </div>
 
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+              <div className="min-w-0 flex-1">
+                <h1 className="truncate text-2xl font-bold tracking-tight text-slate-900">
                   {t('student.dashboard.welcomeBack')}
                 </h1>
 
                 {displayName && (
-                  <p className="mt-1 text-lg font-semibold text-slate-800">{displayName}</p>
+                  <p className="mt-1 truncate text-lg font-semibold text-slate-800">{displayName}</p>
                 )}
 
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-400">
-                  <span className="max-w-[240px] truncate">{studentEmail}</span>
-                  <span className="hidden h-1 w-1 rounded-full bg-slate-300 sm:block" />
-                  <span className="flex items-center gap-1 text-teal-600">
+                  <span className="max-w-full truncate sm:max-w-[240px]">{studentEmail}</span>
+                  <span className="hidden h-1 w-1 shrink-0 rounded-full bg-slate-300 sm:block" />
+                  <span className="flex shrink-0 items-center gap-1 text-teal-600">
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     {t('student.dashboard.enrolledActive')}
                   </span>
@@ -453,12 +453,12 @@ export function DashboardClient({
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="flex shrink-0 flex-wrap gap-3">
               <Link
                 href="/student/cases"
-                className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 sm:w-auto"
               >
-                <Stethoscope className="h-4 w-4" />
+                <Stethoscope className="h-4 w-4 shrink-0" />
                 {t('student.dashboard.browseCases')}
                 {stats.available > 0 && (
                   <span className="ml-0.5 rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">
@@ -467,8 +467,8 @@ export function DashboardClient({
                 )}
               </Link>
 
-              <span className="inline-flex cursor-not-allowed items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-5 py-2.5 text-sm font-semibold text-slate-400 opacity-60">
-                <RefreshCw className="h-4 w-4" />
+              <span className="inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-5 py-2.5 text-sm font-semibold text-slate-400 opacity-60 sm:w-auto">
+                <RefreshCw className="h-4 w-4 shrink-0" />
                 {t('student.nav.exchange')}
                 <span className="rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-bold text-slate-500">
                   {t('student.exchange.comingSoonTitle')}
@@ -494,17 +494,17 @@ export function DashboardClient({
           )}
         </div>
 
-        <div className="mb-8 grid gap-4 lg:grid-cols-3">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="mb-8 grid w-full gap-4 lg:grid-cols-3">
+          <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="mb-2 flex items-center gap-2">
-              <Bell className="h-4 w-4 text-amber-600" />
-              <p className="text-sm font-semibold text-slate-900">{ui.nextAction}</p>
+              <Bell className="h-4 w-4 shrink-0 text-amber-600" />
+              <p className="truncate text-sm font-semibold text-slate-900">{ui.nextAction}</p>
             </div>
 
             {nextActionCase ? (
               <>
-                <p className="text-sm font-medium text-slate-700">{nextActionLabel}</p>
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="truncate text-sm font-medium text-slate-700">{nextActionLabel}</p>
+                <p className="mt-1 truncate text-xs text-slate-400">
                   {tTreatment(nextActionCase.treatment_type)}
                   {nextActionCase.assigned_department
                     ? ` · ${tDept(nextActionCase.assigned_department)}`
@@ -523,13 +523,13 @@ export function DashboardClient({
             )}
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="mb-2 flex items-center gap-2">
-              <UserCheck className="h-4 w-4 text-emerald-600" />
-              <p className="text-sm font-semibold text-slate-900">{ui.activePatients}</p>
+              <UserCheck className="h-4 w-4 shrink-0 text-emerald-600" />
+              <p className="truncate text-sm font-semibold text-slate-900">{ui.activePatients}</p>
             </div>
             <p className="text-3xl font-bold tracking-tight text-slate-900">{trulyActiveCases.length}</p>
-            <p className="mt-1 text-sm text-slate-500">{ui.activePatientsDesc}</p>
+            <p className="mt-1 truncate text-sm text-slate-500">{ui.activePatientsDesc}</p>
             {trulyActiveCases.length > 0 && (
               <a
                 href="#my-active-cases"
@@ -541,55 +541,55 @@ export function DashboardClient({
             )}
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="mb-2 flex items-center gap-2">
-              <Phone className="h-4 w-4 text-slate-500" />
-              <p className="text-sm font-semibold text-slate-900">{ui.studentProfile}</p>
+              <Phone className="h-4 w-4 shrink-0 text-slate-500" />
+              <p className="truncate text-sm font-semibold text-slate-900">{ui.studentProfile}</p>
             </div>
 
-            <p className="text-sm font-semibold text-slate-800">
+            <p className="truncate text-sm font-semibold text-slate-800">
               {displayName || studentEmail}
             </p>
-            <p className="mt-1 text-xs text-slate-400">{studentEmail}</p>
-            <p className="mt-3 text-xs font-medium uppercase tracking-wider text-slate-400">
+            <p className="mt-1 truncate text-xs text-slate-400">{studentEmail}</p>
+            <p className="mt-3 truncate text-xs font-medium uppercase tracking-wider text-slate-400">
               {ui.phoneOnFile}
             </p>
-            <p className="mt-1 text-sm text-slate-700">
+            <p className="mt-1 truncate text-sm text-slate-700">
               {studentPhone?.trim() || ui.notAdded}
             </p>
           </div>
         </div>
 
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="mb-8 grid w-full gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="flex min-w-0 items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
               <Clock className="h-5 w-5" />
             </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            <div className="min-w-0">
+              <p className="truncate text-xs font-semibold uppercase tracking-wider text-slate-400">
                 {t('student.dashboard.statPendingLabel')}
               </p>
               <p className="mt-0.5 text-3xl font-bold tracking-tight text-slate-900">
                 {stats.pending}
               </p>
-              <p className="mt-0.5 text-xs text-slate-500">
+              <p className="mt-0.5 truncate text-xs text-slate-500">
                 {t('student.dashboard.statPendingDesc')}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex min-w-0 items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
               <UserCheck className="h-5 w-5" />
             </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            <div className="min-w-0">
+              <p className="truncate text-xs font-semibold uppercase tracking-wider text-slate-400">
                 {t('student.dashboard.statActiveLabel')}
               </p>
               <p className="mt-0.5 text-3xl font-bold tracking-tight text-slate-900">
                 {stats.approved}
               </p>
-              <p className="mt-0.5 text-xs text-emerald-600">
+              <p className="mt-0.5 truncate text-xs text-emerald-600">
                 {stats.approved > 0
                   ? t('student.dashboard.statActiveCases')
                   : t('student.dashboard.statNoActiveCases')}
@@ -597,35 +597,35 @@ export function DashboardClient({
             </div>
           </div>
 
-          <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex min-w-0 items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
               <Activity className="h-5 w-5" />
             </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            <div className="min-w-0">
+              <p className="truncate text-xs font-semibold uppercase tracking-wider text-slate-400">
                 {t('student.dashboard.statInPoolLabel')}
               </p>
               <p className="mt-0.5 text-3xl font-bold tracking-tight text-slate-900">
                 {stats.available}
               </p>
-              <p className="mt-0.5 text-xs text-blue-600">
+              <p className="mt-0.5 truncate text-xs text-blue-600">
                 {t('student.dashboard.statInPoolDesc')}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex min-w-0 items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
               <TrendingUp className="h-5 w-5" />
             </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            <div className="min-w-0">
+              <p className="truncate text-xs font-semibold uppercase tracking-wider text-slate-400">
                 {t('student.dashboard.statUrgentLabel')}
               </p>
               <p className="mt-0.5 text-3xl font-bold tracking-tight text-slate-900">
                 {stats.urgent}
               </p>
-              <p className="mt-0.5 text-xs text-slate-500">
+              <p className="mt-0.5 truncate text-xs text-slate-500">
                 {t('student.dashboard.statUrgentDesc')}
               </p>
             </div>
@@ -633,17 +633,17 @@ export function DashboardClient({
         </div>
 
         {trulyActiveCases.length > 0 && (
-          <div id="my-active-cases" className="mb-10">
-            <div className="mb-4 flex items-center justify-between">
+          <div id="my-active-cases" className="mb-10 w-full">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-xl font-bold tracking-tight text-slate-900">
                 {t('student.dashboard.myActiveCases')}
               </h2>
-              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+              <span className="shrink-0 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
                 {trulyActiveCases.length} {t('student.dashboard.assigned')}
               </span>
             </div>
 
-            <div className="grid gap-5 md:grid-cols-2">
+            <div className="grid w-full gap-5 md:grid-cols-2">
               {trulyActiveCases.map((c) => {
                 const liveStatus = c.liveStatus
                 const isLoading = actionLoading === c.caseId
@@ -654,9 +654,9 @@ export function DashboardClient({
                 return (
                   <div
                     key={c.caseId}
-                    className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
+                    className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
                   >
-                    <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-5 py-4">
                       <div className="flex items-center gap-2.5">
                         <span className="rounded bg-slate-100 px-2 py-1 font-mono text-xs font-bold text-slate-600">
                           #{c.caseId.slice(0, 8).toUpperCase()}
@@ -665,14 +665,14 @@ export function DashboardClient({
                         {!isClosed &&
                           actionRequiredCases.some((x) => x.caseId === c.caseId) && (
                             <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
-                              <Bell className="h-2.5 w-2.5" />
-                              {t('student.dashboard.actionNeededBadge')}
+                              <Bell className="h-2.5 w-2.5 shrink-0" />
+                              <span className="truncate">{t('student.dashboard.actionNeededBadge')}</span>
                             </span>
                           )}
                       </div>
 
                       <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${getActiveCaseStatusBadge(
+                        className={`inline-flex whitespace-nowrap items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${getActiveCaseStatusBadge(
                           liveStatus
                         )}`}
                       >
@@ -681,17 +681,17 @@ export function DashboardClient({
                     </div>
 
                     <div className="p-5">
-                      <p className="text-base font-bold text-slate-900">{tTreatment(c.treatment_type)}</p>
+                      <p className="truncate text-base font-bold text-slate-900">{tTreatment(c.treatment_type)}</p>
 
                       {c.assigned_department && (
                         <div className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
-                          <Stethoscope className="h-3.5 w-3.5 text-blue-500" />
-                          {tDept(c.assigned_department)}
+                          <Stethoscope className="h-3.5 w-3.5 shrink-0 text-blue-500" />
+                          <span className="truncate">{tDept(c.assigned_department)}</span>
                         </div>
                       )}
 
                       {!isClosed && (
-                        <div className="mt-4">
+                        <div className="mt-4 w-full">
                           <div className="flex items-center gap-1">
                             {steps.map((s) => {
                               const done = stepIdx > s.step
@@ -699,7 +699,7 @@ export function DashboardClient({
                               return (
                                 <div
                                   key={s.label}
-                                  className="flex flex-1 flex-col items-center gap-1"
+                                  className="flex min-w-0 flex-1 flex-col items-center gap-1"
                                 >
                                   <div
                                     className={`h-1.5 w-full rounded-full transition-all ${
@@ -711,7 +711,7 @@ export function DashboardClient({
                                     }`}
                                   />
                                   <span
-                                    className={`text-[10px] font-medium ${
+                                    className={`truncate text-[10px] font-medium ${
                                       done
                                         ? 'text-emerald-600'
                                         : active
@@ -728,7 +728,7 @@ export function DashboardClient({
                         </div>
                       )}
 
-                      <p className="mt-3 text-sm text-slate-500">
+                      <p className="mt-3 truncate text-sm text-slate-500">
                         {getActiveCaseStatusLabel(liveStatus)}
                       </p>
 
@@ -736,28 +736,28 @@ export function DashboardClient({
                         <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-emerald-600">
                           {t('student.dashboard.patientContact')}
                         </p>
-                        <p className="text-sm font-bold text-slate-900">{c.full_name}</p>
+                        <p className="break-words text-sm font-bold text-slate-900">{c.full_name}</p>
                         <div className="mt-1 flex items-center gap-1.5 text-sm text-slate-700">
                           <Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                          {c.phone}
+                          <span className="truncate">{c.phone}</span>
                         </div>
 
-                        <div className="mt-3 flex flex-wrap gap-2">
+                        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                           <a
                             href={`tel:${c.phone}`}
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700"
+                            className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700 sm:w-auto"
                           >
-                            <Phone className="h-3.5 w-3.5" />
+                            <Phone className="h-3.5 w-3.5 shrink-0" />
                             {ui.callNow}
                           </a>
 
                           <button
                             type="button"
                             onClick={() => handleCopyPhone(c.caseId, c.phone)}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
+                            className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50 sm:w-auto"
                           >
-                            <Copy className="h-3.5 w-3.5" />
-                            {copiedCaseId === c.caseId ? ui.copied : ui.copyNumber}
+                            <Copy className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">{copiedCaseId === c.caseId ? ui.copied : ui.copyNumber}</span>
                           </button>
                         </div>
                       </div>
@@ -766,8 +766,8 @@ export function DashboardClient({
                         <div className="mt-4">
                           {error && (
                             <p className="mb-2 flex items-center gap-1.5 text-xs text-red-600">
-                              <AlertCircle className="h-3.5 w-3.5" />
-                              {error}
+                              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                              <span className="break-words">{error}</span>
                             </p>
                           )}
 
@@ -780,13 +780,13 @@ export function DashboardClient({
                             >
                               {isLoading ? (
                                 <>
-                                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                                  {t('student.dashboard.updating')}
+                                  <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                                  <span className="truncate">{t('student.dashboard.updating')}</span>
                                 </>
                               ) : (
                                 <>
-                                  <Phone className="h-4 w-4" />
-                                  {t('student.dashboard.btnMarkContacted')}
+                                  <Phone className="h-4 w-4 shrink-0" />
+                                  <span className="truncate">{t('student.dashboard.btnMarkContacted')}</span>
                                 </>
                               )}
                             </button>
@@ -803,13 +803,13 @@ export function DashboardClient({
                             >
                               {isLoading ? (
                                 <>
-                                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                                  {t('student.dashboard.updating')}
+                                  <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                                  <span className="truncate">{t('student.dashboard.updating')}</span>
                                 </>
                               ) : (
                                 <>
-                                  <CalendarCheck className="h-4 w-4" />
-                                  {t('student.dashboard.btnMarkApptScheduled')}
+                                  <CalendarCheck className="h-4 w-4 shrink-0" />
+                                  <span className="truncate">{t('student.dashboard.btnMarkApptScheduled')}</span>
                                 </>
                               )}
                             </button>
@@ -824,22 +824,22 @@ export function DashboardClient({
                             >
                               {isLoading ? (
                                 <>
-                                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                                  {t('student.dashboard.updating')}
+                                  <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                                  <span className="truncate">{t('student.dashboard.updating')}</span>
                                 </>
                               ) : (
                                 <>
-                                  <Stethoscope className="h-4 w-4" />
-                                  {t('student.dashboard.btnMarkInTreatment')}
+                                  <Stethoscope className="h-4 w-4 shrink-0" />
+                                  <span className="truncate">{t('student.dashboard.btnMarkInTreatment')}</span>
                                 </>
                               )}
                             </button>
                           )}
 
                           {liveStatus === 'in_treatment' && (
-                            <div className="flex items-center justify-center gap-2 rounded-xl border border-purple-200 bg-purple-50 px-4 py-2.5 text-sm font-semibold text-purple-700">
-                              <Clock className="h-4 w-4" />
-                              {t('student.dashboard.treatmentInProgress')}
+                            <div className="flex w-full items-center justify-center gap-2 rounded-xl border border-purple-200 bg-purple-50 px-4 py-2.5 text-sm font-semibold text-purple-700">
+                              <Clock className="h-4 w-4 shrink-0" />
+                              <span className="truncate">{t('student.dashboard.treatmentInProgress')}</span>
                             </div>
                           )}
                         </div>
@@ -847,16 +847,18 @@ export function DashboardClient({
 
                       {isClosed && (
                         <div
-                          className={`mt-4 flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold ${
+                          className={`mt-4 flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold ${
                             liveStatus === 'completed'
                               ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
                               : 'border-slate-200 bg-slate-50 text-slate-500'
                           }`}
                         >
-                          <CheckCircle2 className="h-4 w-4" />
-                          {liveStatus === 'completed'
-                            ? t('student.dashboard.caseClosed')
-                            : t('student.dashboard.caseCancelledText')}
+                          <CheckCircle2 className="h-4 w-4 shrink-0" />
+                          <span className="truncate">
+                            {liveStatus === 'completed'
+                              ? t('student.dashboard.caseClosed')
+                              : t('student.dashboard.caseCancelledText')}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -868,12 +870,12 @@ export function DashboardClient({
         )}
 
         {closedCases.length > 0 && (
-          <div className="mb-10">
-            <div className="mb-4 flex items-center justify-between">
+          <div className="mb-10 w-full">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-xl font-bold tracking-tight text-slate-900">
                 {t('student.dashboard.completedTreatments')}
               </h2>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+              <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
                 {closedCases.length}{' '}
                 {closedCases.length === 1
                   ? t('student.dashboard.treatmentCompleted')
@@ -881,18 +883,18 @@ export function DashboardClient({
               </span>
             </div>
 
-            <div className="grid gap-5 md:grid-cols-2">
+            <div className="grid w-full gap-5 md:grid-cols-2">
               {closedCases.map((c) => (
                 <div
                   key={c.caseId}
-                  className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+                  className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
                 >
-                  <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-5 py-4">
                     <span className="rounded bg-slate-100 px-2 py-1 font-mono text-xs font-bold text-slate-600">
                       #{c.caseId.slice(0, 8).toUpperCase()}
                     </span>
                     <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${getActiveCaseStatusBadge(
+                      className={`inline-flex whitespace-nowrap items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${getActiveCaseStatusBadge(
                         c.liveStatus
                       )}`}
                     >
@@ -900,24 +902,26 @@ export function DashboardClient({
                     </span>
                   </div>
                   <div className="p-5">
-                    <p className="text-base font-bold text-slate-900">{tTreatment(c.treatment_type)}</p>
+                    <p className="truncate text-base font-bold text-slate-900">{tTreatment(c.treatment_type)}</p>
                     {c.assigned_department && (
                       <div className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
-                        <Stethoscope className="h-3.5 w-3.5 text-blue-500" />
-                        {tDept(c.assigned_department)}
+                        <Stethoscope className="h-3.5 w-3.5 shrink-0 text-blue-500" />
+                        <span className="truncate">{tDept(c.assigned_department)}</span>
                       </div>
                     )}
                     <div
-                      className={`mt-4 flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold ${
+                      className={`mt-4 flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold ${
                         c.liveStatus === 'completed'
                           ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
                           : 'border-slate-200 bg-slate-50 text-slate-500'
                       }`}
                     >
-                      <CheckCircle2 className="h-4 w-4" />
-                      {c.liveStatus === 'completed'
-                        ? t('student.dashboard.caseClosed')
-                        : t('student.dashboard.caseCancelledText')}
+                      <CheckCircle2 className="h-4 w-4 shrink-0" />
+                      <span className="truncate">
+                        {c.liveStatus === 'completed'
+                          ? t('student.dashboard.caseClosed')
+                          : t('student.dashboard.caseCancelledText')}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -926,15 +930,15 @@ export function DashboardClient({
           </div>
         )}
 
-        <div className="grid gap-8 xl:grid-cols-[1fr_320px]">
-          <div>
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold tracking-tight text-slate-900">
+        <div className="flex w-full flex-col gap-8 xl:flex-row xl:items-start">
+          <div className="min-w-0 flex-1 w-full">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
+                <h2 className="truncate text-xl font-bold tracking-tight text-slate-900">
                   {t('student.dashboard.recentlyInPool')}
                 </h2>
                 {poolCases.length > 0 && (
-                  <p className="mt-0.5 text-sm text-slate-400">
+                  <p className="mt-0.5 truncate text-sm text-slate-400">
                     {poolCases.length}{' '}
                     {poolCases.length === 1
                       ? t('student.dashboard.caseAvailable')
@@ -945,14 +949,14 @@ export function DashboardClient({
 
               <Link
                 href="/student/cases"
-                className="flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-800"
+                className="flex shrink-0 items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-800"
               >
                 {t('student.dashboard.viewAll')}
                 <ChevronRight className="h-4 w-4" />
               </Link>
             </div>
 
-            <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="w-full overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
               {recentCases.length === 0 ? (
                 <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
                   <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
@@ -1001,7 +1005,7 @@ export function DashboardClient({
                         </td>
                         <td className="px-5 py-4">
                           <span
-                            className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${getUrgencyBadgeClass(
+                            className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold ${getUrgencyBadgeClass(
                               c.urgency
                             )}`}
                           >
@@ -1024,8 +1028,8 @@ export function DashboardClient({
             </div>
           </div>
 
-          <div className="space-y-5">
-            <h2 className="text-xl font-bold tracking-tight text-slate-900">
+          <div className="w-full min-w-0 space-y-5 xl:w-[320px] xl:shrink-0">
+            <h2 className="truncate text-xl font-bold tracking-tight text-slate-900">
               {t('student.dashboard.quickActions')}
             </h2>
 
@@ -1034,44 +1038,44 @@ export function DashboardClient({
                 href="/student/cases"
                 className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-300 hover:shadow-md"
               >
-                <div className="flex items-center gap-3.5">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+                <div className="flex min-w-0 items-center gap-3.5">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
                     <Stethoscope className="h-5 w-5" />
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-slate-900">
                       {t('student.dashboard.browseCasePool')}
                     </p>
-                    <p className="text-xs text-slate-400">
+                    <p className="truncate text-xs text-slate-400">
                       {stats.available > 0
                         ? `${stats.available} ${t('student.dashboard.casesOpen')}`
                         : t('student.dashboard.findAvailableCases')}
                     </p>
                   </div>
                 </div>
-                <ArrowRight className="h-4 w-4 text-slate-300" />
+                <ArrowRight className="h-4 w-4 shrink-0 text-slate-300" />
               </Link>
 
               <Link
                 href="/student/requests"
                 className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-300 hover:shadow-md"
               >
-                <div className="flex items-center gap-3.5">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
+                <div className="flex min-w-0 items-center gap-3.5">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
                     <Clock className="h-5 w-5" />
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-slate-900">
                       {t('student.nav.myRequests')}
                     </p>
-                    <p className="text-xs text-slate-400">
+                    <p className="truncate text-xs text-slate-400">
                       {stats.pending > 0
                         ? `${stats.pending} ${ui.pendingSummaryDesc}`
                         : ui.pendingSummaryDesc}
                     </p>
                   </div>
                 </div>
-                <ArrowRight className="h-4 w-4 text-slate-300" />
+                <ArrowRight className="h-4 w-4 shrink-0 text-slate-300" />
               </Link>
 
               {trulyActiveCases.length > 0 && (
@@ -1079,70 +1083,70 @@ export function DashboardClient({
                   href="#my-active-cases"
                   className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-300 hover:shadow-md"
                 >
-                  <div className="flex items-center gap-3.5">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+                  <div className="flex min-w-0 items-center gap-3.5">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
                       <UserCheck className="h-5 w-5" />
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-slate-900">
                         {ui.activePatients}
                       </p>
-                      <p className="text-xs text-slate-400">
+                      <p className="truncate text-xs text-slate-400">
                         {trulyActiveCases.length} {t('student.dashboard.assigned')}
                       </p>
                     </div>
                   </div>
-                  <ArrowRight className="h-4 w-4 text-slate-300" />
+                  <ArrowRight className="h-4 w-4 shrink-0 text-slate-300" />
                 </a>
               )}
 
-              <div className="flex cursor-not-allowed items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm opacity-60">
-                <div className="flex items-center gap-3.5">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-700">
+              <div className="flex cursor-not-allowed items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm opacity-60">
+                <div className="flex min-w-0 items-center gap-3.5">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-700">
                     <RefreshCw className="h-5 w-5" />
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-slate-900">
                       {t('student.dashboard.caseExchange')}
                     </p>
-                    <p className="text-xs text-slate-400">
+                    <p className="truncate text-xs text-slate-400">
                       {t('student.exchange.comingSoonTitle')}
                     </p>
                   </div>
                 </div>
-                <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-600">
+                <span className="shrink-0 rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-600">
                   {t('student.exchange.comingSoonTitle')}
                 </span>
               </div>
 
-              <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm opacity-60">
-                <div className="flex items-center gap-3.5">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+              <div className="flex items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm opacity-60">
+                <div className="flex min-w-0 items-center gap-3.5">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
                     <BookOpen className="h-5 w-5" />
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-slate-900">
                       {t('student.dashboard.clinicalRequirements')}
                     </p>
-                    <p className="text-xs text-slate-400">
+                    <p className="truncate text-xs text-slate-400">
                       {t('student.dashboard.caseLogComingSoon')}
                     </p>
                   </div>
                 </div>
-                <ArrowRight className="h-4 w-4 text-slate-300" />
+                <ArrowRight className="h-4 w-4 shrink-0 text-slate-300" />
               </div>
             </div>
 
             {stats.pending > 0 && (
-              <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
+              <div className="min-w-0 rounded-2xl border border-amber-100 bg-amber-50 p-4">
                 <div className="flex items-center gap-2 text-sm font-semibold text-amber-800">
-                  <Clock className="h-4 w-4 text-amber-600" />
-                  {ui.pendingSummary}
+                  <Clock className="h-4 w-4 shrink-0 text-amber-600" />
+                  <span className="truncate">{ui.pendingSummary}</span>
                 </div>
-                <p className="mt-2 text-2xl font-bold tracking-tight text-amber-900">
+                <p className="mt-2 truncate text-2xl font-bold tracking-tight text-amber-900">
                   {stats.pending}
                 </p>
-                <p className="mt-1.5 text-xs text-amber-700">{ui.pendingSummaryDesc}</p>
+                <p className="mt-1.5 truncate text-xs text-amber-700">{ui.pendingSummaryDesc}</p>
               </div>
             )}
           </div>
