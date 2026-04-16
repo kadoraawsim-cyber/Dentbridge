@@ -1,9 +1,9 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { ArrowLeft, CheckCircle2, Info, UploadCloud } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, ChevronDown, Info, Search, UploadCloud } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 
@@ -80,7 +80,8 @@ const UNIVERSITY_OPTIONS = [
 ] as const
 
 export default function PatientRequestPage() {
-const { t, locale } = useI18n()
+  const { t, locale } = useI18n()
+
   const [fullName, setFullName] = useState('')
   const [age, setAge] = useState('')
   const [phone, setPhone] = useState('')
@@ -88,7 +89,10 @@ const { t, locale } = useI18n()
   const [city, setCity] = useState('Istanbul')
   const [preferredUniversity, setPreferredUniversity] = useState('İstinye Dental Hospital')
   const [countryCode, setCountryCode] = useState('TR')
-const [hasSgk, setHasSgk] = useState('')
+  const [hasSgk, setHasSgk] = useState('')
+  const [countryOpen, setCountryOpen] = useState(false)
+  const [countrySearch, setCountrySearch] = useState('')
+  const countryDropdownRef = useRef<HTMLDivElement | null>(null)
   const [treatmentType, setTreatmentType] = useState('')
   const [complaintText, setComplaintText] = useState('')
   const [urgency, setUrgency] = useState('')
@@ -99,39 +103,68 @@ const [hasSgk, setHasSgk] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submittedId, setSubmittedId] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
-  const countryOptions = useMemo(() => {
-  const displayNames = new Intl.DisplayNames([locale === 'tr' ? 'tr' : 'en'], {
-    type: 'region',
-  })
 
-  return COUNTRY_CODES
-  .map((code) => ({
-    code,
-    label: displayNames.of(code) ?? code,
-flag: countryFlag(code),  }))
-    .sort((a, b) => {
-      if (a.code === 'TR') return -1
-      if (b.code === 'TR') return 1
-      return a.label.localeCompare(b.label)
+  const countryOptions = useMemo(() => {
+    const displayNames = new Intl.DisplayNames([locale === 'tr' ? 'tr' : 'en'], {
+      type: 'region',
     })
-}, [locale])
+
+    return COUNTRY_CODES
+      .map((code) => ({
+        code,
+        label: displayNames.of(code) ?? code,
+        flag: countryFlag(code),
+      }))
+      .sort((a, b) => {
+        if (a.code === 'TR') return -1
+        if (b.code === 'TR') return 1
+        return a.label.localeCompare(b.label)
+      })
+  }, [locale])
+
+const filteredCountryOptions = useMemo(() => {
+  const query = countrySearch.trim().toLowerCase()
+
+  if (!query) return countryOptions
+
+  return countryOptions.filter((country) =>
+    country.label.toLowerCase().includes(query)
+  )
+}, [countryOptions, countrySearch])
+
+useEffect(() => {
+  function handleClickOutside(event: MouseEvent) {
+    if (
+      countryDropdownRef.current &&
+      !countryDropdownRef.current.contains(event.target as Node)
+    ) {
+      setCountryOpen(false)
+    }
+  }
+
+  document.addEventListener('mousedown', handleClickOutside)
+
+  return () => {
+    document.removeEventListener('mousedown', handleClickOutside)
+  }
+}, [])
 
 const sgkText =
   locale === 'tr'
-    ? {
-        label: 'SGK güvenceniz var mı?',
-        yes: 'Evet, SGK güvencem var',
-        no: 'Hayır, SGK güvencem yok',
-        placeholder: 'Seçiniz',
-        countryLabel: 'Uyruğunuz / Geldiğiniz ülke',
-      }
-    : {
-        label: 'Do you have SGK?',
-        yes: 'Yes, I have SGK',
-        no: 'No, I do not have SGK',
-        placeholder: 'Select an option',
-        countryLabel: 'Nationality / Country of Origin',
-      }
+      ? {
+          label: 'SGK güvenceniz var mı?',
+          yes: 'Evet, SGK güvencem var',
+          no: 'Hayır, SGK güvencem yok',
+          placeholder: 'Seçiniz',
+          countryLabel: 'Uyruğunuz / Geldiğiniz ülke',
+        }
+      : {
+          label: 'Do you have SGK?',
+          yes: 'Yes, I have SGK',
+          no: 'No, I do not have SGK',
+          placeholder: 'Select an option',
+          countryLabel: 'Nationality / Country of Origin',
+        }
 
   async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -225,6 +258,8 @@ if (
     setPreferredUniversity('İstinye Dental Hospital')
     setCountryCode('TR')
 setHasSgk('')
+setCountrySearch('')
+setCountryOpen(false)
     setTreatmentType('')
     setComplaintText('')
     setUrgency('')
@@ -397,21 +432,75 @@ setHasSgk('')
                       className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-900"
                     />
                   </div>
-                  <div>
-  <label className="mb-2 block text-sm font-medium text-slate-700">
+<div className="relative" ref={countryDropdownRef}>
+    <label className="mb-2 block text-sm font-medium text-slate-700">
     {sgkText.countryLabel} *
   </label>
-  <select
-    value={countryCode}
-    onChange={(e) => setCountryCode(e.target.value)}
-    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-900"
+
+  <button
+    type="button"
+    onClick={() => setCountryOpen((prev) => !prev)}
+    className="flex w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-4 py-3 text-left outline-none transition hover:border-slate-400 focus:border-slate-900"
   >
-    {countryOptions.map((country) => (
-      <option key={country.code} value={country.code}>
-        {country.flag} {country.label}
-      </option>
-    ))}
-  </select>
+    <span className="truncate text-slate-900">
+      {(() => {
+        const selected = countryOptions.find((country) => country.code === countryCode)
+        if (!selected) return sgkText.countryLabel
+        return selected.code === 'SY'
+          ? selected.label
+          : `${selected.flag} ${selected.label}`
+      })()}
+    </span>
+    <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
+  </button>
+
+  {countryOpen && (
+    <div className="absolute z-30 mt-2 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+      <div className="border-b border-slate-100 p-3">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={countrySearch}
+            onChange={(e) => setCountrySearch(e.target.value)}
+            placeholder={locale === 'tr' ? 'Ülke ara...' : 'Search country...'}
+            className="w-full rounded-xl border border-slate-300 py-2 pl-9 pr-3 text-sm outline-none transition focus:border-slate-900"
+          />
+        </div>
+      </div>
+
+      <div className="max-h-72 overflow-y-auto p-2">
+        {filteredCountryOptions.length === 0 ? (
+          <div className="px-3 py-2 text-sm text-slate-500">
+            {locale === 'tr' ? 'Sonuç bulunamadı' : 'No results found'}
+          </div>
+        ) : (
+          filteredCountryOptions.map((country) => (
+            <button
+              key={country.code}
+              type="button"
+              onClick={() => {
+                setCountryCode(country.code)
+                setCountrySearch('')
+                setCountryOpen(false)
+              }}
+              className={`flex w-full items-center rounded-xl px-3 py-2 text-left text-sm transition ${
+                country.code === countryCode
+                  ? 'bg-slate-100 text-slate-900'
+                  : 'text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <span className="truncate">
+                {country.code === 'SY'
+                  ? country.label
+                  : `${country.flag} ${country.label}`}
+              </span>
+            </button>
+          ))
+        )}
+      </div>
+    </div>
+  )}
 </div>
 
 <div>
