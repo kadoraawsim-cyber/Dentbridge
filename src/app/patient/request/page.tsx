@@ -108,8 +108,7 @@ const [hasSgk, setHasSgk] = useState('')
   .map((code) => ({
     code,
     label: displayNames.of(code) ?? code,
-    flag: code === 'SY' ? '🏳️‍🟩⬜⬛' : countryFlag(code),
-  }))
+flag: countryFlag(code),  }))
     .sort((a, b) => {
       if (a.code === 'TR') return -1
       if (b.code === 'TR') return 1
@@ -124,14 +123,14 @@ const sgkText =
         yes: 'Evet, SGK güvencem var',
         no: 'Hayır, SGK güvencem yok',
         placeholder: 'Seçiniz',
-        countryLabel: 'Country',
+        countryLabel: 'Uyruğunuz / Geldiğiniz ülke',
       }
     : {
         label: 'Do you have SGK?',
         yes: 'Yes, I have SGK',
         no: 'No, I do not have SGK',
         placeholder: 'Select an option',
-        countryLabel: 'Country',
+        countryLabel: 'Nationality / Country of Origin',
       }
 
   async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
