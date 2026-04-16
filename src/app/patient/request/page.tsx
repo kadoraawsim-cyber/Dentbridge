@@ -51,7 +51,7 @@ const COUNTRY_CODES = [
   'FJ','FI','FR',
   'GA','GM','GE','DE','GH','GR','GD','GT','GN','GW','GY',
   'HT','HN','HU',
-  'IS','IN','ID','IR','IQ','IE','IL','IT',
+  'IS','IN','ID','IR','IQ','IE','IT',
   'JM','JP','JO',
   'KZ','KE','KI','KP','KR','KW','KG',
   'LA','LV','LB','LS','LR','LY','LI','LT','LU',
@@ -105,11 +105,11 @@ const [hasSgk, setHasSgk] = useState('')
   })
 
   return COUNTRY_CODES
-    .map((code) => ({
-      code,
-      label: displayNames.of(code) ?? code,
-      flag: countryFlag(code),
-    }))
+  .map((code) => ({
+    code,
+    label: displayNames.of(code) ?? code,
+    flag: code === 'SY' ? '🏳️‍🟩⬜⬛' : countryFlag(code),
+  }))
     .sort((a, b) => {
       if (a.code === 'TR') return -1
       if (b.code === 'TR') return 1
