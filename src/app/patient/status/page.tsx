@@ -12,11 +12,11 @@ type PatientRequest = {
   treatment_type: string
   status: string
   created_at: string | null
+  reviewed_at?: string | null
   preferred_days: string | null
   assigned_department: string | null
 }
 
-// Forward path keys — labels come from translations at render time
 const STATUS_FLOW_KEYS = [
   'submitted',
   'under_review',
@@ -29,6 +29,177 @@ const STATUS_FLOW_KEYS = [
 ] as const
 
 type StatusKey = typeof STATUS_FLOW_KEYS[number]
+
+function getStatusBadgeClass(status: string) {
+  switch ((status || '').toLowerCase()) {
+    case 'submitted':
+      return 'bg-slate-100 text-slate-700 border border-slate-200'
+    case 'under_review':
+      return 'bg-amber-50 text-amber-700 border border-amber-200'
+    case 'matched':
+      return 'bg-violet-50 text-violet-700 border border-violet-200'
+    case 'student_approved':
+      return 'bg-blue-50 text-blue-700 border border-blue-200'
+    case 'contacted':
+      return 'bg-cyan-50 text-cyan-700 border border-cyan-200'
+    case 'appointment_scheduled':
+      return 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+    case 'in_treatment':
+      return 'bg-purple-50 text-purple-700 border border-purple-200'
+    case 'completed':
+      return 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+    case 'rejected':
+      return 'bg-rose-50 text-rose-700 border border-rose-200'
+    case 'cancelled':
+      return 'bg-slate-100 text-slate-500 border border-slate-200'
+    default:
+      return 'bg-slate-100 text-slate-700 border border-slate-200'
+  }
+}
+
+function formatDate(dateString: string | null, locale: string) {
+  if (!dateString) return '—'
+  const localeCode = locale === 'tr' ? 'tr-TR' : 'en-GB'
+  return new Date(dateString).toLocaleDateString(localeCode, {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+}
+
+function formatDateTime(dateString: string | null, locale: string) {
+  if (!dateString) return '—'
+  const localeCode = locale === 'tr' ? 'tr-TR' : 'en-GB'
+  return new Date(dateString).toLocaleString(localeCode, {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function getLocalizedStatusMessage(status: string, locale: string) {
+  const key = (status || '').toLowerCase()
+
+  if (locale === 'tr') {
+    switch (key) {
+      case 'submitted':
+        return 'Talebiniz başarıyla alındı.'
+      case 'under_review':
+        return 'Vakanız şu anda fakülte incelemesindedir.'
+      case 'matched':
+        return 'Vakanız uygun bölüme yönlendirildi.'
+      case 'student_approved':
+        return 'Vakanız için bir öğrenci eşleştirildi.'
+      case 'contacted':
+        return 'Tedavi talebinizle ilgili sizinle iletişime geçildi.'
+      case 'appointment_scheduled':
+        return 'Randevunuz planlandı.'
+      case 'in_treatment':
+        return 'Tedaviniz şu anda devam ediyor.'
+      case 'completed':
+        return 'Tedaviniz başarıyla tamamlandı.'
+      case 'rejected':
+        return 'Talebiniz tedavi için uygun bulunmadı.'
+      case 'cancelled':
+        return 'Bu talep şu anda kapatılmış durumda.'
+      default:
+        return 'Talebiniz işleniyor.'
+    }
+  }
+
+  switch (key) {
+    case 'submitted':
+      return 'Your request has been received successfully.'
+    case 'under_review':
+      return 'Your case is currently under faculty review.'
+    case 'matched':
+      return 'Your case has been assigned to the appropriate department.'
+    case 'student_approved':
+      return 'A student has been assigned to your case.'
+    case 'contacted':
+      return 'You have been contacted regarding your treatment request.'
+    case 'appointment_scheduled':
+      return 'Your appointment has been scheduled.'
+    case 'in_treatment':
+      return 'Your treatment is currently in progress.'
+    case 'completed':
+      return 'Your treatment has been completed successfully.'
+    case 'rejected':
+      return 'Your request could not be accepted for treatment.'
+    case 'cancelled':
+      return 'This request is currently closed.'
+    default:
+      return 'Your request is being processed.'
+  }
+}
+
+function getLocalizedStatusGuidance(status: string, locale: string) {
+  const key = (status || '').toLowerCase()
+
+  if (locale === 'tr') {
+    switch (key) {
+      case 'submitted':
+      case 'under_review':
+        return 'Talebinizi yeniden göndermenize gerek yok. Vakanız zaten inceleniyor.'
+      case 'matched':
+      case 'student_approved':
+        return 'Vakanız bir sonraki aşamaya geçti. Lütfen telefonunuzu ulaşılabilir durumda tutun.'
+      case 'contacted':
+        return 'Ekip sizinle iletişime geçtiyse, lütfen size verilen yönlendirmeleri takip edin.'
+      case 'appointment_scheduled':
+        return 'Lütfen planlanan randevunuza belirtilen gün ve saatte katılın.'
+      case 'in_treatment':
+        return 'Vakanız aktiftir. Tedavi planına göre ek seanslar gerekebilir.'
+      case 'completed':
+        return 'Bu tedavi talebi tamamlandı. Yeni bir ihtiyacınız varsa yeni bir başvuru gönderebilirsiniz.'
+      case 'rejected':
+        return 'Gerekirse daha net bilgi veya görüntülerle yeni bir başvuru gönderebilirsiniz.'
+      case 'cancelled':
+        return 'Durumunuz değiştiyse yeni bir başvuru oluşturabilirsiniz.'
+      default:
+        return 'Vakanızla ilgili bir gelişme olduğunda sizinle iletişime geçilecektir.'
+    }
+  }
+
+  switch (key) {
+    case 'submitted':
+    case 'under_review':
+      return 'You do not need to resubmit. Your request is already being reviewed.'
+    case 'matched':
+    case 'student_approved':
+      return 'Your case has progressed. Please keep your phone available for contact.'
+    case 'contacted':
+      return 'If you already spoke with the team, please follow the instructions given to you.'
+    case 'appointment_scheduled':
+      return 'Please attend your scheduled appointment at the agreed time.'
+    case 'in_treatment':
+      return 'Your case is active. Follow-up visits may still be needed depending on treatment progress.'
+    case 'completed':
+      return 'This treatment request has been completed. If you need new care, you can submit a new request.'
+    case 'rejected':
+      return 'If needed, you may submit a new request with updated information or clearer images.'
+    case 'cancelled':
+      return 'If your situation has changed, you can submit a new request.'
+    default:
+      return 'You will be contacted if there is an update on your case.'
+  }
+}
+
+function getLocalizedDepartmentGuidance(locale: string) {
+  return locale === 'tr'
+    ? 'Vakanız fakülte değerlendirmesine göre bu bölüme yönlendirilmiştir.'
+    : 'Your case was routed to this department based on faculty review.'
+}
+
+function getLocalizedLastUpdatedLabel(locale: string) {
+  return locale === 'tr' ? 'Son Güncelleme' : 'Last Updated'
+}
+
+function getLocalizedCtaLabel(locale: string) {
+  return locale === 'tr' ? 'Yeni Tedavi Talebi Gönder' : 'Submit New Treatment Request'
+}
 
 function StatusStepper({
   status,
@@ -50,10 +221,12 @@ function StatusStepper({
             : t('status.closedRejected')}
         </p>
       )}
+
       <div className="flex items-center">
         {STATUS_FLOW_KEYS.map((key, i) => {
           const isDone = !isClosed && i < currentIndex
           const isCurrent = !isClosed && i === currentIndex
+
           return (
             <React.Fragment key={key}>
               <div
@@ -76,10 +249,12 @@ function StatusStepper({
           )
         })}
       </div>
+
       <div className="mt-2 hidden justify-between sm:flex">
         {STATUS_FLOW_KEYS.map((key, i) => {
           const isDone = !isClosed && i < currentIndex
           const isCurrent = !isClosed && i === currentIndex
+
           return (
             <span
               key={key}
@@ -96,32 +271,6 @@ function StatusStepper({
   )
 }
 
-function getStatusBadgeClass(status: string) {
-  switch ((status || '').toLowerCase()) {
-    case 'submitted':             return 'bg-slate-100 text-slate-700 border border-slate-200'
-    case 'under_review':          return 'bg-amber-50 text-amber-700 border border-amber-200'
-    case 'matched':               return 'bg-violet-50 text-violet-700 border border-violet-200'
-    case 'student_approved':      return 'bg-blue-50 text-blue-700 border border-blue-200'
-    case 'contacted':             return 'bg-cyan-50 text-cyan-700 border border-cyan-200'
-    case 'appointment_scheduled': return 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-    case 'in_treatment':          return 'bg-purple-50 text-purple-700 border border-purple-200'
-    case 'completed':             return 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-    case 'rejected':              return 'bg-rose-50 text-rose-700 border border-rose-200'
-    case 'cancelled':             return 'bg-slate-100 text-slate-500 border border-slate-200'
-    default:                      return 'bg-slate-100 text-slate-700 border border-slate-200'
-  }
-}
-
-function formatDate(dateString: string | null, locale: string) {
-  if (!dateString) return '—'
-  const localeCode = locale === 'tr' ? 'tr-TR' : 'en-GB'
-  return new Date(dateString).toLocaleDateString(localeCode, {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
-}
-
 export default function PatientStatusPage() {
   const { t, locale } = useI18n()
 
@@ -135,7 +284,6 @@ export default function PatientStatusPage() {
     const key = (status || '').toLowerCase()
     const tKey = `status.badge.${key}` as const
     const label = t(tKey)
-    // If t() falls back to the raw key, show the raw status as a fallback
     return label !== tKey ? label : status
   }
 
@@ -164,6 +312,10 @@ export default function PatientStatusPage() {
 
     setResult(data as PatientRequest | null)
   }
+
+  const shouldShowRepeatCta = ['completed', 'cancelled', 'rejected'].includes(
+    (result?.status || '').toLowerCase()
+  )
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
@@ -212,7 +364,6 @@ export default function PatientStatusPage() {
           <p className="mt-3 text-slate-600">{t('status.pageDescription')}</p>
         </div>
 
-        {/* ── Search form ────────────────────────────────────────────────────── */}
         <form
           onSubmit={handleSearch}
           className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
@@ -226,6 +377,7 @@ export default function PatientStatusPage() {
             <label className="mb-2 block text-sm font-medium text-slate-700">
               {t('status.phoneLabel')}
             </label>
+
             <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
               <input
                 type="text"
@@ -256,7 +408,6 @@ export default function PatientStatusPage() {
           </div>
         </form>
 
-        {/* ── No result state ────────────────────────────────────────────────── */}
         {!loading && searched && !result && !errorMessage && (
           <div className="mt-5 flex items-start gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-5">
             <Search className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
@@ -273,7 +424,6 @@ export default function PatientStatusPage() {
           </div>
         )}
 
-        {/* ── Result card ────────────────────────────────────────────────────── */}
         {!loading && result && (
           <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/60 px-5 py-3.5">
@@ -281,13 +431,24 @@ export default function PatientStatusPage() {
                 REF #{result.id.slice(0, 8).toUpperCase()}
               </span>
               <span
-                className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getStatusBadgeClass(result.status)}`}
+                className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getStatusBadgeClass(
+                  result.status
+                )}`}
               >
                 {getStatusLabel(result.status)}
               </span>
             </div>
 
             <div className="p-5 sm:p-7">
+              <div className="mb-5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
+                <p className="text-base font-semibold text-slate-900">
+                  {getLocalizedStatusMessage(result.status, locale)}
+                </p>
+                <p className="mt-1 text-sm text-slate-600">
+                  {getLocalizedStatusGuidance(result.status, locale)}
+                </p>
+              </div>
+
               <div className="mb-6">
                 <StatusStepper status={result.status} t={t} />
               </div>
@@ -299,6 +460,7 @@ export default function PatientStatusPage() {
                   </p>
                   <p className="text-sm font-semibold text-slate-900">{result.treatment_type}</p>
                 </div>
+
                 <div>
                   <p className="mb-0.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                     {t('status.gridSubmitted')}
@@ -307,6 +469,7 @@ export default function PatientStatusPage() {
                     {formatDate(result.created_at, locale)}
                   </p>
                 </div>
+
                 <div>
                   <p className="mb-0.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                     {t('status.gridAvailability')}
@@ -315,15 +478,21 @@ export default function PatientStatusPage() {
                     {result.preferred_days || '—'}
                   </p>
                 </div>
+
                 <div>
                   <p className="mb-0.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                     {t('status.gridDepartment')}
                   </p>
                   {result.assigned_department ? (
-                    <div className="flex items-center gap-1.5">
-                      <Stethoscope className="h-3.5 w-3.5 text-blue-600" />
-                      <p className="text-sm font-semibold text-blue-900">
-                        {result.assigned_department}
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <Stethoscope className="h-3.5 w-3.5 text-blue-600" />
+                        <p className="text-sm font-semibold text-blue-900">
+                          {result.assigned_department}
+                        </p>
+                      </div>
+                      <p className="mt-2 text-xs text-slate-500">
+                        {getLocalizedDepartmentGuidance(locale)}
                       </p>
                     </div>
                   ) : (
@@ -331,6 +500,26 @@ export default function PatientStatusPage() {
                   )}
                 </div>
               </div>
+
+              <div className="mt-5 rounded-xl border border-slate-200 bg-white px-4 py-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  {getLocalizedLastUpdatedLabel(locale)}
+                </p>
+                <p className="mt-1 text-sm font-semibold text-slate-900">
+                  {formatDateTime(result.reviewed_at || result.created_at, locale)}
+                </p>
+              </div>
+
+              {shouldShowRepeatCta && (
+                <div className="mt-5">
+                  <Link
+                    href="/patient/request"
+                    className="inline-flex items-center rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700"
+                  >
+                    {getLocalizedCtaLabel(locale)}
+                  </Link>
+                </div>
+              )}
             </div>
 
             <div className="border-t border-slate-100 bg-slate-50/60 px-5 py-3.5">
@@ -340,7 +529,6 @@ export default function PatientStatusPage() {
         )}
       </section>
 
-      {/* ── Footer ───────────────────────────────────────────────────────────── */}
       <footer className="bg-slate-950 py-14 text-slate-300">
         <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 md:grid-cols-2 lg:grid-cols-4 lg:px-8">
           <div>
@@ -372,7 +560,9 @@ export default function PatientStatusPage() {
                 </Link>
               </li>
               <li>
-                <span className="cursor-default text-slate-600">{t('footer.affordableCareInfo')}</span>
+                <span className="cursor-default text-slate-600">
+                  {t('footer.affordableCareInfo')}
+                </span>
               </li>
               <li>
                 <span className="cursor-default text-slate-600">{t('footer.faq')}</span>
@@ -399,7 +589,9 @@ export default function PatientStatusPage() {
                 </Link>
               </li>
               <li>
-                <span className="cursor-default text-slate-600">{t('footer.clinicalRequirements')}</span>
+                <span className="cursor-default text-slate-600">
+                  {t('footer.clinicalRequirements')}
+                </span>
               </li>
             </ul>
           </div>
