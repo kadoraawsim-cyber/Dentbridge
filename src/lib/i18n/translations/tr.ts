@@ -186,6 +186,43 @@ export const tr: TranslationShape = {
     phonePlaceholder: '+90 5XX XXX XX XX',
     cityPlaceholder: 'Şehir',
     universityPlaceholder: 'Tercih edilen klinik',
+    painScoreLabel: 'Ağrı Düzeyi (0–10)',
+painScorePlaceholder: 'Ağrı düzeyi seçin',
+
+durationLabel: 'Bu sorun ne kadar süredir var?',
+durationPlaceholder: 'Süre seçin',
+durationToday: 'Bugün',
+durationFewDays: 'Birkaç gündür',
+durationOneToTwoWeeks: '1–2 haftadır',
+durationMoreThanMonth: '1 aydan uzun süredir',
+
+priorTreatmentLabel: 'Bu sorun için daha önce tedavi aldınız mı?',
+priorTreatmentPlaceholder: 'Bir seçenek seçin',
+
+medicalConditionLabel: 'Önemli bir sağlık durumunuz var mı?',
+medicalNone: 'Yok',
+medicalDiabetes: 'Diyabet',
+medicalPregnancy: 'Hamilelik',
+medicalBloodThinner: 'Kan sulandırıcı kullanımı',
+medicalAllergy: 'Alerji',
+medicalOther: 'Diğer',
+
+contactMethodLabel: 'Tercih Edilen İletişim Yöntemi',
+contactMethodWhatsapp: 'WhatsApp',
+contactMethodPhone: 'Telefon Araması',
+contactMethodSms: 'SMS',
+
+bestContactTimeLabel: 'Sizinle İletişim İçin En Uygun Zaman',
+contactTimeMorning: 'Sabah',
+contactTimeAfternoon: 'Öğleden sonra',
+contactTimeEvening: 'Akşam',
+contactTimeAnytime: 'Her zaman',
+
+uploadHelpText: 'Fotoğraf veya röntgen yüklemek, fakültenin vakanızı daha hızlı ve daha doğru değerlendirmesine yardımcı olur.',
+
+yes: 'Evet',
+no: 'Hayır',
+
     treatments: {
       initialExam: 'İlk Muayene / Konsültasyon',
       cleaning: 'Diş Temizliği',

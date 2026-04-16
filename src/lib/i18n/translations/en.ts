@@ -115,6 +115,42 @@ export type TranslationShape = {
     phonePlaceholder: string
     cityPlaceholder: string
     universityPlaceholder: string
+    painScoreLabel: string
+painScorePlaceholder: string
+
+durationLabel: string
+durationPlaceholder: string
+durationToday: string
+durationFewDays: string
+durationOneToTwoWeeks: string
+durationMoreThanMonth: string
+
+priorTreatmentLabel: string
+priorTreatmentPlaceholder: string
+
+medicalConditionLabel: string
+medicalNone: string
+medicalDiabetes: string
+medicalPregnancy: string
+medicalBloodThinner: string
+medicalAllergy: string
+medicalOther: string
+
+contactMethodLabel: string
+contactMethodWhatsapp: string
+contactMethodPhone: string
+contactMethodSms: string
+
+bestContactTimeLabel: string
+contactTimeMorning: string
+contactTimeAfternoon: string
+contactTimeEvening: string
+contactTimeAnytime: string
+
+uploadHelpText: string
+
+yes: string
+no: string
     treatments: {
       initialExam: string
       cleaning: string
@@ -811,6 +847,7 @@ export const en: TranslationShape = {
         'Your treatment request has been received. Our faculty team will review it and contact you.',
       checkStatus: 'Check My Request Status',
       submitAnother: 'Submit Another Request',
+      
     },
     sectionPatient: 'Patient Information',
     sectionClinical: 'Clinical Details',
@@ -829,6 +866,43 @@ export const en: TranslationShape = {
     phonePlaceholder: '+90 5XX XXX XX XX',
     cityPlaceholder: 'City',
     universityPlaceholder: 'Preferred clinic',
+    painScoreLabel: 'Pain Score (0–10)',
+painScorePlaceholder: 'Select pain score',
+
+durationLabel: 'How long has this problem been present?',
+durationPlaceholder: 'Select duration',
+durationToday: 'Today',
+durationFewDays: 'A few days',
+durationOneToTwoWeeks: '1–2 weeks',
+durationMoreThanMonth: 'More than a month',
+
+priorTreatmentLabel: 'Have you received treatment for this issue before?',
+priorTreatmentPlaceholder: 'Select an option',
+
+medicalConditionLabel: 'Any important medical condition?',
+medicalNone: 'None',
+medicalDiabetes: 'Diabetes',
+medicalPregnancy: 'Pregnancy',
+medicalBloodThinner: 'Blood thinner use',
+medicalAllergy: 'Allergy',
+medicalOther: 'Other',
+
+contactMethodLabel: 'Preferred Contact Method',
+contactMethodWhatsapp: 'WhatsApp',
+contactMethodPhone: 'Phone Call',
+contactMethodSms: 'SMS',
+
+bestContactTimeLabel: 'Best Time to Contact You',
+contactTimeMorning: 'Morning',
+contactTimeAfternoon: 'Afternoon',
+contactTimeEvening: 'Evening',
+contactTimeAnytime: 'Anytime',
+
+uploadHelpText: 'Uploading a photo or x-ray helps our faculty review your case faster and more accurately.',
+
+yes: 'Yes',
+no: 'No',
+
     treatments: {
       initialExam: 'Initial Examination / Consultation',
       cleaning: 'Dental Cleaning',
