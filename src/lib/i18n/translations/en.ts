@@ -326,6 +326,8 @@ export type TranslationShape = {
       approvedCheckDashboard: string
       requestDeclined: string
       unassigned: string
+      imageAlt: string
+      viewFullSize: string
     }
     exchange: {
       backToDashboard: string
@@ -1042,6 +1044,8 @@ export const en: TranslationShape = {
       approvedCheckDashboard: 'Approved \u2014 check your dashboard',
       requestDeclined: 'Request Declined',
       unassigned: 'Unassigned',
+      imageAlt: 'Patient clinical image',
+      viewFullSize: 'View full size',
     },
     exchange: {
       backToDashboard: 'Back to Dashboard',

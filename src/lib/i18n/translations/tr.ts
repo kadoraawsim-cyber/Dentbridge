@@ -422,7 +422,9 @@ export const tr: TranslationShape = {
       pendingFacultyReview: 'Fakülte İncelemesinde',
       approvedCheckDashboard: 'Onaylandı \u2014 panelinizi kontrol edin',
       requestDeclined: 'Talep Reddedildi',
-      unassigned: 'Atanmamış',
+      unassigned: 'Atanmam\u0131\u015f',
+      imageAlt: 'Hasta klinik g\u00f6rseli',
+      viewFullSize: 'Tam boyutta g\u00f6r\u00fcnt\u00fcle',
     },
     exchange: {
       backToDashboard: 'Panele Dön',

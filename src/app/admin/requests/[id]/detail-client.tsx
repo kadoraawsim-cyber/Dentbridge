@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { ArrowLeft, Calendar, CheckCircle2, Clock, LogOut, Phone, ShieldCheck, XCircle } from 'lucide-react'
@@ -242,6 +242,8 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
   const [saving, setSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState('')
   const [openingFile, setOpeningFile] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [previewLoading, setPreviewLoading] = useState(!!request.attachment_path)
 
   // 'reject' or 'approve' means a confirmation is pending; null means normal button state
   const [pendingAction, setPendingAction] = useState<'reject' | 'approve' | null>(null)
@@ -263,6 +265,22 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
     initialRequest.target_student_level || 'Year 4 Clinical Student'
   )
   const [clinicalNotes, setClinicalNotes] = useState(initialRequest.clinical_notes || '')
+
+  useEffect(() => {
+    if (!request.attachment_path) return
+    let cancelled = false
+    setPreviewLoading(true)
+    supabase.storage
+      .from('patient-uploads')
+      .createSignedUrl(request.attachment_path, 3600)
+      .then(({ data }) => {
+        if (!cancelled) {
+          setPreviewUrl(data?.signedUrl ?? null)
+          setPreviewLoading(false)
+        }
+      })
+    return () => { cancelled = true }
+  }, [request.attachment_path])
 
   async function handleSignOut() {
     await supabase.auth.signOut()
@@ -876,13 +894,31 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <h3 className="mb-4 text-lg font-bold text-slate-900">{t('admin.detail.uploadedImagesTitle')}</h3>
 
-              <div className="mb-4 flex aspect-video items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-100">
-                {request.attachment_path ? (
-                  <p className="px-4 text-center text-xs text-slate-500">{attachmentLabel}</p>
+              <div className="mb-3 overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+                {!request.attachment_path ? (
+                  <div className="flex aspect-video items-center justify-center">
+                    <p className="px-4 text-center text-xs text-slate-400">{t('admin.detail.noUploadedImage')}</p>
+                  </div>
+                ) : previewLoading ? (
+                  <div className="flex aspect-video items-center justify-center">
+                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-slate-600" />
+                  </div>
+                ) : previewUrl ? (
+                  <img
+                    src={previewUrl}
+                    alt={attachmentLabel}
+                    className="aspect-video w-full object-contain"
+                  />
                 ) : (
-                  <p className="px-4 text-center text-xs text-slate-400">{t('admin.detail.noUploadedImage')}</p>
+                  <div className="flex aspect-video items-center justify-center">
+                    <p className="px-4 text-center text-xs text-slate-500">{attachmentLabel}</p>
+                  </div>
                 )}
               </div>
+
+              {request.attachment_path && (
+                <p className="mb-3 truncate text-xs text-slate-400">{attachmentLabel}</p>
+              )}
 
               <button
                 type="button"

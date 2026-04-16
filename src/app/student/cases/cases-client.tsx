@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -67,11 +67,31 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
 
   const [localRequests, setLocalRequests] =
     useState<Record<string, RequestInfo>>(requestsByCaseId)
+  const [imageUrls, setImageUrls] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState<string | null>(null)
   const [requestErrors, setRequestErrors] = useState<Record<string, string>>({})
   const [searchTerm, setSearchTerm] = useState('')
   const [activeDepartment, setActiveDepartment] = useState('All')
   const [requestFilter, setRequestFilter] = useState<RequestFilter>('all')
+
+  useEffect(() => {
+    const withAttachment = initialCases.filter((c) => c.attachment_path)
+    if (withAttachment.length === 0) return
+    Promise.all(
+      withAttachment.map(async (c) => {
+        const { data } = await supabase.storage
+          .from('patient-uploads')
+          .createSignedUrl(c.attachment_path!, 3600)
+        return { id: c.id, url: data?.signedUrl ?? null }
+      })
+    ).then((results) => {
+      const urls: Record<string, string> = {}
+      for (const r of results) {
+        if (r.url) urls[r.id] = r.url
+      }
+      setImageUrls(urls)
+    })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSignOut() {
     await supabase.auth.signOut()
@@ -448,6 +468,22 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
                       <p className="mt-2.5 line-clamp-2 text-sm leading-relaxed text-slate-500">
                         {c.complaint_text}
                       </p>
+                    )}
+
+                    {/* Attachment thumbnail */}
+                    {imageUrls[c.id] && (
+                      <button
+                        type="button"
+                        onClick={() => window.open(imageUrls[c.id], '_blank')}
+                        title={t('student.cases.viewFullSize')}
+                        className="mt-3 block w-full cursor-zoom-in overflow-hidden rounded-xl border border-slate-200 bg-slate-100"
+                      >
+                        <img
+                          src={imageUrls[c.id]}
+                          alt={t('student.cases.imageAlt')}
+                          className="h-36 w-full object-contain"
+                        />
+                      </button>
                     )}
 
                     {/* Dept block */}
