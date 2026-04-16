@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { ArrowLeft, CheckCircle2, Info, UploadCloud } from 'lucide-react'
@@ -41,20 +41,54 @@ const DAY_OPTIONS = [
   { value: 'Weekday Afternoons',  tKey: 'request.dayWeekdayAfternoons' },
   { value: 'As Soon As Possible', tKey: 'request.dayAsSoonAsPossible' },
 ] as const
+const COUNTRY_CODES = [
+  'TR',
+  'AF','AL','DZ','AD','AO','AG','AR','AM','AU','AT','AZ',
+  'BS','BH','BD','BB','BY','BE','BZ','BJ','BT','BO','BA','BW','BR','BN','BG','BF','BI',
+  'CV','KH','CM','CA','CF','TD','CL','CN','CO','KM','CG','CD','CR','CI','HR','CU','CY','CZ',
+  'DK','DJ','DM','DO',
+  'EC','EG','SV','GQ','ER','EE','SZ','ET',
+  'FJ','FI','FR',
+  'GA','GM','GE','DE','GH','GR','GD','GT','GN','GW','GY',
+  'HT','HN','HU',
+  'IS','IN','ID','IR','IQ','IE','IL','IT',
+  'JM','JP','JO',
+  'KZ','KE','KI','KP','KR','KW','KG',
+  'LA','LV','LB','LS','LR','LY','LI','LT','LU',
+  'MG','MW','MY','MV','ML','MT','MH','MR','MU','MX','FM','MD','MC','MN','ME','MA','MZ','MM',
+  'NA','NR','NP','NL','NZ','NI','NE','NG','MK','NO',
+  'OM',
+  'PK','PW','PS','PA','PG','PY','PE','PH','PL','PT',
+  'QA',
+  'RO','RU','RW',
+  'KN','LC','VC','WS','SM','ST','SA','SN','RS','SC','SL','SG','SK','SI','SB','SO','ZA','SS','ES','LK','SD','SR','SE','CH','SY',
+  'TJ','TZ','TH','TL','TG','TO','TT','TN','TM','TV',
+  'UG','UA','AE','GB','US','UY','UZ',
+  'VU','VA','VE','VN',
+  'YE',
+  'ZM','ZW',
+] as const
+
+function countryFlag(code: string) {
+  return code
+    .toUpperCase()
+    .replace(/./g, (char) => String.fromCodePoint(127397 + char.charCodeAt(0)))
+}
 
 const UNIVERSITY_OPTIONS = [
   'İstinye Dental Hospital',
 ] as const
 
 export default function PatientRequestPage() {
-  const { t } = useI18n()
-
+const { t, locale } = useI18n()
   const [fullName, setFullName] = useState('')
   const [age, setAge] = useState('')
   const [phone, setPhone] = useState('')
   const [preferredLanguage, setPreferredLanguage] = useState('English')
   const [city, setCity] = useState('Istanbul')
   const [preferredUniversity, setPreferredUniversity] = useState('İstinye Dental Hospital')
+  const [countryCode, setCountryCode] = useState('TR')
+const [hasSgk, setHasSgk] = useState('')
   const [treatmentType, setTreatmentType] = useState('')
   const [complaintText, setComplaintText] = useState('')
   const [urgency, setUrgency] = useState('')
@@ -65,21 +99,57 @@ export default function PatientRequestPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submittedId, setSubmittedId] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
+  const countryOptions = useMemo(() => {
+  const displayNames = new Intl.DisplayNames([locale === 'tr' ? 'tr' : 'en'], {
+    type: 'region',
+  })
+
+  return COUNTRY_CODES
+    .map((code) => ({
+      code,
+      label: displayNames.of(code) ?? code,
+      flag: countryFlag(code),
+    }))
+    .sort((a, b) => {
+      if (a.code === 'TR') return -1
+      if (b.code === 'TR') return 1
+      return a.label.localeCompare(b.label)
+    })
+}, [locale])
+
+const sgkText =
+  locale === 'tr'
+    ? {
+        label: 'SGK güvenceniz var mı?',
+        yes: 'Evet, SGK güvencem var',
+        no: 'Hayır, SGK güvencem yok',
+        placeholder: 'Seçiniz',
+        countryLabel: 'Country',
+      }
+    : {
+        label: 'Do you have SGK?',
+        yes: 'Yes, I have SGK',
+        no: 'No, I do not have SGK',
+        placeholder: 'Select an option',
+        countryLabel: 'Country',
+      }
 
   async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
     setSubmittedId(null)
     setErrorMessage('')
 
-    if (
-      !fullName ||
-      !age ||
-      !phone ||
-      !preferredUniversity ||
-      !treatmentType ||
-      !complaintText ||
-      !urgency
-    ) {
+if (
+  !fullName ||
+  !age ||
+  !phone ||
+  !preferredUniversity ||
+  !countryCode ||
+  hasSgk === '' ||
+  !treatmentType ||
+  !complaintText ||
+  !urgency
+) {
       setErrorMessage(t('request.errorRequiredFields'))
       return
     }
@@ -119,23 +189,26 @@ export default function PatientRequestPage() {
     const { error } = await supabase
       .from('patient_requests')
       .insert([
-        {
-          full_name: fullName,
-          age: age ? Number(age) : null,
-          phone,
-          city,
-          preferred_university: preferredUniversity,
-          preferred_language: preferredLanguage,
-          treatment_type: treatmentType,
-          complaint_text: complaintText,
-          urgency,
-          preferred_days: preferredDays,
-          consent,
-          attachment_path: attachmentPath,
-          attachment_name: attachment ? attachment.name : null,
-          status: 'submitted',
-        },
-      ])
+{
+  full_name: fullName,
+  age: age ? Number(age) : null,
+  phone,
+  city,
+  country: countryOptions.find((c) => c.code === countryCode)?.label ?? countryCode,
+  country_code: countryCode,
+  has_sgk: hasSgk === 'yes',
+  preferred_university: preferredUniversity,
+  preferred_language: preferredLanguage,
+  treatment_type: treatmentType,
+  complaint_text: complaintText,
+  urgency,
+  preferred_days: preferredDays,
+  consent,
+  attachment_path: attachmentPath,
+  attachment_name: attachment ? attachment.name : null,
+  status: 'submitted',
+}
+ ])
 
     setIsSubmitting(false)
 
@@ -151,6 +224,8 @@ export default function PatientRequestPage() {
     setPreferredLanguage('English')
     setCity('Istanbul')
     setPreferredUniversity('İstinye Dental Hospital')
+    setCountryCode('TR')
+setHasSgk('')
     setTreatmentType('')
     setComplaintText('')
     setUrgency('')
@@ -323,6 +398,37 @@ export default function PatientRequestPage() {
                       className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-900"
                     />
                   </div>
+                  <div>
+  <label className="mb-2 block text-sm font-medium text-slate-700">
+    {sgkText.countryLabel} *
+  </label>
+  <select
+    value={countryCode}
+    onChange={(e) => setCountryCode(e.target.value)}
+    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-900"
+  >
+    {countryOptions.map((country) => (
+      <option key={country.code} value={country.code}>
+        {country.flag} {country.label}
+      </option>
+    ))}
+  </select>
+</div>
+
+<div>
+  <label className="mb-2 block text-sm font-medium text-slate-700">
+    {sgkText.label} *
+  </label>
+  <select
+    value={hasSgk}
+    onChange={(e) => setHasSgk(e.target.value)}
+    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-900"
+  >
+    <option value="">{sgkText.placeholder}</option>
+    <option value="yes">{sgkText.yes}</option>
+    <option value="no">{sgkText.no}</option>
+  </select>
+</div>
 
                   <div>
                     <label className="mb-2 block text-sm font-medium text-slate-700">
