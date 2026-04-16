@@ -42,6 +42,10 @@ const DAY_OPTIONS = [
   { value: 'As Soon As Possible', tKey: 'request.dayAsSoonAsPossible' },
 ] as const
 
+const UNIVERSITY_OPTIONS = [
+  'İstinye Dental Hospital',
+] as const
+
 export default function PatientRequestPage() {
   const { t } = useI18n()
 
@@ -50,7 +54,7 @@ export default function PatientRequestPage() {
   const [phone, setPhone] = useState('')
   const [preferredLanguage, setPreferredLanguage] = useState('English')
   const [city, setCity] = useState('Istanbul')
-  const [preferredUniversity, setPreferredUniversity] = useState('DentBridge Partner University')
+  const [preferredUniversity, setPreferredUniversity] = useState('İstinye Dental Hospital')
   const [treatmentType, setTreatmentType] = useState('')
   const [complaintText, setComplaintText] = useState('')
   const [urgency, setUrgency] = useState('')
@@ -67,7 +71,15 @@ export default function PatientRequestPage() {
     setSubmittedId(null)
     setErrorMessage('')
 
-    if (!fullName || !age || !phone || !treatmentType || !complaintText || !urgency) {
+    if (
+      !fullName ||
+      !age ||
+      !phone ||
+      !preferredUniversity ||
+      !treatmentType ||
+      !complaintText ||
+      !urgency
+    ) {
       setErrorMessage(t('request.errorRequiredFields'))
       return
     }
@@ -138,7 +150,7 @@ export default function PatientRequestPage() {
     setPhone('')
     setPreferredLanguage('English')
     setCity('Istanbul')
-    setPreferredUniversity('DentBridge Partner University')
+    setPreferredUniversity('İstinye Dental Hospital')
     setTreatmentType('')
     setComplaintText('')
     setUrgency('')
@@ -196,7 +208,6 @@ export default function PatientRequestPage() {
           </p>
         </div>
 
-        {/* ── Success state ──────────────────────────────────────────────────── */}
         {submittedId && (
           <div className="overflow-hidden rounded-3xl border border-emerald-200 bg-white shadow-sm">
             <div className="px-6 py-12 text-center sm:px-10">
@@ -226,15 +237,12 @@ export default function PatientRequestPage() {
           </div>
         )}
 
-        {/* ── Request form ───────────────────────────────────────────────────── */}
         {!submittedId && (
           <form
             onSubmit={handleSubmit}
             className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
           >
             <div className="space-y-8 p-6 sm:p-8">
-
-              {/* Patient Information */}
               <section>
                 <div className="mb-5 flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-teal-500" />
@@ -318,21 +326,23 @@ export default function PatientRequestPage() {
 
                   <div>
                     <label className="mb-2 block text-sm font-medium text-slate-700">
-                      {t('request.preferredUniversity')}{' '}
-                      <span className="font-normal text-slate-400">{t('request.optional')}</span>
+                      {t('request.preferredUniversity')} *
                     </label>
-                    <input
-                      type="text"
+                    <select
                       value={preferredUniversity}
                       onChange={(e) => setPreferredUniversity(e.target.value)}
-                      placeholder={t('request.universityPlaceholder')}
                       className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-900"
-                    />
+                    >
+                      {UNIVERSITY_OPTIONS.map((university) => (
+                        <option key={university} value={university}>
+                          {university}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               </section>
 
-              {/* Clinical Details */}
               <section>
                 <div className="mb-5 flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-teal-500" />
@@ -418,7 +428,6 @@ export default function PatientRequestPage() {
                 </div>
               </section>
 
-              {/* Supporting Images */}
               <section>
                 <div className="mb-5 flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-teal-500" />
@@ -458,7 +467,6 @@ export default function PatientRequestPage() {
                 </div>
               </section>
 
-              {/* Consent */}
               <section>
                 <div className="mb-5 flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-teal-500" />
@@ -514,7 +522,6 @@ export default function PatientRequestPage() {
         )}
       </section>
 
-      {/* ── Footer ───────────────────────────────────────────────────────────── */}
       <footer className="bg-slate-950 py-14 text-slate-300">
         <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 md:grid-cols-2 lg:grid-cols-4 lg:px-8">
           <div>
