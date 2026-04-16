@@ -183,6 +183,16 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
     return map[v] ?? v
   }
 
+  function tAvailability(v: string): string {
+    const map: Record<string, string> = {
+      'No Preference': t('request.dayNoPreference'),
+      'Weekday Mornings': t('request.dayWeekdayMornings'),
+      'Weekday Afternoons': t('request.dayWeekdayAfternoons'),
+      'As Soon As Possible': t('request.dayAsSoonAsPossible'),
+    }
+    return map[v] ?? v
+  }
+
   function tUrgency(v: string): string {
     switch ((v || '').toLowerCase()) {
       case 'high': return t('request.urgencyHigh').toUpperCase()
@@ -461,7 +471,7 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
                     {/* Treatment */}
                     <p className="text-base font-bold text-slate-900">{tTreatment(c.treatment_type)}</p>
                     <p className="mt-0.5 text-sm text-slate-500">
-                      {c.age ?? '\u2014'} yrs{c.city ? ` \u00b7 ${c.city}` : ''}
+                      {c.age ?? '\u2014'} yrs
                     </p>
 
                     {c.complaint_text && (
@@ -496,20 +506,12 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
 
                     {/* Meta */}
                     <div className="mt-3 space-y-1">
-                      {c.target_student_level && (
-                        <p className="text-xs text-slate-500">
-                          <span className="font-semibold text-slate-700">
-                            {t('student.cases.requiredLevel')}
-                          </span>{' '}
-                          {c.target_student_level}
-                        </p>
-                      )}
                       {c.preferred_days && (
                         <p className="text-xs text-slate-500">
                           <span className="font-semibold text-slate-700">
                             {t('student.cases.availability')}
                           </span>{' '}
-                          {c.preferred_days}
+                          {tAvailability(c.preferred_days)}
                         </p>
                       )}
                     </div>

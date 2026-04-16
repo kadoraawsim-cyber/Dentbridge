@@ -225,7 +225,7 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
       count: initialRequests.filter(
         (r) =>
           (r.assigned_department || '').toLowerCase() === name.toLowerCase() &&
-          !['rejected', 'completed'].includes((r.status || '').toLowerCase())
+          !['rejected', 'completed', 'cancelled'].includes((r.status || '').toLowerCase())
       ).length,
     }))
 
