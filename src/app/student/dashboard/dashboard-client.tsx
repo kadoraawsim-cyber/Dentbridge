@@ -124,43 +124,43 @@ export function DashboardClient({
     locale === 'tr'
       ? {
           nextAction: 'Sonraki Adım',
-          nothingUrgent: 'Acil işlem yok',
-          contactPatient: 'İletişime geç',
-          confirmAppointment: 'Randevu onayla',
-          startTreatment: 'Tedaviye başla',
-          studentProfile: 'Profil',
-          phoneOnFile: 'Telefon',
-          notAdded: 'Eklenmedi',
-          callNow: 'Ara',
-          copyNumber: 'Kopyala',
+          nothingUrgent: 'Şu anda acil bir işlem gerekmiyor.',
+          contactPatient: 'Hastayla iletişime geç',
+          confirmAppointment: 'Randevuyu onayla',
+          startTreatment: 'Tedaviyi başlat',
+          studentProfile: 'Öğrenci Profili',
+          phoneOnFile: 'Kayıtlı telefon',
+          notAdded: 'Henüz eklenmedi',
+          callNow: 'Hemen ara',
+          copyNumber: 'Numarayı kopyala',
           copied: 'Kopyalandı',
-          activePatients: 'Aktif Hastalar',
-          activePatientsDesc: 'Atanan hastalarınız',
-          noImmediateAction: 'Bekleyen işlem yok',
-          continueWork: 'Devam et',
-          manageAssignedCases: 'Yönet',
-          pendingSummary: 'Bekleyenler',
-          pendingSummaryDesc: 'Onay bekleyen talepler',
+          activePatients: 'Aktif Hastalarım',
+          activePatientsDesc: 'Şu anda size atanmış hastalar',
+          noImmediateAction: 'Şu anda bekleyen işlem yok',
+          continueWork: 'Çalışmaya devam et',
+          manageAssignedCases: 'Atanmış vakalarınızı yönetin',
+          pendingSummary: 'Bekleyen İstekler',
+          pendingSummaryDesc: 'Fakülte onayı bekleyen talepleriniz',
         }
       : {
           nextAction: 'Next Action',
-          nothingUrgent: 'No urgent action needed.',
+          nothingUrgent: 'No urgent action is required right now.',
           contactPatient: 'Contact patient',
           confirmAppointment: 'Confirm appointment',
           startTreatment: 'Start treatment',
-          studentProfile: 'Profile',
-          phoneOnFile: 'Phone',
-          notAdded: 'Not added',
-          callNow: 'Call',
-          copyNumber: 'Copy',
+          studentProfile: 'Student Profile',
+          phoneOnFile: 'Phone on file',
+          notAdded: 'Not added yet',
+          callNow: 'Call now',
+          copyNumber: 'Copy number',
           copied: 'Copied',
-          activePatients: 'My Patients',
-          activePatientsDesc: 'Your assigned patients',
-          noImmediateAction: 'No pending actions',
-          continueWork: 'Continue',
-          manageAssignedCases: 'Manage',
-          pendingSummary: 'Pending',
-          pendingSummaryDesc: 'Awaiting faculty review',
+          activePatients: 'My Active Patients',
+          activePatientsDesc: 'Patients currently assigned to you',
+          noImmediateAction: 'No pending action right now',
+          continueWork: 'Continue work',
+          manageAssignedCases: 'Manage your assigned cases',
+          pendingSummary: 'Pending Requests',
+          pendingSummaryDesc: 'Requests still waiting for faculty review',
         }
 
   function tTreatment(v: string): string {
@@ -689,6 +689,13 @@ export function DashboardClient({
 
                       {!isClosed && (
                         <div className="mt-3">
+                          {error && (
+                            <p className="mb-2 flex items-center gap-1.5 text-xs text-red-600">
+                              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                              <span className="break-words">{error}</span>
+                            </p>
+                          )}
+
                           {liveStatus === 'student_approved' && (
                             <button
                               type="button"
@@ -704,13 +711,131 @@ export function DashboardClient({
                               <span className="truncate">{t('student.dashboard.btnMarkContacted')}</span>
                             </button>
                           )}
-                           {/* rest of buttons unchanged... */}
+
+                          {liveStatus === 'contacted' && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleLifecycleAction(c.caseId, 'mark_appointment_scheduled')
+                              }
+                              disabled={isLoading}
+                              className="flex w-full items-center justify-center gap-1.5 rounded-lg sm:rounded-xl bg-indigo-600 px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60"
+                            >
+                              {isLoading ? (
+                                <span className="h-3 w-3 sm:h-4 sm:w-4 shrink-0 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                              ) : (
+                                <CalendarCheck className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
+                              )}
+                              <span className="truncate">{t('student.dashboard.btnMarkApptScheduled')}</span>
+                            </button>
+                          )}
+
+                          {liveStatus === 'appointment_scheduled' && (
+                            <button
+                              type="button"
+                              onClick={() => handleLifecycleAction(c.caseId, 'mark_in_treatment')}
+                              disabled={isLoading}
+                              className="flex w-full items-center justify-center gap-1.5 rounded-lg sm:rounded-xl bg-purple-600 px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-semibold text-white transition hover:bg-purple-700 disabled:opacity-60"
+                            >
+                              {isLoading ? (
+                                <span className="h-3 w-3 sm:h-4 sm:w-4 shrink-0 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                              ) : (
+                                <Stethoscope className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
+                              )}
+                              <span className="truncate">{t('student.dashboard.btnMarkInTreatment')}</span>
+                            </button>
+                          )}
+
+                          {liveStatus === 'in_treatment' && (
+                            <div className="flex w-full items-center justify-center gap-2 rounded-lg sm:rounded-xl border border-purple-200 bg-purple-50 px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-semibold text-purple-700">
+                              <Clock className="h-3 w-3 sm:h-4 w-4 shrink-0" />
+                              <span className="truncate">{t('student.dashboard.treatmentInProgress')}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {isClosed && (
+                        <div
+                          className={`mt-4 flex w-full items-center justify-center gap-2 rounded-lg sm:rounded-xl border px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-semibold ${
+                            liveStatus === 'completed'
+                              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                              : 'border-slate-200 bg-slate-50 text-slate-500'
+                          }`}
+                        >
+                          <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
+                          <span className="truncate">
+                            {liveStatus === 'completed'
+                              ? t('student.dashboard.caseClosed')
+                              : t('student.dashboard.caseCancelledText')}
+                          </span>
                         </div>
                       )}
                     </div>
                   </div>
                 )
               })}
+            </div>
+          </div>
+        )}
+
+        {closedCases.length > 0 && (
+          <div className="mb-6 sm:mb-10 w-full">
+            <div className="mb-3 sm:mb-4 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
+                {t('student.dashboard.completedTreatments')}
+              </h2>
+              <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                {closedCases.length}{' '}
+                {closedCases.length === 1
+                  ? t('student.dashboard.treatmentCompleted')
+                  : t('student.dashboard.treatmentsCompleted')}
+              </span>
+            </div>
+
+            <div className="grid w-full gap-3 sm:gap-5 md:grid-cols-2">
+              {closedCases.map((c) => (
+                <div
+                  key={c.caseId}
+                  className="min-w-0 overflow-hidden rounded-xl sm:rounded-2xl border border-slate-200 bg-white shadow-sm"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-3 py-2 sm:px-5 sm:py-4">
+                    <span className="rounded bg-slate-100 px-1.5 py-0.5 sm:px-2 sm:py-1 font-mono text-[10px] sm:text-xs font-bold text-slate-600">
+                      #{c.caseId.slice(0, 8).toUpperCase()}
+                    </span>
+                    <span
+                      className={`inline-flex whitespace-nowrap items-center rounded-full px-2 py-0.5 sm:px-2.5 sm:py-1 text-[9px] sm:text-[11px] font-semibold ${getActiveCaseStatusBadge(
+                        c.liveStatus
+                      )}`}
+                    >
+                      {getActiveCaseStatusLabelShort(c.liveStatus)}
+                    </span>
+                  </div>
+                  <div className="p-3 sm:p-5">
+                    <p className="truncate text-sm sm:text-base font-bold text-slate-900">{tTreatment(c.treatment_type)}</p>
+                    {c.assigned_department && (
+                      <div className="mt-1 flex items-center gap-1.5 text-xs sm:text-sm text-slate-500">
+                        <Stethoscope className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0 text-blue-500" />
+                        <span className="truncate">{tDept(c.assigned_department)}</span>
+                      </div>
+                    )}
+                    <div
+                      className={`mt-3 flex w-full items-center justify-center gap-2 rounded-lg sm:rounded-xl border px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-semibold ${
+                        c.liveStatus === 'completed'
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                          : 'border-slate-200 bg-slate-50 text-slate-500'
+                      }`}
+                    >
+                      <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
+                      <span className="truncate">
+                        {c.liveStatus === 'completed'
+                          ? t('student.dashboard.caseClosed')
+                          : t('student.dashboard.caseCancelledText')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -774,7 +899,6 @@ export function DashboardClient({
             </div>
           </div>
 
-          {/* Quick Actions - Swipeable on mobile! */}
           <div className="w-full min-w-0 order-1 xl:order-2 space-y-3 sm:space-y-5 xl:w-[320px] xl:shrink-0">
             <h2 className="truncate text-lg sm:text-xl font-bold tracking-tight text-slate-900">
               {t('student.dashboard.quickActions')}
@@ -812,6 +936,24 @@ export function DashboardClient({
                   </div>
                 </div>
               </Link>
+
+              {trulyActiveCases.length > 0 && (
+                <a
+                  href="#my-active-cases"
+                  className="flex shrink-0 w-64 sm:w-auto items-center justify-between rounded-xl sm:rounded-2xl border border-slate-200 bg-white p-3 sm:p-4 shadow-sm"
+                >
+                  <div className="flex min-w-0 items-center gap-2.5 sm:gap-3.5">
+                    <div className="flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-emerald-50 text-emerald-700">
+                      <UserCheck className="h-4 w-4 sm:h-5 sm:w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-xs sm:text-sm font-semibold text-slate-900">
+                        {ui.activePatients}
+                      </p>
+                    </div>
+                  </div>
+                </a>
+              )}
               
                <div className="flex shrink-0 w-64 sm:w-auto cursor-not-allowed items-center justify-between gap-2 rounded-xl sm:rounded-2xl border border-slate-200 bg-white p-3 sm:p-4 shadow-sm opacity-60">
                 <div className="flex min-w-0 items-center gap-2.5 sm:gap-3.5">
@@ -821,6 +963,19 @@ export function DashboardClient({
                   <div className="min-w-0">
                     <p className="truncate text-xs sm:text-sm font-semibold text-slate-900">
                       {t('student.dashboard.caseExchange')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex shrink-0 w-64 sm:w-auto items-center justify-between gap-2 rounded-xl sm:rounded-2xl border border-slate-200 bg-white p-3 sm:p-4 shadow-sm opacity-60">
+                <div className="flex min-w-0 items-center gap-2.5 sm:gap-3.5">
+                  <div className="flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-emerald-50 text-emerald-700">
+                    <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-xs sm:text-sm font-semibold text-slate-900">
+                      {t('student.dashboard.clinicalRequirements')}
                     </p>
                   </div>
                 </div>
