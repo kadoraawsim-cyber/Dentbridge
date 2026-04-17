@@ -116,7 +116,7 @@ const COUNTRY_CODES = [
   'FJ','FI','FR',
   'GA','GM','GE','DE','GH','GR','GD','GT','GN','GW','GY',
   'HT','HN','HU',
-  'IS','IN','ID','IR','IQ','IE','IT',
+'IL','IS','IN','ID','IR','IQ','IE','IT',
   'JM','JP','JO',
   'KZ','KE','KI','KP','KR','KW','KG',
   'LA','LV','LB','LS','LR','LY','LI','LT','LU',
@@ -469,14 +469,15 @@ export default function PatientRequestPage() {
                     <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
                       {t('request.dateOfBirth')} *
                     </label>
-                    <input
-                      type="date"
-                      value={dateOfBirth}
-                      onChange={(e) => setDateOfBirth(e.target.value)}
-                      max={getTodayDateInputValue()}
-                      placeholder={t('request.dateOfBirthPlaceholder')}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
-                    />
+                   <input
+  type="date"
+  value={dateOfBirth}
+  onChange={(e) => setDateOfBirth(e.target.value)}
+  max={getTodayDateInputValue()}
+  placeholder={t('request.dateOfBirthPlaceholder')}
+  className="w-full appearance-none bg-white rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
+/>
+
                   </div>
 
                   <div>
