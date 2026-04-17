@@ -175,6 +175,61 @@ export default function PatientRequestPage() {
   const [submittedId, setSubmittedId] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
 
+  const formProgressSteps = useMemo(
+    () => [
+      {
+        key: 'patient',
+        label: t('request.sectionPatient'),
+        completed:
+          Boolean(fullName.trim()) &&
+          Boolean(dateOfBirth) &&
+          Boolean(phone.trim()) &&
+          Boolean(countryCode) &&
+          hasSgk !== '' &&
+          Boolean(preferredUniversity),
+      },
+      {
+        key: 'clinical',
+        label: t('request.sectionClinical'),
+        completed:
+          Boolean(treatmentType) &&
+          Boolean(complaintText.trim()) &&
+          Boolean(painScore) &&
+          Boolean(symptomDuration) &&
+          Boolean(priorTreatment),
+      },
+      {
+        key: 'images',
+        label: t('request.sectionImages'),
+        completed: Boolean(attachment),
+      },
+      {
+        key: 'consent',
+        label: t('request.sectionConsent'),
+        completed: consent,
+      },
+    ],
+    [
+      attachment,
+      complaintText,
+      consent,
+      countryCode,
+      dateOfBirth,
+      fullName,
+      hasSgk,
+      painScore,
+      phone,
+      preferredUniversity,
+      priorTreatment,
+      symptomDuration,
+      t,
+      treatmentType,
+    ]
+  )
+
+  const completedSteps = formProgressSteps.filter((step) => step.completed).length
+  const progressPercent = Math.round((completedSteps / formProgressSteps.length) * 100)
+
   const countryOptions = useMemo(() => {
     const displayNames = new Intl.DisplayNames([locale === 'tr' ? 'tr' : 'en'], {
       type: 'region',
@@ -441,6 +496,55 @@ export default function PatientRequestPage() {
             onSubmit={handleSubmit}
             className="w-full overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200 bg-white shadow-sm"
           >
+            <div className="border-b border-slate-100 bg-slate-50 px-4 py-4 sm:px-8 sm:py-5">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">
+                    {locale === 'tr' ? 'Form ilerlemesi' : 'Form progress'}
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    {locale === 'tr'
+                      ? 'Bölümleri tamamladıkça ilerleme güncellenir.'
+                      : 'Progress updates as you complete each section.'}
+                  </p>
+                </div>
+                <p className="text-sm font-semibold text-teal-700">{progressPercent}%</p>
+              </div>
+
+              <div className="mb-4 h-2 overflow-hidden rounded-full bg-slate-200">
+                <div
+                  className="h-full rounded-full bg-teal-600 transition-all"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                {formProgressSteps.map((step, index) => (
+                  <div
+                    key={step.key}
+                    className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs sm:text-sm ${
+                      step.completed
+                        ? 'border-teal-200 bg-teal-50 text-teal-800'
+                        : 'border-slate-200 bg-white text-slate-600'
+                    }`}
+                  >
+                    <div
+                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
+                        step.completed ? 'bg-teal-600 text-white' : 'bg-slate-200 text-slate-500'
+                      }`}
+                    >
+                      {step.completed ? (
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                      ) : (
+                        <span className="text-[10px] font-semibold">{index + 1}</span>
+                      )}
+                    </div>
+                    <span className="truncate font-medium">{step.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="space-y-6 sm:space-y-8 p-4 sm:p-8">
               {/* Patient Information Section */}
               <section>

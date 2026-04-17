@@ -640,6 +640,7 @@ no: string
       noStudentRequests: string
       requestedAtLabel: string
       reviewedByAtLabel: string
+      studentActiveCasesLabel: string
       approveBtn: string
       rejectBtn: string
       undoRejection: string
@@ -1434,6 +1435,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       noStudentRequests: 'No students have requested this case yet.',
       requestedAtLabel: 'Requested',
       reviewedByAtLabel: 'Reviewed by',
+      studentActiveCasesLabel: 'Active cases:',
       approveBtn: 'Approve',
       rejectBtn: 'Reject',
       undoRejection: 'Undo Rejection',

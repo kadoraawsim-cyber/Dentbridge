@@ -37,11 +37,49 @@ export default async function AdminRequestDetailPage({
     .eq('case_id', id)
     .order('created_at', { ascending: false })
 
+  const studentEmails = Array.from(
+    new Set((studentRequests ?? []).map((request) => request.student_email).filter(Boolean))
+  )
+
+  const studentOpenCaseCounts: Record<string, number> = {}
+
+  if (studentEmails.length > 0) {
+    const activeCaseStatuses = ['student_approved', 'contacted', 'appointment_scheduled', 'in_treatment']
+
+    const { data: approvedStudentCases } = await supabase
+      .from('student_case_requests')
+      .select('student_email, case_id')
+      .eq('status', 'approved')
+      .in('student_email', studentEmails)
+
+    const activeCaseIds = Array.from(
+      new Set((approvedStudentCases ?? []).map((request) => request.case_id))
+    )
+
+    if (activeCaseIds.length > 0) {
+      const { data: activeCases } = await supabase
+        .from('patient_requests')
+        .select('id')
+        .in('id', activeCaseIds)
+        .in('status', activeCaseStatuses)
+
+      const activeCaseIdSet = new Set((activeCases ?? []).map((request) => request.id))
+
+      for (const request of approvedStudentCases ?? []) {
+        if (activeCaseIdSet.has(request.case_id)) {
+          studentOpenCaseCounts[request.student_email] =
+            (studentOpenCaseCounts[request.student_email] ?? 0) + 1
+        }
+      }
+    }
+  }
+
   return (
     <CaseDetailClient
       initialRequest={data}
       adminEmail={user.email ?? ''}
       initialStudentRequests={studentRequests ?? []}
+      studentOpenCaseCounts={studentOpenCaseCounts}
     />
   )
 }

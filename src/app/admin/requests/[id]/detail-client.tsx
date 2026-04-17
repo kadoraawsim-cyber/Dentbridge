@@ -44,6 +44,7 @@ interface Props {
   initialRequest: PatientRequest
   adminEmail: string
   initialStudentRequests: StudentCaseRequest[]
+  studentOpenCaseCounts: Record<string, number>
 }
 
 // Used to determine which lifecycle steps have been reached when rendering
@@ -196,7 +197,12 @@ function buildInitialActivityLog(
   return entries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 }
 
-export function CaseDetailClient({ initialRequest, adminEmail, initialStudentRequests }: Props) {
+export function CaseDetailClient({
+  initialRequest,
+  adminEmail,
+  initialStudentRequests,
+  studentOpenCaseCounts,
+}: Props) {
   const { t, locale } = useI18n()
   const dateLocale = locale === 'tr' ? 'tr-TR' : 'en-GB'
 
@@ -1468,6 +1474,11 @@ export function CaseDetailClient({ initialRequest, adminEmail, initialStudentReq
                       <p className="mt-0.5 text-xs text-slate-400">
                         {t('admin.detail.requestedAtLabel')} {formatReviewDate(req.created_at)}
                       </p>
+                      {req.status === 'pending' && (
+                        <p className="mt-0.5 text-xs text-slate-500">
+                          {t('admin.detail.studentActiveCasesLabel')} {studentOpenCaseCounts[req.student_email] ?? 0}
+                        </p>
+                      )}
                       {req.reviewed_by && (
                         <p className="mt-0.5 text-xs text-slate-400">
                           {t('admin.detail.reviewedByAtLabel')} {req.reviewed_by} · {formatReviewDate(req.reviewed_at)}
