@@ -144,8 +144,11 @@ const UNIVERSITY_OPTIONS = [
   'İstinye Dental Hospital',
 ] as const
 
+const CONSENT_VERSION = '2026-04-18-v1'
+
 export default function PatientRequestPage() {
   const { t, locale } = useI18n()
+  const dateInputLocale = locale === 'tr' ? 'tr-TR' : 'en-GB'
 
   const [fullName, setFullName] = useState('')
   const [dateOfBirth, setDateOfBirth] = useState('')
@@ -196,7 +199,8 @@ export default function PatientRequestPage() {
           Boolean(complaintText.trim()) &&
           Boolean(painScore) &&
           Boolean(symptomDuration) &&
-          Boolean(priorTreatment),
+          Boolean(priorTreatment) &&
+          Boolean(medicalCondition),
       },
       {
         key: 'images',
@@ -374,6 +378,8 @@ export default function PatientRequestPage() {
           prior_treatment: priorTreatment === 'yes',
           medical_condition: medicalCondition,
           consent,
+          consent_accepted_at: new Date().toISOString(),
+          consent_version: CONSENT_VERSION,
           attachment_path: attachmentPath,
           attachment_name: attachment ? attachment.name : null,
           status: 'submitted',
@@ -573,14 +579,15 @@ export default function PatientRequestPage() {
                     <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
                       {t('request.dateOfBirth')} *
                     </label>
-                   <input
-  type="date"
-  value={dateOfBirth}
-  onChange={(e) => setDateOfBirth(e.target.value)}
-  max={getTodayDateInputValue()}
-  placeholder={t('request.dateOfBirthPlaceholder')}
-  className="w-full appearance-none bg-white rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
-/>
+                    <input
+                      type="date"
+                      lang={dateInputLocale}
+                      value={dateOfBirth}
+                      onChange={(e) => setDateOfBirth(e.target.value)}
+                      max={getTodayDateInputValue()}
+                      placeholder={t('request.dateOfBirthPlaceholder')}
+                      className="w-full appearance-none rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none transition focus:border-slate-900 sm:px-4 sm:py-3"
+                    />
 
                   </div>
 
@@ -785,134 +792,153 @@ export default function PatientRequestPage() {
                   />
                 </div>
 
-                <div className="mb-5 sm:mb-6 grid gap-4 sm:gap-5 md:grid-cols-2">
+                <div className="space-y-5">
                   <div>
-                    <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                      {t('request.painScoreLabel')} *
-                    </label>
-                    <select
-                      value={painScore}
-                      onChange={(e) => setPainScore(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
-                    >
-                      <option value="">{t('request.painScorePlaceholder')}</option>
-                      {Array.from({ length: 11 }, (_, i) => (
-                        <option key={i} value={String(i)}>
-                          {i}
-                        </option>
-                      ))}
-                    </select>
+                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                      {locale === 'tr' ? 'Belirti / Klinik' : 'Symptom / Clinical'}
+                    </p>
+                    <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
+                      <div>
+                        <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
+                          {t('request.painScoreLabel')} *
+                        </label>
+                        <select
+                          value={painScore}
+                          onChange={(e) => setPainScore(e.target.value)}
+                          className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-slate-900 sm:px-4 sm:py-3"
+                        >
+                          <option value="">{t('request.painScorePlaceholder')}</option>
+                          {Array.from({ length: 11 }, (_, i) => (
+                            <option key={i} value={String(i)}>
+                              {i}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
+                          {t('request.durationLabel')} *
+                        </label>
+                        <select
+                          value={symptomDuration}
+                          onChange={(e) => setSymptomDuration(e.target.value)}
+                          className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-slate-900 sm:px-4 sm:py-3"
+                        >
+                          <option value="">{t('request.durationPlaceholder')}</option>
+                          {DURATION_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {t(opt.tKey)}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 grid gap-4 sm:gap-5 md:grid-cols-2">
+                      <div>
+                        <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
+                          {t('request.priorTreatmentLabel')} *
+                        </label>
+                        <select
+                          value={priorTreatment}
+                          onChange={(e) => setPriorTreatment(e.target.value)}
+                          className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-slate-900 sm:px-4 sm:py-3"
+                        >
+                          <option value="">{t('request.priorTreatmentPlaceholder')}</option>
+                          {PRIOR_TREATMENT_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {t(opt.tKey)}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
+                          {t('request.medicalConditionLabel')} *
+                        </label>
+                        <select
+                          value={medicalCondition}
+                          onChange={(e) => setMedicalCondition(e.target.value)}
+                          className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-slate-900 sm:px-4 sm:py-3"
+                        >
+                          {MEDICAL_CONDITION_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {t(opt.tKey)}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
                   </div>
 
                   <div>
-                    <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                      {t('request.durationLabel')} *
-                    </label>
-                    <select
-                      value={symptomDuration}
-                      onChange={(e) => setSymptomDuration(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
-                    >
-                      <option value="">{t('request.durationPlaceholder')}</option>
-                      {DURATION_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {t(opt.tKey)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                      {locale === 'tr' ? 'İletişim' : 'Communication'}
+                    </p>
+                    <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
+                      <div>
+                        <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
+                          {t('request.contactMethodLabel')}{' '}
+                          <span className="font-normal text-slate-400">{t('request.optional')}</span>
+                        </label>
+                        <select
+                          value={contactMethod}
+                          onChange={(e) => setContactMethod(e.target.value)}
+                          className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-slate-900 sm:px-4 sm:py-3"
+                        >
+                          {CONTACT_METHOD_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {t(opt.tKey)}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
 
-                <div className="mb-5 sm:mb-6 grid gap-4 sm:gap-5 md:grid-cols-2">
-                  <div>
-                    <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                      {t('request.priorTreatmentLabel')} *
-                    </label>
-                    <select
-                      value={priorTreatment}
-                      onChange={(e) => setPriorTreatment(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
-                    >
-                      <option value="">{t('request.priorTreatmentPlaceholder')}</option>
-                      {PRIOR_TREATMENT_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {t(opt.tKey)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                      {t('request.medicalConditionLabel')}
-                    </label>
-                    <select
-                      value={medicalCondition}
-                      onChange={(e) => setMedicalCondition(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
-                    >
-                      {MEDICAL_CONDITION_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {t(opt.tKey)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="mb-5 sm:mb-6 grid gap-4 sm:gap-5 md:grid-cols-2">
-                  <div>
-                    <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                      {t('request.contactMethodLabel')}
-                    </label>
-                    <select
-                      value={contactMethod}
-                      onChange={(e) => setContactMethod(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
-                    >
-                      {CONTACT_METHOD_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {t(opt.tKey)}
-                        </option>
-                      ))}
-                    </select>
+                      <div>
+                        <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
+                          {t('request.bestContactTimeLabel')}{' '}
+                          <span className="font-normal text-slate-400">{t('request.optional')}</span>
+                        </label>
+                        <select
+                          value={bestContactTime}
+                          onChange={(e) => setBestContactTime(e.target.value)}
+                          className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-slate-900 sm:px-4 sm:py-3"
+                        >
+                          {CONTACT_TIME_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {t(opt.tKey)}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
                   </div>
 
                   <div>
-                    <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                      {t('request.bestContactTimeLabel')}
-                    </label>
-                    <select
-                      value={bestContactTime}
-                      onChange={(e) => setBestContactTime(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
-                    >
-                      {CONTACT_TIME_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {t(opt.tKey)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
-                  <div>
-                    <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                      {t('request.availability')}{' '}
-                      <span className="font-normal text-slate-400">{t('request.optional')}</span>
-                    </label>
-                    <select
-                      value={preferredDays}
-                      onChange={(e) => setPreferredDays(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
-                    >
-                      {DAY_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {t(opt.tKey)}
-                        </option>
-                      ))}
-                    </select>
+                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                      {locale === 'tr' ? 'Planlama' : 'Scheduling'}
+                    </p>
+                    <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
+                      <div>
+                        <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
+                          {t('request.availability')}{' '}
+                          <span className="font-normal text-slate-400">{t('request.optional')}</span>
+                        </label>
+                        <select
+                          value={preferredDays}
+                          onChange={(e) => setPreferredDays(e.target.value)}
+                          className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-slate-900 sm:px-4 sm:py-3"
+                        >
+                          {DAY_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {t(opt.tKey)}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </section>
@@ -987,6 +1013,14 @@ export default function PatientRequestPage() {
                     {t('request.consentLabel')} *
                   </span>
                 </label>
+
+                <p className="mt-3 text-[11px] sm:text-xs text-slate-500">
+                  {locale === 'tr' ? 'Detaylar için ' : 'Read our '}
+                  <Link href="/privacy" className="font-semibold text-teal-700 underline-offset-2 hover:underline">
+                    {locale === 'tr' ? 'Gizlilik Politikası' : 'Privacy Policy'}
+                  </Link>
+                  {locale === 'tr' ? ' inceleyin.' : ' for details.'}
+                </p>
               </section>
 
               {errorMessage && (
