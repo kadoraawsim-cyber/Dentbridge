@@ -71,12 +71,69 @@ function calculateAgeFromDateOfBirth(dateOfBirth: string) {
   return age
 }
 
-function getTodayDateInputValue() {
-  const today = new Date()
-  const month = String(today.getMonth() + 1).padStart(2, '0')
-  const day = String(today.getDate()).padStart(2, '0')
+function getDobLocale(locale: string) {
+  return locale === 'tr' ? 'tr-TR' : 'en-GB'
+}
 
-  return `${today.getFullYear()}-${month}-${day}`
+function parseDateValue(value: string) {
+  if (!value) return null
+
+  const [year, month, day] = value.split('-').map(Number)
+
+  if (!year || !month || !day) return null
+
+  return new Date(year, month - 1, day, 12)
+}
+
+function formatDateValue(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function startOfMonth(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1, 12)
+}
+
+function addMonths(date: Date, amount: number) {
+  return new Date(date.getFullYear(), date.getMonth() + amount, 1, 12)
+}
+
+function isSameDay(a: Date | null, b: Date | null) {
+  if (!a || !b) return false
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  )
+}
+
+function formatDobDisplay(value: string, locale: string) {
+  const date = parseDateValue(value)
+  if (!date) return ''
+
+  return new Intl.DateTimeFormat(locale, {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  }).format(date)
+}
+
+function getDobWeekdayLabels(locale: string) {
+  const formatter = new Intl.DateTimeFormat(locale, { weekday: 'short' })
+  const monday = new Date(2024, 0, 1, 12)
+
+  return Array.from({ length: 7 }, (_, index) =>
+    formatter.format(new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + index, 12))
+  )
+}
+
+function getDobMonthLabel(date: Date, locale: string) {
+  return new Intl.DateTimeFormat(locale, {
+    month: 'long',
+    year: 'numeric',
+  }).format(date)
 }
 
 const CONTACT_METHOD_OPTIONS = [
@@ -148,7 +205,7 @@ const CONSENT_VERSION = '2026-04-18-v1'
 
 export default function PatientRequestPage() {
   const { t, locale } = useI18n()
-  const dateInputLocale = locale === 'tr' ? 'tr-TR' : 'en-GB'
+  const dobLocale = getDobLocale(locale)
 
   const [fullName, setFullName] = useState('')
   const [dateOfBirth, setDateOfBirth] = useState('')
@@ -177,6 +234,40 @@ export default function PatientRequestPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submittedId, setSubmittedId] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
+  const [dobOpen, setDobOpen] = useState(false)
+  const [dobViewMonth, setDobViewMonth] = useState(() => startOfMonth(new Date()))
+  const dobPickerRef = useRef<HTMLDivElement | null>(null)
+
+  const dobSelectedDate = useMemo(() => parseDateValue(dateOfBirth), [dateOfBirth])
+  const dobWeekdayLabels = useMemo(() => getDobWeekdayLabels(dobLocale), [dobLocale])
+  const dobCalendarDays = useMemo(() => {
+    const firstDay = dobViewMonth.getDay()
+    const leadingEmptyDays = (firstDay + 6) % 7
+    const daysInMonth = new Date(
+      dobViewMonth.getFullYear(),
+      dobViewMonth.getMonth() + 1,
+      0,
+      12
+    ).getDate()
+
+    return [
+      ...Array.from({ length: leadingEmptyDays }, () => null),
+      ...Array.from({ length: daysInMonth }, (_, index) => index + 1),
+    ]
+  }, [dobViewMonth])
+  const dobMonthLabel = useMemo(
+    () => getDobMonthLabel(dobViewMonth, dobLocale),
+    [dobLocale, dobViewMonth]
+  )
+  const dobToday = useMemo(() => new Date(), [])
+  const dobCanGoNext = useMemo(() => {
+    const nextMonth = addMonths(dobViewMonth, 1)
+    return (
+      nextMonth.getFullYear() < dobToday.getFullYear() ||
+      (nextMonth.getFullYear() === dobToday.getFullYear() &&
+        nextMonth.getMonth() <= dobToday.getMonth())
+    )
+  }, [dobToday, dobViewMonth])
 
   const formProgressSteps = useMemo(
     () => [
@@ -233,6 +324,11 @@ export default function PatientRequestPage() {
 
   const completedSteps = formProgressSteps.filter((step) => step.completed).length
   const progressPercent = Math.round((completedSteps / formProgressSteps.length) * 100)
+  const currentStepIndex = useMemo(() => {
+    const firstIncomplete = formProgressSteps.findIndex((step) => !step.completed)
+    return firstIncomplete === -1 ? formProgressSteps.length - 1 : firstIncomplete
+  }, [formProgressSteps])
+  const currentStep = formProgressSteps[currentStepIndex] ?? formProgressSteps[0]
 
   const countryOptions = useMemo(() => {
     const displayNames = new Intl.DisplayNames([locale === 'tr' ? 'tr' : 'en'], {
@@ -278,6 +374,26 @@ export default function PatientRequestPage() {
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [])
+
+  useEffect(() => {
+    function handleDobClickOutside(event: MouseEvent) {
+      if (dobPickerRef.current && !dobPickerRef.current.contains(event.target as Node)) {
+        setDobOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleDobClickOutside)
+
+    return () => {
+      document.removeEventListener('mousedown', handleDobClickOutside)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (dobOpen) {
+      setDobViewMonth(startOfMonth(dobSelectedDate ?? new Date()))
+    }
+  }, [dobOpen, dobSelectedDate])
 
   const sgkText =
     locale === 'tr'
@@ -502,52 +618,24 @@ export default function PatientRequestPage() {
             onSubmit={handleSubmit}
             className="w-full overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200 bg-white shadow-sm"
           >
-            <div className="border-b border-slate-100 bg-slate-50 px-4 py-4 sm:px-8 sm:py-5">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">
+            <div className="sticky top-0 z-20 border-b border-slate-100 bg-white/95 px-4 py-3 backdrop-blur sm:px-8 sm:py-4">
+              <div className="flex items-center justify-between gap-3 text-xs sm:text-sm">
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-slate-900">
                     {locale === 'tr' ? 'Form ilerlemesi' : 'Form progress'}
                   </p>
-                  <p className="mt-0.5 text-xs text-slate-500">
-                    {locale === 'tr'
-                      ? 'Bölümleri tamamladıkça ilerleme güncellenir.'
-                      : 'Progress updates as you complete each section.'}
+                  <p className="mt-0.5 truncate text-slate-500">
+                    {currentStep?.label} · {currentStepIndex + 1}/{formProgressSteps.length}
                   </p>
                 </div>
-                <p className="text-sm font-semibold text-teal-700">{progressPercent}%</p>
+                <p className="shrink-0 font-semibold text-teal-700">{progressPercent}%</p>
               </div>
 
-              <div className="mb-4 h-2 overflow-hidden rounded-full bg-slate-200">
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200">
                 <div
                   className="h-full rounded-full bg-teal-600 transition-all"
                   style={{ width: `${progressPercent}%` }}
                 />
-              </div>
-
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                {formProgressSteps.map((step, index) => (
-                  <div
-                    key={step.key}
-                    className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs sm:text-sm ${
-                      step.completed
-                        ? 'border-teal-200 bg-teal-50 text-teal-800'
-                        : 'border-slate-200 bg-white text-slate-600'
-                    }`}
-                  >
-                    <div
-                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
-                        step.completed ? 'bg-teal-600 text-white' : 'bg-slate-200 text-slate-500'
-                      }`}
-                    >
-                      {step.completed ? (
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                      ) : (
-                        <span className="text-[10px] font-semibold">{index + 1}</span>
-                      )}
-                    </div>
-                    <span className="truncate font-medium">{step.label}</span>
-                  </div>
-                ))}
               </div>
             </div>
 
@@ -575,20 +663,97 @@ export default function PatientRequestPage() {
                     />
                   </div>
 
-                  <div>
+                  <div className="relative" ref={dobPickerRef}>
                     <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
                       {t('request.dateOfBirth')} *
                     </label>
-                    <input
-                      type="date"
-                      lang={dateInputLocale}
-                      value={dateOfBirth}
-                      onChange={(e) => setDateOfBirth(e.target.value)}
-                      max={getTodayDateInputValue()}
-                      placeholder={t('request.dateOfBirthPlaceholder')}
-                      className="w-full appearance-none rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none transition focus:border-slate-900 sm:px-4 sm:py-3"
-                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDobViewMonth(startOfMonth(dobSelectedDate ?? new Date()))
+                        setDobOpen((prev) => !prev)
+                      }}
+                      className="flex w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-left outline-none transition hover:border-slate-400 focus:border-slate-900 sm:px-4 sm:py-3"
+                    >
+                      <span className={dateOfBirth ? 'text-slate-900' : 'text-slate-400'}>
+                        {dateOfBirth
+                          ? formatDobDisplay(dateOfBirth, dobLocale)
+                          : t('request.dateOfBirthPlaceholder')}
+                      </span>
+                      <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
+                    </button>
 
+                    {dobOpen && (
+                      <div className="absolute z-30 mt-2 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+                        <div className="flex items-center justify-between border-b border-slate-100 px-3 py-2.5 sm:px-4">
+                          <button
+                            type="button"
+                            onClick={() => setDobViewMonth((prev) => addMonths(prev, -1))}
+                            className="rounded-lg border border-slate-200 px-2 py-1 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                          >
+                            {locale === 'tr' ? 'Önceki' : 'Prev'}
+                          </button>
+                          <p className="text-sm font-semibold text-slate-900">{dobMonthLabel}</p>
+                          <button
+                            type="button"
+                            onClick={() => setDobViewMonth((prev) => addMonths(prev, 1))}
+                            disabled={!dobCanGoNext}
+                            className="rounded-lg border border-slate-200 px-2 py-1 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            {locale === 'tr' ? 'Sonraki' : 'Next'}
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-7 gap-1 px-3 pt-3 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                          {dobWeekdayLabels.map((label) => (
+                            <span key={label}>{label}</span>
+                          ))}
+                        </div>
+
+                        <div className="grid grid-cols-7 gap-1 p-3">
+                          {dobCalendarDays.map((day, index) => {
+                            if (!day) {
+                              return <div key={`empty-${index}`} className="h-9 rounded-lg" />
+                            }
+
+                            const cellDate = new Date(
+                              dobViewMonth.getFullYear(),
+                              dobViewMonth.getMonth(),
+                              day,
+                              12
+                            )
+                            const isSelected = isSameDay(cellDate, dobSelectedDate)
+                            const isFuture =
+                              cellDate.getFullYear() > dobToday.getFullYear() ||
+                              (cellDate.getFullYear() === dobToday.getFullYear() &&
+                                (cellDate.getMonth() > dobToday.getMonth() ||
+                                  (cellDate.getMonth() === dobToday.getMonth() &&
+                                    cellDate.getDate() > dobToday.getDate())))
+
+                            return (
+                              <button
+                                key={day}
+                                type="button"
+                                onClick={() => {
+                                  setDateOfBirth(formatDateValue(cellDate))
+                                  setDobOpen(false)
+                                }}
+                                disabled={isFuture}
+                                className={`h-9 rounded-lg text-sm transition ${
+                                  isSelected
+                                    ? 'bg-teal-600 font-semibold text-white'
+                                    : isFuture
+                                      ? 'cursor-not-allowed text-slate-300'
+                                      : 'text-slate-700 hover:bg-slate-100'
+                                }`}
+                              >
+                                {day}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div>
