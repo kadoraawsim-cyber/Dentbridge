@@ -1290,9 +1290,10 @@ export default function PatientRequestPage() {
           </div>
         </div>
 
-        <div className="mx-auto mt-6 sm:mt-10 max-w-7xl border-t border-slate-800 px-4 pt-4 sm:pt-6 text-[10px] sm:text-xs text-slate-500 sm:px-6 lg:px-8">
-          {t('footer.copyright').replace('{year}', String(new Date().getFullYear()))}
-        </div>
+<div className="mx-auto mt-6 max-w-7xl border-t border-slate-800 px-4 pt-4 text-[10px] text-slate-500 sm:mt-10 sm:px-6 sm:pt-6 sm:text-xs lg:px-8">
+  {t('footer.copyright').replace('{year}', String(new Date().getFullYear()))}
+</div>
       </footer>
     </main>
   )
+}
