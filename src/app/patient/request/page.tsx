@@ -137,6 +137,83 @@ const UNIVERSITY_OPTIONS = [
 ] as const
 
 const CONSENT_VERSION = '2026-04-18-v1'
+const PATIENT_REQUEST_DRAFT_KEY = 'patient_request_draft'
+const PATIENT_REQUEST_STEP_KEY = 'patient_request_step'
+
+type PatientRequestDraft = {
+  fullName: string
+  dateOfBirth: string
+  phone: string
+  preferredLanguage: string
+  city: string
+  preferredUniversity: string
+  countryCode: string
+  hasSgk: string
+  treatmentType: string
+  complaintText: string
+  preferredDays: string
+  painScore: string
+  symptomDuration: string
+  contactMethod: string
+  bestContactTime: string
+  priorTreatment: string
+  medicalCondition: string
+  consent: boolean
+}
+
+function parsePatientRequestDraft(value: string | null): PatientRequestDraft | null {
+  if (!value) {
+    return null
+  }
+
+  try {
+    const parsed = JSON.parse(value) as Partial<PatientRequestDraft> | null
+
+    if (!parsed || typeof parsed !== 'object') {
+      return null
+    }
+
+    return {
+      fullName: typeof parsed.fullName === 'string' ? parsed.fullName : '',
+      dateOfBirth: typeof parsed.dateOfBirth === 'string' ? parsed.dateOfBirth : '',
+      phone: typeof parsed.phone === 'string' ? parsed.phone : '',
+      preferredLanguage: typeof parsed.preferredLanguage === 'string' ? parsed.preferredLanguage : 'English',
+      city: typeof parsed.city === 'string' ? parsed.city : 'Istanbul',
+      preferredUniversity:
+        typeof parsed.preferredUniversity === 'string'
+          ? parsed.preferredUniversity
+          : 'İstinye Dental Hospital',
+      countryCode: typeof parsed.countryCode === 'string' ? parsed.countryCode : 'TR',
+      hasSgk: typeof parsed.hasSgk === 'string' ? parsed.hasSgk : '',
+      treatmentType: typeof parsed.treatmentType === 'string' ? parsed.treatmentType : '',
+      complaintText: typeof parsed.complaintText === 'string' ? parsed.complaintText : '',
+      preferredDays: typeof parsed.preferredDays === 'string' ? parsed.preferredDays : 'No Preference',
+      painScore: typeof parsed.painScore === 'string' ? parsed.painScore : '',
+      symptomDuration: typeof parsed.symptomDuration === 'string' ? parsed.symptomDuration : '',
+      contactMethod: typeof parsed.contactMethod === 'string' ? parsed.contactMethod : 'WhatsApp',
+      bestContactTime: typeof parsed.bestContactTime === 'string' ? parsed.bestContactTime : 'Anytime',
+      priorTreatment: typeof parsed.priorTreatment === 'string' ? parsed.priorTreatment : '',
+      medicalCondition: typeof parsed.medicalCondition === 'string' ? parsed.medicalCondition : 'None',
+      consent: typeof parsed.consent === 'boolean' ? parsed.consent : false,
+    }
+  } catch {
+    return null
+  }
+}
+
+function parseSavedStepIndex(value: string | null) {
+  if (!value) {
+    return null
+  }
+
+  const parsed = Number(value)
+
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    return null
+  }
+
+  return parsed
+}
 
 export default function PatientRequestPage() {
   const { t, locale } = useI18n()
@@ -168,6 +245,9 @@ export default function PatientRequestPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submittedId, setSubmittedId] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
+  const [hasRestoredDraft, setHasRestoredDraft] = useState(false)
+  const [restoredStepIndex, setRestoredStepIndex] = useState<number | null>(null)
+  const stepSectionRefs = useRef<Array<HTMLElement | null>>([])
 
   const formProgressSteps = useMemo(
     () => [
@@ -274,6 +354,140 @@ export default function PatientRequestPage() {
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const savedDraft = parsePatientRequestDraft(
+      window.sessionStorage.getItem(PATIENT_REQUEST_DRAFT_KEY)
+    )
+
+    if (savedDraft) {
+      setFullName(savedDraft.fullName)
+      setDateOfBirth(savedDraft.dateOfBirth)
+      setPhone(savedDraft.phone)
+      setPreferredLanguage(savedDraft.preferredLanguage)
+      setCity(savedDraft.city)
+      setPreferredUniversity(savedDraft.preferredUniversity)
+      setCountryCode(savedDraft.countryCode)
+      setHasSgk(savedDraft.hasSgk)
+      setTreatmentType(savedDraft.treatmentType)
+      setComplaintText(savedDraft.complaintText)
+      setPreferredDays(savedDraft.preferredDays)
+      setPainScore(savedDraft.painScore)
+      setSymptomDuration(savedDraft.symptomDuration)
+      setContactMethod(savedDraft.contactMethod)
+      setBestContactTime(savedDraft.bestContactTime)
+      setPriorTreatment(savedDraft.priorTreatment)
+      setMedicalCondition(savedDraft.medicalCondition)
+      setConsent(savedDraft.consent)
+    } else if (window.sessionStorage.getItem(PATIENT_REQUEST_DRAFT_KEY)) {
+      window.sessionStorage.removeItem(PATIENT_REQUEST_DRAFT_KEY)
+    }
+
+    const savedStepIndex = parseSavedStepIndex(
+      window.sessionStorage.getItem(PATIENT_REQUEST_STEP_KEY)
+    )
+
+    if (savedDraft && savedStepIndex !== null) {
+      setRestoredStepIndex(savedStepIndex)
+    } else if (window.sessionStorage.getItem(PATIENT_REQUEST_STEP_KEY)) {
+      window.sessionStorage.removeItem(PATIENT_REQUEST_STEP_KEY)
+    }
+
+    setHasRestoredDraft(true)
+  }, [])
+
+  useEffect(() => {
+    if (!hasRestoredDraft || submittedId || typeof window === 'undefined') {
+      return
+    }
+
+    const draft: PatientRequestDraft = {
+      fullName,
+      dateOfBirth,
+      phone,
+      preferredLanguage,
+      city,
+      preferredUniversity,
+      countryCode,
+      hasSgk,
+      treatmentType,
+      complaintText,
+      preferredDays,
+      painScore,
+      symptomDuration,
+      contactMethod,
+      bestContactTime,
+      priorTreatment,
+      medicalCondition,
+      consent,
+    }
+
+    try {
+      window.sessionStorage.setItem(PATIENT_REQUEST_DRAFT_KEY, JSON.stringify(draft))
+    } catch {
+      // Ignore storage quota or browser storage errors and keep the live form usable.
+    }
+  }, [
+    bestContactTime,
+    city,
+    complaintText,
+    consent,
+    contactMethod,
+    countryCode,
+    dateOfBirth,
+    fullName,
+    hasRestoredDraft,
+    hasSgk,
+    medicalCondition,
+    painScore,
+    phone,
+    preferredDays,
+    preferredLanguage,
+    preferredUniversity,
+    priorTreatment,
+    submittedId,
+    symptomDuration,
+    treatmentType,
+  ])
+
+  useEffect(() => {
+    if (!hasRestoredDraft || submittedId || typeof window === 'undefined') {
+      return
+    }
+
+    try {
+      window.sessionStorage.setItem(PATIENT_REQUEST_STEP_KEY, String(currentStepIndex))
+    } catch {
+      // Ignore storage errors and keep progress derived from live form state.
+    }
+  }, [currentStepIndex, hasRestoredDraft, submittedId])
+
+  useEffect(() => {
+    if (restoredStepIndex === null || typeof window === 'undefined') {
+      return
+    }
+
+    const targetIndex = Math.max(0, Math.min(restoredStepIndex, stepSectionRefs.current.length - 1))
+    const targetSection = stepSectionRefs.current[targetIndex]
+
+    if (!targetSection) {
+      setRestoredStepIndex(null)
+      return
+    }
+
+    const animationFrameId = window.requestAnimationFrame(() => {
+      targetSection.scrollIntoView({ block: 'start' })
+      setRestoredStepIndex(null)
+    })
+
+    return () => {
+      window.cancelAnimationFrame(animationFrameId)
+    }
+  }, [restoredStepIndex])
 
   const sgkText =
     locale === 'tr'
@@ -387,6 +601,11 @@ export default function PatientRequestPage() {
     if (error) {
       setErrorMessage(error.message)
       return
+    }
+
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.removeItem(PATIENT_REQUEST_DRAFT_KEY)
+      window.sessionStorage.removeItem(PATIENT_REQUEST_STEP_KEY)
     }
 
     setSubmittedId('submitted')
@@ -521,7 +740,7 @@ export default function PatientRequestPage() {
 
             <div className="space-y-6 sm:space-y-8 p-4 sm:p-8">
               {/* Patient Information Section */}
-              <section>
+              <section ref={(node) => { stepSectionRefs.current[0] = node }}>
                 <div className="mb-4 sm:mb-5 flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-teal-500 shrink-0" />
                   <h2 className="text-lg sm:text-2xl font-semibold text-slate-900 truncate">
@@ -712,7 +931,7 @@ export default function PatientRequestPage() {
               </section>
 
               {/* Clinical Details Section */}
-              <section>
+              <section ref={(node) => { stepSectionRefs.current[1] = node }}>
                 <div className="mb-4 sm:mb-5 flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-teal-500 shrink-0" />
                   <h2 className="text-lg sm:text-2xl font-semibold text-slate-900 truncate">
@@ -910,7 +1129,7 @@ export default function PatientRequestPage() {
               </section>
 
               {/* Images Section */}
-              <section>
+              <section ref={(node) => { stepSectionRefs.current[2] = node }}>
                 <div className="mb-4 sm:mb-5 flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-teal-500 shrink-0" />
                   <h2 className="text-lg sm:text-2xl font-semibold text-slate-900 truncate">
@@ -953,7 +1172,7 @@ export default function PatientRequestPage() {
               </section>
 
               {/* Consent Section */}
-              <section>
+              <section ref={(node) => { stepSectionRefs.current[3] = node }}>
                 <div className="mb-4 sm:mb-5 flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-teal-500 shrink-0" />
                   <h2 className="text-lg sm:text-2xl font-semibold text-slate-900 truncate">
