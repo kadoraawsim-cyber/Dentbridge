@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import {
@@ -83,6 +83,10 @@ function RelativeBar({ value }: { value: number }) {
 export function DashboardClient({ initialRequests, adminEmail }: Props) {
   const { t, locale } = useI18n()
   const dateLocale = locale === 'tr' ? 'tr-TR' : 'en-GB'
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteLoading, setInviteLoading] = useState(false)
+  const [inviteMessage, setInviteMessage] = useState('')
+  const [inviteError, setInviteError] = useState('')
 
   function relativeTime(iso: string | null): string {
     if (!iso) return '\u2014'
@@ -158,6 +162,48 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
   async function handleSignOut() {
     await supabase.auth.signOut()
     window.location.href = '/admin/login'
+  }
+
+  async function handleInviteStudent(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setInviteMessage('')
+    setInviteError('')
+
+    const normalizedEmail = inviteEmail.trim().toLowerCase()
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      setInviteError(t('admin.dashboard.inviteStudentInvalidEmail'))
+      return
+    }
+
+    setInviteLoading(true)
+
+    try {
+      const response = await fetch('/api/admin/invitations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: normalizedEmail,
+        }),
+      })
+
+      const result = (await response.json()) as { error?: string }
+
+      if (!response.ok) {
+        setInviteError(result.error || t('admin.dashboard.inviteStudentErrorGeneric'))
+        setInviteLoading(false)
+        return
+      }
+
+      setInviteMessage(t('admin.dashboard.inviteStudentSuccess'))
+      setInviteEmail('')
+    } catch {
+      setInviteError(t('admin.dashboard.inviteStudentErrorGeneric'))
+    }
+
+    setInviteLoading(false)
   }
 
   const dashboardStats = useMemo(() => {
@@ -438,6 +484,54 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
               </p>
             </div>
           </div>
+        </div>
+
+        <div className="mt-4 sm:mt-6 rounded-xl sm:rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+          <div className="max-w-3xl">
+            <h2 className="text-base font-bold text-slate-900 sm:text-lg">
+              {t('admin.dashboard.inviteStudentTitle')}
+            </h2>
+            <p className="mt-1 text-xs leading-relaxed text-slate-500 sm:text-sm">
+              {t('admin.dashboard.inviteStudentDesc')}
+            </p>
+          </div>
+
+          <form onSubmit={handleInviteStudent} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="min-w-0 flex-1">
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                {t('admin.dashboard.inviteStudentEmailLabel')}
+              </label>
+              <input
+                type="email"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder={t('admin.dashboard.inviteStudentEmailPlaceholder')}
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-slate-900"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={inviteLoading}
+              className="inline-flex items-center justify-center rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {inviteLoading
+                ? t('admin.dashboard.inviteStudentSending')
+                : t('admin.dashboard.inviteStudentButton')}
+            </button>
+          </form>
+
+          {inviteError && (
+            <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {inviteError}
+            </div>
+          )}
+
+          {inviteMessage && (
+            <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+              {inviteMessage}
+            </div>
+          )}
         </div>
 
         {/* ── Layout מותאם למובייל ומחשב: הכל נכנס למסגרות שלא חורגות מהרוחב ── */}

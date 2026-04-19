@@ -460,6 +460,15 @@ export type TranslationShape = {
       caseAwaitingReview: string
       casesAwaitingReview: string
       openWorkQueue: string
+      inviteStudentTitle: string
+      inviteStudentDesc: string
+      inviteStudentEmailLabel: string
+      inviteStudentEmailPlaceholder: string
+      inviteStudentButton: string
+      inviteStudentSending: string
+      inviteStudentSuccess: string
+      inviteStudentInvalidEmail: string
+      inviteStudentErrorGeneric: string
       statNewTodayLabel: string
       statNewTodayDesc: string
       statPendingLabel: string
@@ -1291,6 +1300,17 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       caseAwaitingReview: '1 case awaiting review',
       casesAwaitingReview: 'cases awaiting review',
       openWorkQueue: 'Open Work Queue',
+      inviteStudentTitle: 'Invite Student',
+      inviteStudentDesc:
+        'Send a student invitation email using the correct DentBridge account setup flow.',
+      inviteStudentEmailLabel: 'Student email',
+      inviteStudentEmailPlaceholder: 'student@university.edu',
+      inviteStudentButton: 'Send Invite',
+      inviteStudentSending: 'Sending…',
+      inviteStudentSuccess:
+        'Invitation sent. The email link will route through the set-password flow.',
+      inviteStudentInvalidEmail: 'Please enter a valid email address.',
+      inviteStudentErrorGeneric: 'Unable to send the invitation right now.',
       statNewTodayLabel: 'New Today',
       statNewTodayDesc: 'Submitted today',
       statPendingLabel: 'Pending Review',
