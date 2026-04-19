@@ -6,6 +6,6 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: '*',
       allow: '/',
     },
-    sitemap: 'https://dentbridge.com/sitemap.xml',
+    sitemap: 'https://dentbridgetr.com/sitemap.xml',
   }
 }

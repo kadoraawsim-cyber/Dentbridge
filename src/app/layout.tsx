@@ -16,6 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://dentbridgetr.com"),
   title: "DentBridge — Faculty-Supported Clinical Platform",
   description:
     "DentBridge connects patients with affordable university dental care provided by senior students under faculty supervision.",
