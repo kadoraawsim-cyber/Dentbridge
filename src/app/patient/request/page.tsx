@@ -163,8 +163,30 @@ function parseSavedStepIndex(value: string | null) {
   return parsed
 }
 
+function normalizePhoneNumber(value: string) {
+  return value.replace(/[\s().-]/g, '')
+}
+
 export default function PatientRequestPage() {
   const { t, locale } = useI18n()
+  const validationText =
+    locale === 'tr'
+      ? {
+          fullNameRequired: 'Lutfen ad ve soyadinizi girin.',
+          fullNameInvalid: 'Lutfen en az iki kelimeden olusan gecerli bir ad soyad girin.',
+          ageRequired: 'Lutfen yasinizi girin.',
+          ageInvalid: 'Lutfen 1 ile 120 arasinda gecerli bir yas girin.',
+          phoneRequired: 'Lutfen telefon numaranizi girin.',
+          phoneInvalid: 'Lutfen gecerli bir telefon numarasi girin.',
+        }
+      : {
+          fullNameRequired: 'Please enter your full name.',
+          fullNameInvalid: 'Please enter a valid full name with at least two words.',
+          ageRequired: 'Please enter your age.',
+          ageInvalid: 'Please enter a valid age between 1 and 120.',
+          phoneRequired: 'Please enter your phone number.',
+          phoneInvalid: 'Please enter a valid phone number.',
+        }
 
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
@@ -445,6 +467,55 @@ export default function PatientRequestPage() {
     setSubmittedId(null)
     setErrorMessage('')
 
+    const trimmedFullName = fullName.trim()
+    const fullNameWords = trimmedFullName.split(/\s+/).filter(Boolean)
+    const hasLettersInEveryWord = fullNameWords.every((word) => /[\p{L}]/u.test(word))
+    const hasOnlyAllowedNameCharacters =
+      trimmedFullName.replace(/[\p{L}\s'.-]/gu, '') === ''
+    const normalizedPhone = normalizePhoneNumber(phone.trim())
+    const phoneDigits = normalizedPhone.startsWith('+')
+      ? normalizedPhone.slice(1)
+      : normalizedPhone
+    const parsedAge = Number(age)
+
+    if (!trimmedFullName) {
+      setErrorMessage(validationText.fullNameRequired)
+      return
+    }
+
+    if (
+      fullNameWords.length < 2 ||
+      !hasLettersInEveryWord ||
+      !hasOnlyAllowedNameCharacters
+    ) {
+      setErrorMessage(validationText.fullNameInvalid)
+      return
+    }
+
+    if (!age.trim()) {
+      setErrorMessage(validationText.ageRequired)
+      return
+    }
+
+    if (!Number.isInteger(parsedAge) || parsedAge < 1 || parsedAge > 120) {
+      setErrorMessage(validationText.ageInvalid)
+      return
+    }
+
+    if (!phone.trim()) {
+      setErrorMessage(validationText.phoneRequired)
+      return
+    }
+
+    if (
+      !/^\+?\d+$/.test(normalizedPhone) ||
+      phoneDigits.length < 7 ||
+      phoneDigits.length > 15
+    ) {
+      setErrorMessage(validationText.phoneInvalid)
+      return
+    }
+
     if (
       !fullName ||
       !phone ||
@@ -473,7 +544,6 @@ export default function PatientRequestPage() {
 
     setIsSubmitting(true)
     const urgency = getUrgencyFromPainScore(painScore)
-    const parsedAge = Number(age)
     const medicalConditionValue =
       medicalCondition === 'Other'
         ? `Other: ${medicalConditionDetails.trim()}`
@@ -506,7 +576,7 @@ export default function PatientRequestPage() {
           full_name: fullName,
           age: Number.isFinite(parsedAge) && parsedAge >= 0 ? parsedAge : null,
           gender,
-          phone,
+          phone: normalizedPhone,
           preferred_language: preferredLanguage || null,
           treatment_type: treatmentType,
           complaint_text: complaintText,
