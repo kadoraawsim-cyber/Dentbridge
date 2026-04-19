@@ -287,8 +287,8 @@ export default function HomePage() {
               <div className="mt-2 sm:mt-0">
                 <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_20px_50px_-32px_rgba(13,148,136,0.45)] sm:rounded-3xl">
                   <img
-                    src="https://images.unsplash.com/photo-1629909613654-28e377c37b09?q=80&w=1200&auto=format&fit=crop"
-                    alt="Modern dental clinic"
+                    src="/images/why-choose-clinic.jpg"
+                    alt="University-supervised dental clinic"
                     className="h-[180px] w-full object-cover sm:h-[320px]"
                   />
                   <div className="border-t border-slate-100 bg-white/95 px-4 py-3">
