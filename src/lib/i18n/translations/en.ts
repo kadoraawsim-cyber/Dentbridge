@@ -772,16 +772,16 @@ export const en: TranslationShape = {
   },
 
   hero: {
-    badge: 'University-Supervised Clinical Access',
-    title: 'Affordable University-Supervised Dental Care',
+    badge: 'Faculty-Supervised Access to Care',
+    title: 'Affordable Supervised Dental Care',
     description:
-      'DentBridge connects patients with affordable treatment through senior dental students working under strict faculty supervision — a structured, digital workflow.',
+      'DentBridge helps patients access affordable dental care through a faculty-reviewed process that matches them with senior dental students under supervision.',
   },
 
   benefits: {
     affordableCare: 'Affordable university care',
     facultySupervision: 'Faculty supervision',
-    structuredReview: 'Structured case review',
+    structuredReview: 'Clear treatment process',
     easyCoordination: 'Easy coordination',
     modernWorkflow: 'Modern digital workflow',
   },

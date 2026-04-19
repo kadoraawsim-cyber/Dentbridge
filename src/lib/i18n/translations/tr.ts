@@ -22,16 +22,16 @@ export const tr: TranslationShape = {
   },
 
   hero: {
-    badge: 'Üniversite Denetimli Klinik Erişim',
-    title: 'Uygun Fiyatlı Üniversite Denetimli Diş Bakımı',
+    badge: 'Fakülte Denetiminde Bakıma Erişim',
+    title: 'Uygun Fiyatlı Denetimli Diş Bakımı',
     description:
-      'DentBridge, hastaları uygun fiyatlı tedavilerle buluşturur: sıkı fakülte denetimi altında çalışan kıdemli diş hekimliği öğrencileri — yapılandırılmış, dijital bir iş akışı.',
+      'DentBridge, hastaların uygun fiyatlı diş bakımına erişmesini, fakülte tarafından incelenen ve onları denetim altındaki kıdemli diş hekimliği öğrencileriyle eşleştiren bir süreç üzerinden destekler.',
   },
 
   benefits: {
     affordableCare: 'Uygun fiyatlı üniversite bakımı',
     facultySupervision: 'Fakülte denetimi',
-    structuredReview: 'Yapılandırılmış vaka incelemesi',
+    structuredReview: 'Açık tedavi süreci',
     easyCoordination: 'Kolay koordinasyon',
     modernWorkflow: 'Modern dijital iş akışı',
   },
