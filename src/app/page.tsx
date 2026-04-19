@@ -46,6 +46,14 @@ const HOW_IT_WORKS = [
   { step: 5, icon: Stethoscope },
 ] as const
 
+const WHY_CHOOSE_ITEMS = [
+  { titleKey: 'landing.whyCareTitle', descKey: 'landing.whyCareDesc', icon: CheckCircle2 },
+  { titleKey: 'landing.whyOversightTitle', descKey: 'landing.whyOversightDesc', icon: ShieldCheck },
+  { titleKey: 'landing.whyMultiTitle', descKey: 'landing.whyMultiDesc', icon: ClipboardList },
+  { titleKey: 'landing.whySupportTitle', descKey: 'landing.whySupportDesc', icon: Users },
+  { titleKey: 'landing.whyDigitalTitle', descKey: 'landing.whyDigitalDesc', icon: Building2 },
+] as const
+
 const DEPARTMENTS = [
   { slug: 'surgery',        icon: Syringe },
   { slug: 'endodontics',    icon: HeartPulse },
@@ -237,39 +245,63 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-white px-4 py-10 sm:py-20 sm:px-6 lg:px-8">
-        <div className="mx-auto grid max-w-7xl items-center gap-6 rounded-2xl sm:rounded-3xl border border-slate-200 bg-slate-50 px-4 py-6 sm:gap-10 sm:px-8 sm:py-8 lg:grid-cols-2">
-          <div>
-            <h2 className="mb-4 sm:mb-6 text-2xl sm:text-3xl font-bold text-slate-900">
-              {t('landing.whyTitle')}
-            </h2>
+      <section className="bg-white px-4 py-10 sm:px-6 sm:py-20 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-teal-50/60 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.25)] sm:rounded-3xl">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(20,184,166,0.14),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(15,118,110,0.1),transparent_30%)]" />
 
-            <div className="space-y-4 sm:space-y-5">
+            <div className="relative grid items-center gap-6 px-4 py-6 sm:gap-10 sm:px-8 sm:py-8 lg:grid-cols-[1.15fr_0.85fr]">
               <div>
-                <p className="font-semibold text-sm sm:text-base text-slate-900">{t('landing.whyCareTitle')}</p>
-                <p className="text-xs sm:text-sm text-slate-600 mt-0.5 sm:mt-0">{t('landing.whyCareDesc')}</p>
+                <h2 className="mb-5 text-2xl font-bold tracking-tight text-slate-900 sm:mb-6 sm:text-3xl">
+                  {t('landing.whyTitle')}
+                </h2>
+
+                <div className="grid gap-3 sm:gap-4">
+                  {WHY_CHOOSE_ITEMS.map((item) => {
+                    const Icon = item.icon
+
+                    return (
+                      <div
+                        key={item.titleKey}
+                        className="rounded-2xl border border-slate-200/80 bg-white/85 p-4 shadow-sm shadow-slate-200/40 backdrop-blur-sm"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
+                            <Icon className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-slate-900 sm:text-base">
+                              {t(item.titleKey)}
+                            </p>
+                            <p className="mt-1 text-xs leading-relaxed text-slate-600 sm:text-sm">
+                              {t(item.descKey)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
-              <div>
-                <p className="font-semibold text-sm sm:text-base text-slate-900">{t('landing.whyOversightTitle')}</p>
-                <p className="text-xs sm:text-sm text-slate-600 mt-0.5 sm:mt-0">{t('landing.whyOversightDesc')}</p>
-              </div>
-              <div>
-                <p className="font-semibold text-sm sm:text-base text-slate-900">{t('landing.whyMultiTitle')}</p>
-                <p className="text-xs sm:text-sm text-slate-600 mt-0.5 sm:mt-0">{t('landing.whyMultiDesc')}</p>
-              </div>
-              <div>
-                <p className="font-semibold text-sm sm:text-base text-slate-900">{t('landing.whyDigitalTitle')}</p>
-                <p className="text-xs sm:text-sm text-slate-600 mt-0.5 sm:mt-0">{t('landing.whyDigitalDesc')}</p>
+
+              <div className="mt-2 sm:mt-0">
+                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_20px_50px_-32px_rgba(13,148,136,0.45)] sm:rounded-3xl">
+                  <img
+                    src="https://images.unsplash.com/photo-1629909613654-28e377c37b09?q=80&w=1200&auto=format&fit=crop"
+                    alt="Modern dental clinic"
+                    className="h-[180px] w-full object-cover sm:h-[320px]"
+                  />
+                  <div className="border-t border-slate-100 bg-white/95 px-4 py-3">
+                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-teal-700">
+                      {t('landing.whyOversightTitle')}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-600">
+                      {t('landing.whyOversightDesc')}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-
-          <div className="mt-2 sm:mt-0">
-            <img
-              src="https://images.unsplash.com/photo-1629909613654-28e377c37b09?q=80&w=1200&auto=format&fit=crop"
-              alt="Modern dental clinic"
-              className="h-[160px] w-full rounded-2xl object-cover sm:h-[280px] sm:rounded-3xl lg:h-[320px]"
-            />
           </div>
         </div>
       </section>

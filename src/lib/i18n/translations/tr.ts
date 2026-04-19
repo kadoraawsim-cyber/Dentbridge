@@ -60,16 +60,19 @@ export const tr: TranslationShape = {
     whyTitle: 'Neden Üniversite Denetimli Bakımı Tercih Etmelisiniz?',
     whyCareTitle: 'Uygun Fiyatlı Bakım',
     whyCareDesc:
-      'Pek çok özel kliniğe kıyasla daha düşük maliyetle yüksek kaliteli tedaviye erişin.',
-    whyOversightTitle: 'Uzman Denetimi',
+      'Tedaviyi daha erişilebilir hale getirmek için tasarlanmış, denetimli akademik bir ortamda kaliteli diş bakımı alın.',
+    whyOversightTitle: 'Güvenilir Klinik Bakım',
     whyOversightDesc:
-      'Her adım, nitelikli öğretim üyeleri tarafından izlenir ve onaylanır.',
-    whyMultiTitle: 'Multidisipliner Yaklaşım',
+      'Tedaviniz, dikkatli denetim ve hasta güvenliği etrafında tasarlanmış akademik bir ortamda gerçekleşir.',
+    whyMultiTitle: 'İhtiyaçlarınıza Göre Yönlendirilen Bakım',
     whyMultiDesc:
-      'Karmaşık vakalar, farklı bölümler arasında koordineli konsültasyon alabilir.',
-    whyDigitalTitle: 'Dijital Diş Hekimliği',
+      'Talebiniz; belirtileriniz, tedavi ihtiyaçlarınız ve klinik öncelikleriniz dikkate alınarak incelenir.',
+    whySupportTitle: 'Geleceğin Diş Hekimlerini Destekleyin',
+    whySupportDesc:
+      'Üniversite denetimli bakımı tercih ederek diş hekimliği öğrencilerinin değerli klinik deneyim kazanmasına ve geleceğin yetkin profesyonelleri olarak gelişmesine de katkı sağlarsınız.',
+    whyDigitalTitle: 'Modern Klinik Ortam',
     whyDigitalDesc:
-      'Modern tanı araçlarına, dijital görüntülemeye ve güncel tedavi planlamasına erişim.',
+      'Düzenli akademik iş akışlarından, çağdaş tesislerden ve denetimli tedavi planlamasından yararlanın.',
     deptsTitle: 'Klinik Bölümlerimiz',
     deptsDesc:
       'DentBridge, her hastayı semptomlar, tedavi ihtiyaçları ve fakülte değerlendirmesine göre en uygun üniversite diş hekimliği bölümüne yönlendirir.',

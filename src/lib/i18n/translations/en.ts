@@ -71,6 +71,8 @@ export type TranslationShape = {
     whyOversightDesc: string
     whyMultiTitle: string
     whyMultiDesc: string
+    whySupportTitle: string
+    whySupportDesc: string
     whyDigitalTitle: string
     whyDigitalDesc: string
     deptsTitle: string
@@ -813,15 +815,20 @@ export const en: TranslationShape = {
       'Treatment proceeds in a structured and transparent way under qualified faculty supervision.',
     whyTitle: 'Why Choose University-Supervised Care?',
     whyCareTitle: 'Affordable Care',
-    whyCareDesc: 'Access high-quality treatment at lower cost than many private clinics.',
-    whyOversightTitle: 'Expert Oversight',
-    whyOversightDesc: 'Every step is monitored and approved by qualified faculty members.',
-    whyMultiTitle: 'Multidisciplinary Approach',
+    whyCareDesc:
+      'Receive quality dental care in a supervised academic environment designed to make treatment more accessible.',
+    whyOversightTitle: 'Trusted Clinical Care',
+    whyOversightDesc:
+      'Your treatment takes place in an academic setting designed around careful supervision and patient safety.',
+    whyMultiTitle: 'Care Guided by Your Needs',
     whyMultiDesc:
-      'Complex cases can receive coordinated consultation across different departments.',
-    whyDigitalTitle: 'Digital Dentistry',
+      'Your request is reviewed with attention to your symptoms, treatment needs, and clinical priorities.',
+    whySupportTitle: 'Support Future Dentists',
+    whySupportDesc:
+      'By choosing university-supervised care, you also help dental students gain valuable clinical experience and grow into confident future professionals.',
+    whyDigitalTitle: 'Modern Clinical Environment',
     whyDigitalDesc:
-      'Access to modern diagnostic tools, digital imaging, and contemporary treatment planning.',
+      'Benefit from organized academic workflows, contemporary facilities, and supervised treatment planning.',
     deptsTitle: 'Our Clinical Departments',
     deptsDesc:
       'DentBridge helps route each patient to the most appropriate university dental department based on symptoms, treatment needs, and faculty review.',
