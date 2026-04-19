@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { ArrowLeft, CheckCircle2, ChevronDown, Info, Search, UploadCloud } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Info, UploadCloud } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 
@@ -20,7 +20,13 @@ const TREATMENT_OPTIONS = [
   { value: 'Orthodontics',                       tKey: 'request.treatments.orthodontics' },
   { value: 'Pediatric Dentistry',                tKey: 'request.treatments.pediatric' },
   { value: 'Esthetic Dentistry',                 tKey: 'request.treatments.esthetic' },
+  { value: "I'm not sure",                       tKey: 'request.treatments.notSure' },
   { value: 'Other',                              tKey: 'request.treatments.other' },
+] as const
+
+const GENDER_OPTIONS = [
+  { value: 'Male', tKey: 'request.genderMale' },
+  { value: 'Female', tKey: 'request.genderFemale' },
 ] as const
 
 const LANGUAGE_OPTIONS = [
@@ -58,19 +64,6 @@ function getUrgencyFromPainScore(painScore: string) {
   return 'Low'
 }
 
-function calculateAgeFromDateOfBirth(dateOfBirth: string) {
-  const dob = new Date(`${dateOfBirth}T00:00:00`)
-  const today = new Date()
-  let age = today.getFullYear() - dob.getFullYear()
-  const monthDiff = today.getMonth() - dob.getMonth()
-
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
-    age -= 1
-  }
-
-  return age
-}
-
 const CONTACT_METHOD_OPTIONS = [
   { value: 'WhatsApp', tKey: 'request.contactMethodWhatsapp' },
   { value: 'Phone Call', tKey: 'request.contactMethodPhone' },
@@ -84,11 +77,6 @@ const CONTACT_TIME_OPTIONS = [
   { value: 'Anytime', tKey: 'request.contactTimeAnytime' },
 ] as const
 
-const PRIOR_TREATMENT_OPTIONS = [
-  { value: 'yes', tKey: 'request.yes' },
-  { value: 'no', tKey: 'request.no' },
-] as const
-
 const MEDICAL_CONDITION_OPTIONS = [
   { value: 'None', tKey: 'request.medicalNone' },
   { value: 'Diabetes', tKey: 'request.medicalDiabetes' },
@@ -98,57 +86,16 @@ const MEDICAL_CONDITION_OPTIONS = [
   { value: 'Other', tKey: 'request.medicalOther' },
 ] as const
 
-const COUNTRY_CODES = [
-  'TR',
-  'AF','AL','DZ','AD','AO','AG','AR','AM','AU','AT','AZ',
-  'BS','BH','BD','BB','BY','BE','BZ','BJ','BT','BO','BA','BW','BR','BN','BG','BF','BI',
-  'CV','KH','CM','CA','CF','TD','CL','CN','CO','KM','CG','CD','CR','CI','HR','CU','CY','CZ',
-  'DK','DJ','DM','DO',
-  'EC','EG','SV','GQ','ER','EE','SZ','ET',
-  'FJ','FI','FR',
-  'GA','GM','GE','DE','GH','GR','GD','GT','GN','GW','GY',
-  'HT','HN','HU',
-'IL','IS','IN','ID','IR','IQ','IE','IT',
-  'JM','JP','JO',
-  'KZ','KE','KI','KP','KR','KW','KG',
-  'LA','LV','LB','LS','LR','LY','LI','LT','LU',
-  'MG','MW','MY','MV','ML','MT','MH','MR','MU','MX','FM','MD','MC','MN','ME','MA','MZ','MM',
-  'NA','NR','NP','NL','NZ','NI','NE','NG','MK','NO',
-  'OM',
-  'PK','PW','PS','PA','PG','PY','PE','PH','PL','PT',
-  'QA',
-  'RO','RU','RW',
-  'KN','LC','VC','WS','SM','ST','SA','SN','RS','SC','SL','SG','SK','SI','SB','SO','ZA','SS','ES','LK','SD','SR','SE','CH','SY',
-  'TJ','TZ','TH','TL','TG','TO','TT','TN','TM','TV',
-  'UG','UA','AE','GB','US','UY','UZ',
-  'VU','VA','VE','VN',
-  'YE',
-  'ZM','ZW',
-] as const
-
-function countryFlag(code: string) {
-  return code
-    .toUpperCase()
-    .replace(/./g, (char) => String.fromCodePoint(127397 + char.charCodeAt(0)))
-}
-
-const UNIVERSITY_OPTIONS = [
-  'İstinye Dental Hospital',
-] as const
-
 const CONSENT_VERSION = '2026-04-18-v1'
 const PATIENT_REQUEST_DRAFT_KEY = 'patient_request_draft'
 const PATIENT_REQUEST_STEP_KEY = 'patient_request_step'
 
 type PatientRequestDraft = {
   fullName: string
-  dateOfBirth: string
   phone: string
+  age: string
+  gender: string
   preferredLanguage: string
-  city: string
-  preferredUniversity: string
-  countryCode: string
-  hasSgk: string
   treatmentType: string
   complaintText: string
   preferredDays: string
@@ -156,8 +103,8 @@ type PatientRequestDraft = {
   symptomDuration: string
   contactMethod: string
   bestContactTime: string
-  priorTreatment: string
   medicalCondition: string
+  medicalConditionDetails: string
   consent: boolean
 }
 
@@ -175,25 +122,20 @@ function parsePatientRequestDraft(value: string | null): PatientRequestDraft | n
 
     return {
       fullName: typeof parsed.fullName === 'string' ? parsed.fullName : '',
-      dateOfBirth: typeof parsed.dateOfBirth === 'string' ? parsed.dateOfBirth : '',
       phone: typeof parsed.phone === 'string' ? parsed.phone : '',
-      preferredLanguage: typeof parsed.preferredLanguage === 'string' ? parsed.preferredLanguage : 'English',
-      city: typeof parsed.city === 'string' ? parsed.city : 'Istanbul',
-      preferredUniversity:
-        typeof parsed.preferredUniversity === 'string'
-          ? parsed.preferredUniversity
-          : 'İstinye Dental Hospital',
-      countryCode: typeof parsed.countryCode === 'string' ? parsed.countryCode : 'TR',
-      hasSgk: typeof parsed.hasSgk === 'string' ? parsed.hasSgk : '',
+      age: typeof parsed.age === 'string' ? parsed.age : '',
+      gender: typeof parsed.gender === 'string' ? parsed.gender : '',
+      preferredLanguage: typeof parsed.preferredLanguage === 'string' ? parsed.preferredLanguage : '',
       treatmentType: typeof parsed.treatmentType === 'string' ? parsed.treatmentType : '',
       complaintText: typeof parsed.complaintText === 'string' ? parsed.complaintText : '',
-      preferredDays: typeof parsed.preferredDays === 'string' ? parsed.preferredDays : 'No Preference',
+      preferredDays: typeof parsed.preferredDays === 'string' ? parsed.preferredDays : '',
       painScore: typeof parsed.painScore === 'string' ? parsed.painScore : '',
       symptomDuration: typeof parsed.symptomDuration === 'string' ? parsed.symptomDuration : '',
-      contactMethod: typeof parsed.contactMethod === 'string' ? parsed.contactMethod : 'WhatsApp',
-      bestContactTime: typeof parsed.bestContactTime === 'string' ? parsed.bestContactTime : 'Anytime',
-      priorTreatment: typeof parsed.priorTreatment === 'string' ? parsed.priorTreatment : '',
+      contactMethod: typeof parsed.contactMethod === 'string' ? parsed.contactMethod : '',
+      bestContactTime: typeof parsed.bestContactTime === 'string' ? parsed.bestContactTime : '',
       medicalCondition: typeof parsed.medicalCondition === 'string' ? parsed.medicalCondition : 'None',
+      medicalConditionDetails:
+        typeof parsed.medicalConditionDetails === 'string' ? parsed.medicalConditionDetails : '',
       consent: typeof parsed.consent === 'boolean' ? parsed.consent : false,
     }
   } catch {
@@ -219,26 +161,20 @@ export default function PatientRequestPage() {
   const { t, locale } = useI18n()
 
   const [fullName, setFullName] = useState('')
-  const [dateOfBirth, setDateOfBirth] = useState('')
   const [phone, setPhone] = useState('')
-  const [preferredLanguage, setPreferredLanguage] = useState('English')
-  const [city, setCity] = useState('Istanbul')
-  const [preferredUniversity, setPreferredUniversity] = useState('İstinye Dental Hospital')
-  const [countryCode, setCountryCode] = useState('TR')
-  const [hasSgk, setHasSgk] = useState('')
-  const [countryOpen, setCountryOpen] = useState(false)
-  const [countrySearch, setCountrySearch] = useState('')
-  const countryDropdownRef = useRef<HTMLDivElement | null>(null)
+  const [age, setAge] = useState('')
+  const [gender, setGender] = useState('')
+  const [preferredLanguage, setPreferredLanguage] = useState('')
 
   const [treatmentType, setTreatmentType] = useState('')
   const [complaintText, setComplaintText] = useState('')
-  const [preferredDays, setPreferredDays] = useState('No Preference')
+  const [preferredDays, setPreferredDays] = useState('')
   const [painScore, setPainScore] = useState('')
   const [symptomDuration, setSymptomDuration] = useState('')
-  const [contactMethod, setContactMethod] = useState('WhatsApp')
-  const [bestContactTime, setBestContactTime] = useState('Anytime')
-  const [priorTreatment, setPriorTreatment] = useState('')
+  const [contactMethod, setContactMethod] = useState('')
+  const [bestContactTime, setBestContactTime] = useState('')
   const [medicalCondition, setMedicalCondition] = useState('None')
+  const [medicalConditionDetails, setMedicalConditionDetails] = useState('')
   const [consent, setConsent] = useState(false)
   const [attachment, setAttachment] = useState<File | null>(null)
 
@@ -256,11 +192,9 @@ export default function PatientRequestPage() {
         label: t('request.sectionPatient'),
         completed:
           Boolean(fullName.trim()) &&
-          Boolean(dateOfBirth) &&
           Boolean(phone.trim()) &&
-          Boolean(countryCode) &&
-          hasSgk !== '' &&
-          Boolean(preferredUniversity),
+          Boolean(age) &&
+          Boolean(gender),
       },
       {
         key: 'clinical',
@@ -270,13 +204,13 @@ export default function PatientRequestPage() {
           Boolean(complaintText.trim()) &&
           Boolean(painScore) &&
           Boolean(symptomDuration) &&
-          Boolean(priorTreatment) &&
-          Boolean(medicalCondition),
+          Boolean(medicalCondition) &&
+          (medicalCondition !== 'Other' || Boolean(medicalConditionDetails.trim())),
       },
       {
-        key: 'images',
-        label: t('request.sectionImages'),
-        completed: Boolean(attachment),
+        key: 'support',
+        label: t('request.sectionSupport'),
+        completed: true,
       },
       {
         key: 'consent',
@@ -285,17 +219,15 @@ export default function PatientRequestPage() {
       },
     ],
     [
-      attachment,
+      age,
       complaintText,
       consent,
-      countryCode,
-      dateOfBirth,
       fullName,
-      hasSgk,
+      gender,
+      medicalCondition,
+      medicalConditionDetails,
       painScore,
       phone,
-      preferredUniversity,
-      priorTreatment,
       symptomDuration,
       t,
       treatmentType,
@@ -305,31 +237,27 @@ export default function PatientRequestPage() {
   const requiredFieldChecks = useMemo(
     () => [
       Boolean(fullName.trim()),
-      Boolean(dateOfBirth),
       Boolean(phone.trim()),
-      Boolean(countryCode),
-      hasSgk !== '',
-      Boolean(preferredUniversity),
+      Boolean(age),
+      Boolean(gender),
       Boolean(treatmentType),
       Boolean(complaintText.trim()),
       Boolean(painScore),
       Boolean(symptomDuration),
-      Boolean(priorTreatment),
       Boolean(medicalCondition),
+      medicalCondition !== 'Other' || Boolean(medicalConditionDetails.trim()),
       consent,
     ],
     [
+      age,
       complaintText,
       consent,
-      countryCode,
-      dateOfBirth,
       fullName,
-      hasSgk,
+      gender,
       medicalCondition,
+      medicalConditionDetails,
       painScore,
       phone,
-      preferredUniversity,
-      priorTreatment,
       symptomDuration,
       treatmentType,
     ]
@@ -343,51 +271,6 @@ export default function PatientRequestPage() {
     return firstIncomplete === -1 ? formProgressSteps.length - 1 : firstIncomplete
   }, [formProgressSteps])
 
-  const countryOptions = useMemo(() => {
-    const displayNames = new Intl.DisplayNames([locale === 'tr' ? 'tr' : 'en'], {
-      type: 'region',
-    })
-
-    return COUNTRY_CODES
-      .map((code) => ({
-        code,
-        label: displayNames.of(code) ?? code,
-        flag: countryFlag(code),
-      }))
-      .sort((a, b) => {
-        if (a.code === 'TR') return -1
-        if (b.code === 'TR') return 1
-        return a.label.localeCompare(b.label)
-      })
-  }, [locale])
-
-  const filteredCountryOptions = useMemo(() => {
-    const query = countrySearch.trim().toLowerCase()
-
-    if (!query) return countryOptions
-
-    return countryOptions.filter((country) =>
-      country.label.toLowerCase().includes(query)
-    )
-  }, [countryOptions, countrySearch])
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        countryDropdownRef.current &&
-        !countryDropdownRef.current.contains(event.target as Node)
-      ) {
-        setCountryOpen(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [])
-
   useEffect(() => {
     if (typeof window === 'undefined') {
       return
@@ -399,13 +282,10 @@ export default function PatientRequestPage() {
 
     if (savedDraft) {
       setFullName(savedDraft.fullName)
-      setDateOfBirth(savedDraft.dateOfBirth)
       setPhone(savedDraft.phone)
+      setAge(savedDraft.age)
+      setGender(savedDraft.gender)
       setPreferredLanguage(savedDraft.preferredLanguage)
-      setCity(savedDraft.city)
-      setPreferredUniversity(savedDraft.preferredUniversity)
-      setCountryCode(savedDraft.countryCode)
-      setHasSgk(savedDraft.hasSgk)
       setTreatmentType(savedDraft.treatmentType)
       setComplaintText(savedDraft.complaintText)
       setPreferredDays(savedDraft.preferredDays)
@@ -413,8 +293,8 @@ export default function PatientRequestPage() {
       setSymptomDuration(savedDraft.symptomDuration)
       setContactMethod(savedDraft.contactMethod)
       setBestContactTime(savedDraft.bestContactTime)
-      setPriorTreatment(savedDraft.priorTreatment)
       setMedicalCondition(savedDraft.medicalCondition)
+      setMedicalConditionDetails(savedDraft.medicalConditionDetails)
       setConsent(savedDraft.consent)
     } else if (window.sessionStorage.getItem(PATIENT_REQUEST_DRAFT_KEY)) {
       window.sessionStorage.removeItem(PATIENT_REQUEST_DRAFT_KEY)
@@ -440,13 +320,10 @@ export default function PatientRequestPage() {
 
     const draft: PatientRequestDraft = {
       fullName,
-      dateOfBirth,
       phone,
+      age,
+      gender,
       preferredLanguage,
-      city,
-      preferredUniversity,
-      countryCode,
-      hasSgk,
       treatmentType,
       complaintText,
       preferredDays,
@@ -454,8 +331,8 @@ export default function PatientRequestPage() {
       symptomDuration,
       contactMethod,
       bestContactTime,
-      priorTreatment,
       medicalCondition,
+      medicalConditionDetails,
       consent,
     }
 
@@ -465,23 +342,20 @@ export default function PatientRequestPage() {
       // Ignore storage quota or browser storage errors and keep the live form usable.
     }
   }, [
+    age,
     bestContactTime,
-    city,
     complaintText,
     consent,
     contactMethod,
-    countryCode,
-    dateOfBirth,
     fullName,
+    gender,
     hasRestoredDraft,
-    hasSgk,
     medicalCondition,
+    medicalConditionDetails,
     painScore,
     phone,
     preferredDays,
     preferredLanguage,
-    preferredUniversity,
-    priorTreatment,
     submittedId,
     symptomDuration,
     treatmentType,
@@ -522,25 +396,6 @@ export default function PatientRequestPage() {
     }
   }, [restoredStepIndex])
 
-  const sgkText =
-    locale === 'tr'
-        ? {
-            label: 'SGK güvenceniz var mı?',
-            helper: 'SGK, Türkiye’nin kamu sağlık sigortası sistemidir.',
-            yes: 'Evet, SGK güvencem var',
-            no: 'Hayır, SGK güvencem yok',
-            placeholder: 'Seçiniz',
-            countryLabel: 'Uyruğunuz / Geldiğiniz ülke',
-          }
-        : {
-            label: 'Do you have SGK?',
-            helper: 'SGK is Türkiye’s public health insurance system.',
-            yes: 'Yes, I have SGK',
-            no: 'No, I do not have SGK',
-            placeholder: 'Select an option',
-            countryLabel: 'Nationality / Country of Origin',
-          }
-
   async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
     setSubmittedId(null)
@@ -548,16 +403,15 @@ export default function PatientRequestPage() {
 
     if (
       !fullName ||
-      !dateOfBirth ||
       !phone ||
-      !preferredUniversity ||
-      !countryCode ||
-      hasSgk === '' ||
+      !age ||
+      !gender ||
       !treatmentType ||
       !complaintText ||
       !painScore ||
       !symptomDuration ||
-      !priorTreatment
+      !medicalCondition ||
+      (medicalCondition === 'Other' && !medicalConditionDetails.trim())
     ) {
       setErrorMessage(t('request.errorRequiredFields'))
       return
@@ -575,7 +429,11 @@ export default function PatientRequestPage() {
 
     setIsSubmitting(true)
     const urgency = getUrgencyFromPainScore(painScore)
-    const age = calculateAgeFromDateOfBirth(dateOfBirth)
+    const parsedAge = Number(age)
+    const medicalConditionValue =
+      medicalCondition === 'Other'
+        ? `Other: ${medicalConditionDetails.trim()}`
+        : medicalCondition
 
     let attachmentPath: string | null = null
 
@@ -602,24 +460,19 @@ export default function PatientRequestPage() {
       .insert([
         {
           full_name: fullName,
-          age: Number.isFinite(age) && age >= 0 ? age : null,
+          age: Number.isFinite(parsedAge) && parsedAge >= 0 ? parsedAge : null,
+          gender,
           phone,
-          city,
-          country: countryOptions.find((c) => c.code === countryCode)?.label ?? countryCode,
-          country_code: countryCode,
-          has_sgk: hasSgk === 'yes',
-          preferred_university: preferredUniversity,
-          preferred_language: preferredLanguage,
+          preferred_language: preferredLanguage || null,
           treatment_type: treatmentType,
           complaint_text: complaintText,
           urgency,
-          preferred_days: preferredDays,
+          preferred_days: preferredDays || null,
           pain_score: painScore ? Number(painScore) : null,
           symptom_duration: symptomDuration,
-          contact_method: contactMethod,
-          best_contact_time: bestContactTime,
-          prior_treatment: priorTreatment === 'yes',
-          medical_condition: medicalCondition,
+          contact_method: contactMethod || null,
+          best_contact_time: bestContactTime || null,
+          medical_condition: medicalConditionValue,
           consent,
           consent_accepted_at: new Date().toISOString(),
           consent_version: CONSENT_VERSION,
@@ -643,24 +496,19 @@ export default function PatientRequestPage() {
 
     setSubmittedId('submitted')
     setFullName('')
-    setDateOfBirth('')
     setPhone('')
-    setPreferredLanguage('English')
-    setCity('Istanbul')
-    setPreferredUniversity('İstinye Dental Hospital')
-    setCountryCode('TR')
-    setHasSgk('')
+    setAge('')
+    setGender('')
+    setPreferredLanguage('')
     setPainScore('')
     setSymptomDuration('')
-    setContactMethod('WhatsApp')
-    setBestContactTime('Anytime')
-    setPriorTreatment('')
+    setContactMethod('')
+    setBestContactTime('')
     setMedicalCondition('None')
-    setCountrySearch('')
-    setCountryOpen(false)
+    setMedicalConditionDetails('')
     setTreatmentType('')
     setComplaintText('')
-    setPreferredDays('No Preference')
+    setPreferredDays('')
     setConsent(false)
     setAttachment(null)
   }
@@ -791,20 +639,6 @@ export default function PatientRequestPage() {
 
                   <div>
                     <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                      {t('request.dateOfBirth')} *
-                    </label>
-                    <input
-                      type="date"
-                      value={dateOfBirth}
-                      onChange={(e) => setDateOfBirth(e.target.value)}
-                      max={new Date().toISOString().split('T')[0]}
-                      placeholder={t('request.dateOfBirthPlaceholder')}
-                      className="w-full appearance-none rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none transition focus:border-slate-900 sm:px-4 sm:py-3"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
                       {t('request.phone')} *
                     </label>
                     <input
@@ -818,138 +652,32 @@ export default function PatientRequestPage() {
 
                   <div>
                     <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                      {t('request.preferredLanguage')}{' '}
-                      <span className="font-normal text-slate-400">{t('request.optional')}</span>
-                    </label>
-                    <select
-                      value={preferredLanguage}
-                      onChange={(e) => setPreferredLanguage(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
-                    >
-                      {LANGUAGE_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {t(opt.tKey)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                      {t('request.city')}{' '}
-                      <span className="font-normal text-slate-400">{t('request.optional')}</span>
+                      {t('request.age')} *
                     </label>
                     <input
-                      type="text"
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                      placeholder={t('request.cityPlaceholder')}
+                      type="number"
+                      min="0"
+                      inputMode="numeric"
+                      value={age}
+                      onChange={(e) => setAge(e.target.value)}
+                      placeholder={t('request.agePlaceholder')}
                       className="w-full rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
                     />
                   </div>
 
-                  <div className="relative" ref={countryDropdownRef}>
-                    <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                      {sgkText.countryLabel} *
-                    </label>
-
-                    <button
-                      type="button"
-                      onClick={() => setCountryOpen((prev) => !prev)}
-                      className="flex w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-3 py-2.5 sm:px-4 sm:py-3 text-left outline-none transition hover:border-slate-400 focus:border-slate-900"
-                    >
-                      <span className="truncate text-slate-900">
-                        {(() => {
-                          const selected = countryOptions.find((country) => country.code === countryCode)
-                          if (!selected) return sgkText.countryLabel
-                          return selected.code === 'SY'
-                            ? selected.label
-                            : `${selected.flag} ${selected.label}`
-                        })()}
-                      </span>
-                      <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
-                    </button>
-
-                    {countryOpen && (
-                      <div className="absolute z-30 mt-2 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
-                        <div className="border-b border-slate-100 p-2 sm:p-3">
-                          <div className="relative">
-                            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                            <input
-                              type="text"
-                              value={countrySearch}
-                              onChange={(e) => setCountrySearch(e.target.value)}
-                              placeholder={locale === 'tr' ? 'Ülke ara...' : 'Search country...'}
-                              className="w-full rounded-xl border border-slate-300 py-2 pl-9 pr-3 text-sm outline-none transition focus:border-slate-900"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="max-h-60 sm:max-h-72 overflow-y-auto p-1 sm:p-2">
-                          {filteredCountryOptions.length === 0 ? (
-                            <div className="px-3 py-2 text-sm text-slate-500">
-                              {locale === 'tr' ? 'Sonuç bulunamadı' : 'No results found'}
-                            </div>
-                          ) : (
-                            filteredCountryOptions.map((country) => (
-                              <button
-                                key={country.code}
-                                type="button"
-                                onClick={() => {
-                                  setCountryCode(country.code)
-                                  setCountrySearch('')
-                                  setCountryOpen(false)
-                                }}
-                                className={`flex w-full items-center rounded-xl px-3 py-2 text-left text-sm transition ${
-                                  country.code === countryCode
-                                    ? 'bg-slate-100 text-slate-900'
-                                    : 'text-slate-700 hover:bg-slate-50'
-                                }`}
-                              >
-                                <span className="truncate">
-                                  {country.code === 'SY'
-                                    ? country.label
-                                    : `${country.flag} ${country.label}`}
-                                </span>
-                              </button>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
                   <div>
                     <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                      {sgkText.label} *
-                    </label>
-                    <p className="mb-1.5 sm:mb-2 flex items-start gap-1 text-xs text-slate-500">
-                      <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                      <span>{sgkText.helper}</span>
-                    </p>
-                    <select
-                      value={hasSgk}
-                      onChange={(e) => setHasSgk(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
-                    >
-                      <option value="">{sgkText.placeholder}</option>
-                      <option value="yes">{sgkText.yes}</option>
-                      <option value="no">{sgkText.no}</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                      {t('request.preferredUniversity')} *
+                      {t('request.gender')} *
                     </label>
                     <select
-                      value={preferredUniversity}
-                      onChange={(e) => setPreferredUniversity(e.target.value)}
+                      value={gender}
+                      onChange={(e) => setGender(e.target.value)}
                       className="w-full rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
                     >
-                      {UNIVERSITY_OPTIONS.map((university) => (
-                        <option key={university} value={university}>
-                          {university}
+                      <option value="">{t('request.selectPlaceholder')}</option>
+                      {GENDER_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {t(opt.tKey)}
                         </option>
                       ))}
                     </select>
@@ -1050,31 +778,21 @@ export default function PatientRequestPage() {
                     <div className="mt-4 grid gap-4 sm:gap-5 md:grid-cols-2">
                       <div>
                         <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                          {t('request.priorTreatmentLabel')} *
-                        </label>
-                        <select
-                          value={priorTreatment}
-                          onChange={(e) => setPriorTreatment(e.target.value)}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-slate-900 sm:px-4 sm:py-3"
-                        >
-                          <option value="">{t('request.priorTreatmentPlaceholder')}</option>
-                          {PRIOR_TREATMENT_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {t(opt.tKey)}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
                           {t('request.medicalConditionLabel')} *
                         </label>
                         <select
                           value={medicalCondition}
-                          onChange={(e) => setMedicalCondition(e.target.value)}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            setMedicalCondition(value)
+
+                            if (value !== 'Other') {
+                              setMedicalConditionDetails('')
+                            }
+                          }}
                           className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-slate-900 sm:px-4 sm:py-3"
                         >
+                          <option value="">{t('request.selectPlaceholder')}</option>
                           {MEDICAL_CONDITION_OPTIONS.map((opt) => (
                             <option key={opt.value} value={opt.value}>
                               {t(opt.tKey)}
@@ -1083,88 +801,39 @@ export default function PatientRequestPage() {
                         </select>
                       </div>
                     </div>
-                  </div>
 
-                  <div>
-                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                      {locale === 'tr' ? 'İletişim' : 'Communication'}
-                    </p>
-                    <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
-                      <div>
+                    {medicalCondition === 'Other' && (
+                      <div className="mt-4">
                         <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                          {t('request.contactMethodLabel')}{' '}
-                          <span className="font-normal text-slate-400">{t('request.optional')}</span>
+                          {t('request.medicalConditionDetailsLabel')} *
                         </label>
-                        <select
-                          value={contactMethod}
-                          onChange={(e) => setContactMethod(e.target.value)}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-slate-900 sm:px-4 sm:py-3"
-                        >
-                          {CONTACT_METHOD_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {t(opt.tKey)}
-                            </option>
-                          ))}
-                        </select>
+                        <input
+                          type="text"
+                          value={medicalConditionDetails}
+                          onChange={(e) => setMedicalConditionDetails(e.target.value)}
+                          placeholder={t('request.medicalConditionDetailsPlaceholder')}
+                          className="w-full rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
+                        />
                       </div>
-
-                      <div>
-                        <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                          {t('request.bestContactTimeLabel')}{' '}
-                          <span className="font-normal text-slate-400">{t('request.optional')}</span>
-                        </label>
-                        <select
-                          value={bestContactTime}
-                          onChange={(e) => setBestContactTime(e.target.value)}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-slate-900 sm:px-4 sm:py-3"
-                        >
-                          {CONTACT_TIME_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {t(opt.tKey)}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                      {locale === 'tr' ? 'Planlama' : 'Scheduling'}
-                    </p>
-                    <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
-                      <div>
-                        <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                          {t('request.availability')}{' '}
-                          <span className="font-normal text-slate-400">{t('request.optional')}</span>
-                        </label>
-                        <select
-                          value={preferredDays}
-                          onChange={(e) => setPreferredDays(e.target.value)}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-slate-900 sm:px-4 sm:py-3"
-                        >
-                          {DAY_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {t(opt.tKey)}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </section>
 
-              {/* Images Section */}
+              {/* Optional Support Section */}
               <section ref={(node) => { stepSectionRefs.current[2] = node }}>
                 <div className="mb-4 sm:mb-5 flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-teal-500 shrink-0" />
                   <h2 className="text-lg sm:text-2xl font-semibold text-slate-900 truncate">
-                    {t('request.sectionImages')}{' '}
-                    <span className="text-sm sm:text-base font-normal text-slate-400">
-                      {t('request.sectionImagesNote')}
-                    </span>
+                    {t('request.sectionSupport')}
                   </h2>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-700">
+                    {t('request.supportingImages')}{' '}
+                    <span className="font-normal text-slate-400">{t('request.optional')}</span>
+                  </label>
                 </div>
 
                 <div className="rounded-xl sm:rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 sm:px-6 sm:py-8">
@@ -1195,6 +864,84 @@ export default function PatientRequestPage() {
                       <span className="font-medium truncate block sm:inline mt-1 sm:mt-0">{attachment.name}</span>
                     </div>
                   )}
+                </div>
+
+                <div className="mt-5 grid gap-4 sm:mt-6 sm:gap-5 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
+                      {t('request.contactMethodLabel')}{' '}
+                      <span className="font-normal text-slate-400">{t('request.optional')}</span>
+                    </label>
+                    <select
+                      value={contactMethod}
+                      onChange={(e) => setContactMethod(e.target.value)}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-slate-900 sm:px-4 sm:py-3"
+                    >
+                      <option value="">{t('request.selectPlaceholder')}</option>
+                      {CONTACT_METHOD_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {t(opt.tKey)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
+                      {t('request.preferredLanguage')}{' '}
+                      <span className="font-normal text-slate-400">{t('request.optional')}</span>
+                    </label>
+                    <select
+                      value={preferredLanguage}
+                      onChange={(e) => setPreferredLanguage(e.target.value)}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
+                    >
+                      <option value="">{t('request.selectPlaceholder')}</option>
+                      {LANGUAGE_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {t(opt.tKey)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
+                      {t('request.bestContactTimeLabel')}{' '}
+                      <span className="font-normal text-slate-400">{t('request.optional')}</span>
+                    </label>
+                    <select
+                      value={bestContactTime}
+                      onChange={(e) => setBestContactTime(e.target.value)}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-slate-900 sm:px-4 sm:py-3"
+                    >
+                      <option value="">{t('request.selectPlaceholder')}</option>
+                      {CONTACT_TIME_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {t(opt.tKey)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
+                      {t('request.availability')}{' '}
+                      <span className="font-normal text-slate-400">{t('request.optional')}</span>
+                    </label>
+                    <select
+                      value={preferredDays}
+                      onChange={(e) => setPreferredDays(e.target.value)}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-slate-900 sm:px-4 sm:py-3"
+                    >
+                      <option value="">{t('request.selectPlaceholder')}</option>
+                      {DAY_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {t(opt.tKey)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </section>
 
