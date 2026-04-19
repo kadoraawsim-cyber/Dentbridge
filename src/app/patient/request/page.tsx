@@ -135,7 +135,7 @@ function parsePatientRequestDraft(value: string | null): PatientRequestDraft | n
       symptomDuration: typeof parsed.symptomDuration === 'string' ? parsed.symptomDuration : '',
       contactMethod: typeof parsed.contactMethod === 'string' ? parsed.contactMethod : '',
       bestContactTime: typeof parsed.bestContactTime === 'string' ? parsed.bestContactTime : '',
-      medicalCondition: typeof parsed.medicalCondition === 'string' ? parsed.medicalCondition : 'None',
+      medicalCondition: typeof parsed.medicalCondition === 'string' ? parsed.medicalCondition : '',
       medicalConditionDetails:
         typeof parsed.medicalConditionDetails === 'string' ? parsed.medicalConditionDetails : '',
       hasTouchedMedicalCondition:
@@ -179,7 +179,7 @@ export default function PatientRequestPage() {
   const [symptomDuration, setSymptomDuration] = useState('')
   const [contactMethod, setContactMethod] = useState('')
   const [bestContactTime, setBestContactTime] = useState('')
-  const [medicalCondition, setMedicalCondition] = useState('None')
+  const [medicalCondition, setMedicalCondition] = useState('')
   const [medicalConditionDetails, setMedicalConditionDetails] = useState('')
   const [hasTouchedMedicalCondition, setHasTouchedMedicalCondition] = useState(false)
   const [consent, setConsent] = useState(false)
@@ -429,7 +429,7 @@ export default function PatientRequestPage() {
     setSymptomDuration('')
     setContactMethod('')
     setBestContactTime('')
-    setMedicalCondition('None')
+    setMedicalCondition('')
     setMedicalConditionDetails('')
     setHasTouchedMedicalCondition(false)
     setTreatmentType('')
