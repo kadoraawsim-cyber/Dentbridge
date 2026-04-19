@@ -37,9 +37,9 @@ export const tr: TranslationShape = {
   },
 
   callout: {
-    heading: 'Klinik değerlendirmeye mi ihtiyacınız var?',
+    heading: 'Tedavi talebi oluşturmaya hazır mısınız?',
     description:
-      'Bugün tedavi talebinizi başlatın ve üniversite ekibinin vakanızı incelemesine izin verin.',
+      'Talebinizi bugün gönderin ve üniversite ekibimizin vakanızı incelemesine izin verin.',
   },
 
   landing: {

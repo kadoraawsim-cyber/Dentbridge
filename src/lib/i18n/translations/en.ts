@@ -791,9 +791,9 @@ export const en: TranslationShape = {
   },
 
   callout: {
-    heading: 'Need a clinical evaluation?',
+    heading: 'Ready to request treatment?',
     description:
-      'Start your treatment request today and let the university team review your case.',
+      'Submit your request today and let our university team review your case.',
   },
 
   landing: {
