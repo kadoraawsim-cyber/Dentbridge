@@ -312,12 +312,13 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
   footer: {
     tagline: 'Fakülte Destekli Klinik Platform',
     description:
-      'Hastaları yapılandırılmış akademik iş akışları aracılığıyla uygun fiyatlı, denetimli diş hekimliği bakımıyla buluşturur.',
-    patientServices: 'Hasta Hizmetleri',
+      'Hastaları yapılandırılmış akademik iş akışıyla uygun fiyatlı, denetimli diş hekimliği bakımıyla buluşturur.',
+    patientServices: 'Hastalar İçin',
     clinicalPortals: 'Klinik Portallar',
     contact: 'İletişim',
     requestTreatment: 'Tedavi Talep Et',
-    checkStatus: 'Durumu Sorgula',
+    checkStatus: 'Talep Durumunu Kontrol Et',
+    privacyPolicy: 'Gizlilik Politikası',
     studentPortal: 'Öğrenci Portalı',
     facultyPortal: 'Fakülte Portalı',
     casePool: 'Vaka Havuzu',
@@ -325,9 +326,54 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
     faq: 'SSS',
     clinicalRequirements: 'Klinik Gereksinimler',
     universityPilot: 'Üniversite destekli pilot platform',
+    email: 'Dentbridge.tr@gmail.com',
+    instagram: '@Dentbridge.tr',
     whatsappSupport: 'WhatsApp desteği mevcut',
     copyright:
-      '© {year} DentBridge. Tüm tedaviler akademik denetim altında sağlanmaktadır.',
+      '© 2026 DentBridge. Tüm tedaviler akademik denetim altında sağlanmaktadır.',
+  },
+
+  faqPage: {
+    eyebrow: 'Sık Sorulan Sorular',
+    title: 'Hasta SSS',
+    description:
+      'Burada DentBridge üzerinden tedavi talebi oluşturma süreciyle ilgili en sık sorulan sorulara net yanıtlar bulabilirsiniz.',
+    backToRequest: 'Başvuruya dön',
+    items: {
+      whatIsDentBridgeQuestion: 'DentBridge nedir?',
+      whatIsDentBridgeAnswer:
+        'DentBridge, hastaları akademik denetim altında uygun diş hekimliği öğrenci vakalarıyla buluşturmaya yardımcı olan fakülte destekli bir platformdur. Amaç, bakıma erişimi daha yapılandırılmış, açık ve uygun maliyetli hale getirmektir.',
+      whoWillTreatMeQuestion: 'Bana kim tedavi uygulayacak?',
+      whoWillTreatMeAnswer:
+        'Tedavi, nitelikli fakülte üyelerinin gözetimi altında kıdemli diş hekimliği öğrencileri tarafından sağlanır. Vakalar, hastaları en uygun bölüm ve öğrenci düzeyiyle eşleştirmeye yardımcı olmak için eşleştirme öncesinde incelenir.',
+      isTreatmentSupervisedQuestion: 'Tedavi denetimli mi?',
+      isTreatmentSupervisedAnswer:
+        'Evet. DentBridge, denetimli akademik bakım etrafında tasarlanmıştır. Hastalar, fakülte tarafından incelenen bir süreç üzerinden eşleştirilir ve tedavi eğitim amaçlı klinik bir ortamda sağlanır.',
+      howDoIRequestTreatmentQuestion: 'Nasıl tedavi talebi oluşturabilirim?',
+      howDoIRequestTreatmentAnswer:
+        'Çevrim içi form üzerinden tedavi talebi gönderebilirsiniz. Fakülte ekibinin vakanızı inceleyip uygun şekilde yönlendirebilmesi için sizden temel kişisel ve klinik bilgiler istenir.',
+      whatHappensAfterSubmitQuestion: 'Talebimi gönderdikten sonra ne olur?',
+      whatHappensAfterSubmitAnswer:
+        'Gönderim sonrasında talebiniz incelenir ve uygun bölüme yönlendirilir. Vakanız uygunsa, denetim altında bir öğrenciyle eşleştirilebilir. Ardından bir sonraki adım için sizinle iletişime geçilebilir.',
+      doINeedToKnowDepartmentQuestion: 'Hangi bölüme ihtiyacım olduğunu bilmem gerekiyor mu?',
+      doINeedToKnowDepartmentAnswer:
+        'Hayır. Emin değilseniz talep formunda “Emin değilim” seçeneğini seçebilir ve şikayetinizi kendi kelimelerinizle açıklayabilirsiniz. Fakülte inceleme süreci vakayı doğru bölüme yönlendirmeye yardımcı olur.',
+      canIUploadPhotosQuestion: 'Fotoğraf veya röntgen yükleyebilir miyim?',
+      canIUploadPhotosAnswer:
+        'Evet. Fotoğraf veya röntgen yüklemek isteğe bağlıdır, ancak fakültenin vakanızı daha hızlı ve daha doğru değerlendirmesine yardımcı olabilir.',
+      isMyInformationPrivateQuestion: 'Bilgilerim gizli tutuluyor mu?',
+      isMyInformationPrivateAnswer:
+        'Bilgileriniz yalnızca talebinizi değerlendirmek ve tedavi eşleştirme sürecini desteklemek için toplanır. Bilgilerinizin nasıl işlendiğine dair daha fazla bilgi için lütfen Gizlilik Politikamızı okuyun.',
+      howMuchDoesTreatmentCostQuestion: 'Tedavi ne kadar tutar?',
+      howMuchDoesTreatmentCostAnswer:
+        'DentBridge, uygun fiyatlı ve denetimli diş hekimliği bakımını desteklemek için kurulmuştur. Kesin tedavi maliyetleri vakanın türüne, klinik gereksinimlere ve kurumsal sürece bağlı olabilir.',
+      canICheckStatusQuestion: 'Talebimin durumunu kontrol edebilir miyim?',
+      canICheckStatusAnswer:
+        'Evet. Gönderimden sonra talebinizi takip etmek için Talep Durumunu Kontrol Et sayfasını kullanabilirsiniz.',
+      whatKindsOfCasesQuestion: 'Ne tür vakalar gönderebilirim?',
+      whatKindsOfCasesAnswer:
+        'Muayene, diş taşı temizliği, dolgu, diş çekimi, kanal tedavisi, diş eti tedavisi, protetik ihtiyaçlar, ortodontik sorunlar, pedodonti ve estetik diş hekimliği gibi yaygın diş hekimliği ihtiyaçları için talep oluşturabilirsiniz.',
+    },
   },
 
   student: {

@@ -701,6 +701,7 @@ export type TranslationShape = {
     contact: string
     requestTreatment: string
     checkStatus: string
+    privacyPolicy: string
     studentPortal: string
     facultyPortal: string
     casePool: string
@@ -708,9 +709,42 @@ export type TranslationShape = {
     faq: string
     clinicalRequirements: string
     universityPilot: string
+    email: string
+    instagram: string
     whatsappSupport: string
     /** {year} is replaced at render time */
     copyright: string
+  }
+
+  faqPage: {
+    eyebrow: string
+    title: string
+    description: string
+    backToRequest: string
+    items: {
+      whatIsDentBridgeQuestion: string
+      whatIsDentBridgeAnswer: string
+      whoWillTreatMeQuestion: string
+      whoWillTreatMeAnswer: string
+      isTreatmentSupervisedQuestion: string
+      isTreatmentSupervisedAnswer: string
+      howDoIRequestTreatmentQuestion: string
+      howDoIRequestTreatmentAnswer: string
+      whatHappensAfterSubmitQuestion: string
+      whatHappensAfterSubmitAnswer: string
+      doINeedToKnowDepartmentQuestion: string
+      doINeedToKnowDepartmentAnswer: string
+      canIUploadPhotosQuestion: string
+      canIUploadPhotosAnswer: string
+      isMyInformationPrivateQuestion: string
+      isMyInformationPrivateAnswer: string
+      howMuchDoesTreatmentCostQuestion: string
+      howMuchDoesTreatmentCostAnswer: string
+      canICheckStatusQuestion: string
+      canICheckStatusAnswer: string
+      whatKindsOfCasesQuestion: string
+      whatKindsOfCasesAnswer: string
+    }
   }
 }
 
@@ -1481,12 +1515,13 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
   footer: {
     tagline: 'Faculty-Supported Clinical Platform',
     description:
-      'Connecting patients with affordable, supervised dental care through structured academic workflows.',
-    patientServices: 'Patient Services',
+      'Connecting patients with affordable, supervised dental care through a structured academic workflow.',
+    patientServices: 'For Patients',
     clinicalPortals: 'Clinical Portals',
     contact: 'Contact',
     requestTreatment: 'Request Treatment',
-    checkStatus: 'Check Status',
+    checkStatus: 'Check Request Status',
+    privacyPolicy: 'Privacy Policy',
     studentPortal: 'Student Portal',
     facultyPortal: 'Faculty Portal',
     casePool: 'Case Pool',
@@ -1494,8 +1529,53 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     faq: 'FAQ',
     clinicalRequirements: 'Clinical Requirements',
     universityPilot: 'University-supported pilot platform',
+    email: 'Dentbridge.tr@gmail.com',
+    instagram: '@Dentbridge.tr',
     whatsappSupport: 'WhatsApp support available',
     copyright:
-      '© {year} DentBridge. All treatments are provided under academic supervision.',
+      '© 2026 DentBridge. All treatments are provided under academic supervision.',
+  },
+
+  faqPage: {
+    eyebrow: 'Frequently Asked Questions',
+    title: 'Patient FAQ',
+    description:
+      'Here you can find clear answers to the most common questions about requesting treatment through DentBridge.',
+    backToRequest: 'Back to request',
+    items: {
+      whatIsDentBridgeQuestion: 'What is DentBridge?',
+      whatIsDentBridgeAnswer:
+        'DentBridge is a faculty-supported platform that helps connect patients with appropriate dental student cases under academic supervision. The goal is to make access to care more structured, clear, and affordable.',
+      whoWillTreatMeQuestion: 'Who will treat me?',
+      whoWillTreatMeAnswer:
+        'Treatment is provided by senior dental students, under the supervision of qualified faculty members. Cases are reviewed before matching to help place patients with the most suitable department and student level.',
+      isTreatmentSupervisedQuestion: 'Is treatment supervised?',
+      isTreatmentSupervisedAnswer:
+        'Yes. DentBridge is designed around supervised academic care. Patients are matched through a faculty-reviewed process, and treatment is provided within an educational clinical environment.',
+      howDoIRequestTreatmentQuestion: 'How do I request treatment?',
+      howDoIRequestTreatmentAnswer:
+        'You can submit a treatment request through the online form. You will be asked for basic personal and clinical information so the faculty team can review your case and match you appropriately.',
+      whatHappensAfterSubmitQuestion: 'What happens after I submit my request?',
+      whatHappensAfterSubmitAnswer:
+        'After submission, your request is reviewed and directed to the appropriate department. If your case is suitable, it can be matched to a student under supervision. You may then be contacted for the next step.',
+      doINeedToKnowDepartmentQuestion: 'Do I need to know which department I need?',
+      doINeedToKnowDepartmentAnswer:
+        'No. If you are unsure, you can select “I’m not sure” in the request form and describe your complaint in your own words. The faculty review process helps guide the case to the correct department.',
+      canIUploadPhotosQuestion: 'Can I upload photos or x-rays?',
+      canIUploadPhotosAnswer:
+        'Yes. Uploading a photo or x-ray is optional, but it can help the faculty review your case faster and more accurately.',
+      isMyInformationPrivateQuestion: 'Is my information private?',
+      isMyInformationPrivateAnswer:
+        'Your information is collected only to review your request and support the treatment-matching process. Please read our Privacy Policy for more details about how your information is handled.',
+      howMuchDoesTreatmentCostQuestion: 'How much does treatment cost?',
+      howMuchDoesTreatmentCostAnswer:
+        'DentBridge is built to support affordable, supervised dental care. Exact treatment costs may depend on the type of case, clinical needs, and institutional process.',
+      canICheckStatusQuestion: 'Can I check the status of my request?',
+      canICheckStatusAnswer:
+        'Yes. You can use the Check Request Status page to follow your request after submission.',
+      whatKindsOfCasesQuestion: 'What kind of cases can I submit?',
+      whatKindsOfCasesAnswer:
+        'You can submit requests for common dental concerns such as consultation, cleaning, fillings, tooth extraction, root canal treatment, gum treatment, prosthetic needs, orthodontic concerns, pediatric dentistry, and esthetic dentistry.',
+    },
   },
 }

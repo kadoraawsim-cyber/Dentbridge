@@ -368,7 +368,7 @@ export default function HomePage() {
       </section>
 
       <footer className="bg-slate-950 py-10 sm:py-14 text-slate-300">
-        <div className="mx-auto grid max-w-7xl gap-8 sm:gap-10 px-4 sm:px-6 md:grid-cols-2 lg:grid-cols-4 lg:px-8">
+        <div className="mx-auto grid max-w-7xl gap-8 sm:gap-10 px-4 sm:px-6 md:grid-cols-2 lg:grid-cols-3 lg:px-8">
           <div>
             <div className="mb-3 sm:mb-4 flex items-center gap-2.5 sm:gap-3">
               <img
@@ -400,34 +400,14 @@ export default function HomePage() {
                 </Link>
               </li>
               <li>
-                <span className="cursor-default text-slate-600">{t('footer.affordableCareInfo')}</span>
-              </li>
-              <li>
-                <span className="cursor-default text-slate-600">{t('footer.faq')}</span>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="mb-3 sm:mb-4 text-sm sm:text-base font-semibold text-white">{t('footer.clinicalPortals')}</h3>
-            <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-slate-400">
-              <li>
-                <Link href="/student/login" className="hover:text-white">
-                  {t('footer.studentPortal')}
+                <Link href="/privacy" className="hover:text-white">
+                  {t('footer.privacyPolicy')}
                 </Link>
               </li>
               <li>
-                <Link href="/admin/login" className="hover:text-white">
-                  {t('footer.facultyPortal')}
+                <Link href="/faq" className="hover:text-white">
+                  {t('footer.faq')}
                 </Link>
-              </li>
-              <li>
-                <Link href="/student/cases" className="hover:text-white">
-                  {t('footer.casePool')}
-                </Link>
-              </li>
-              <li>
-                <span className="cursor-default text-slate-600">{t('footer.clinicalRequirements')}</span>
               </li>
             </ul>
           </div>
@@ -435,15 +415,40 @@ export default function HomePage() {
           <div>
             <h3 className="mb-3 sm:mb-4 text-sm sm:text-base font-semibold text-white">{t('footer.contact')}</h3>
             <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-slate-400">
-              <li>Istanbul, Türkiye</li>
-              <li>{t('footer.universityPilot')}</li>
-              <li>{t('footer.whatsappSupport')}</li>
+              <li>
+                Istanbul, Türkiye
+              </li>
+              <li>
+                <a href="mailto:Dentbridge.tr@gmail.com" className="hover:text-white">
+                  {t('footer.email')}
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://instagram.com/dentbridge.tr"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-white"
+                >
+                  {t('footer.instagram')}
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://wa.me/905411072665"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-white"
+                >
+                  {t('footer.whatsappSupport')}
+                </a>
+              </li>
             </ul>
           </div>
         </div>
 
         <div className="mx-auto mt-8 sm:mt-10 max-w-7xl border-t border-slate-800 px-4 pt-4 sm:pt-6 text-[10px] sm:text-xs text-slate-500 sm:px-6 lg:px-8">
-          {t('footer.copyright').replace('{year}', String(new Date().getFullYear()))}
+          {t('footer.copyright')}
         </div>
       </footer>
     </main>
