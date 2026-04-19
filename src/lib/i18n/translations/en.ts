@@ -106,6 +106,7 @@ export type TranslationShape = {
     age: string
     gender: string
     phone: string
+    phoneCountryCode: string
     preferredLanguage: string
     supportingImages: string
     optional: string
@@ -113,6 +114,7 @@ export type TranslationShape = {
     fullNamePlaceholder: string
     agePlaceholder: string
     phonePlaceholder: string
+    phoneNumberPlaceholder: string
     painScoreLabel: string
     painScorePlaceholder: string
     durationLabel: string
@@ -887,6 +889,7 @@ export const en: TranslationShape = {
     age: 'Age',
     gender: 'Gender',
     phone: 'Phone Number',
+    phoneCountryCode: 'Country Code',
     preferredLanguage: 'Preferred Communication Language',
     supportingImages: 'Supporting Images',
     optional: '(optional)',
@@ -894,6 +897,7 @@ export const en: TranslationShape = {
     fullNamePlaceholder: 'Enter your full name',
     agePlaceholder: 'Your age',
     phonePlaceholder: 'Enter phone number with country code',
+    phoneNumberPlaceholder: 'Enter phone number',
     painScoreLabel: 'Pain Score (0–10)',
     painScorePlaceholder: 'Select pain score',
     durationLabel: 'How long has this problem been present?',

@@ -35,6 +35,32 @@ const LANGUAGE_OPTIONS = [
   { value: 'Arabic',  tKey: 'request.langArabic' },
 ] as const
 
+const PHONE_COUNTRY_CODE_OPTIONS = [
+  '+90',
+  '+1',
+  '+20',
+  '+31',
+  '+33',
+  '+44',
+  '+49',
+  '+91',
+  '+92',
+  '+93',
+  '+94',
+  '+98',
+  '+212',
+  '+213',
+  '+216',
+  '+218',
+  '+962',
+  '+963',
+  '+964',
+  '+965',
+  '+966',
+  '+971',
+  '+974',
+] as const
+
 const DAY_OPTIONS = [
   { value: 'No Preference',       tKey: 'request.dayNoPreference' },
   { value: 'Weekday Mornings',    tKey: 'request.dayWeekdayMornings' },
@@ -93,6 +119,7 @@ const PATIENT_REQUEST_STEP_KEY = 'patient_request_step'
 
 type PatientRequestDraft = {
   fullName: string
+  phoneCountryCode: string
   phone: string
   age: string
   gender: string
@@ -124,6 +151,8 @@ function parsePatientRequestDraft(value: string | null): PatientRequestDraft | n
 
     return {
       fullName: typeof parsed.fullName === 'string' ? parsed.fullName : '',
+      phoneCountryCode:
+        typeof parsed.phoneCountryCode === 'string' ? parsed.phoneCountryCode : '+90',
       phone: typeof parsed.phone === 'string' ? parsed.phone : '',
       age: typeof parsed.age === 'string' ? parsed.age : '',
       gender: typeof parsed.gender === 'string' ? parsed.gender : '',
@@ -189,6 +218,7 @@ export default function PatientRequestPage() {
         }
 
   const [fullName, setFullName] = useState('')
+  const [phoneCountryCode, setPhoneCountryCode] = useState('+90')
   const [phone, setPhone] = useState('')
   const [age, setAge] = useState('')
   const [gender, setGender] = useState('')
@@ -312,6 +342,7 @@ export default function PatientRequestPage() {
 
     if (savedDraft) {
       setFullName(savedDraft.fullName)
+      setPhoneCountryCode(savedDraft.phoneCountryCode)
       setPhone(savedDraft.phone)
       setAge(savedDraft.age)
       setGender(savedDraft.gender)
@@ -351,6 +382,7 @@ export default function PatientRequestPage() {
 
     const draft: PatientRequestDraft = {
       fullName,
+      phoneCountryCode,
       phone,
       age,
       gender,
@@ -386,6 +418,7 @@ export default function PatientRequestPage() {
     medicalCondition,
     medicalConditionDetails,
     painScore,
+    phoneCountryCode,
     phone,
     preferredDays,
     preferredLanguage,
@@ -443,6 +476,7 @@ export default function PatientRequestPage() {
     setSubmittedId(null)
     setErrorMessage('')
     setFullName('')
+    setPhoneCountryCode('+90')
     setPhone('')
     setAge('')
     setGender('')
@@ -472,10 +506,8 @@ export default function PatientRequestPage() {
     const hasLettersInEveryWord = fullNameWords.every((word) => /[\p{L}]/u.test(word))
     const hasOnlyAllowedNameCharacters =
       trimmedFullName.replace(/[\p{L}\s'.-]/gu, '') === ''
-    const normalizedPhone = normalizePhoneNumber(phone.trim())
-    const phoneDigits = normalizedPhone.startsWith('+')
-      ? normalizedPhone.slice(1)
-      : normalizedPhone
+    const normalizedPhone = normalizePhoneNumber(phone.trim()).replace(/^\+/, '')
+    const combinedPhone = `${phoneCountryCode}${normalizedPhone}`
     const parsedAge = Number(age)
 
     if (!trimmedFullName) {
@@ -508,9 +540,10 @@ export default function PatientRequestPage() {
     }
 
     if (
-      !/^\+?\d+$/.test(normalizedPhone) ||
-      phoneDigits.length < 7 ||
-      phoneDigits.length > 15
+      !/^\+\d+$/.test(phoneCountryCode) ||
+      !/^\d+$/.test(normalizedPhone) ||
+      normalizedPhone.length < 6 ||
+      normalizedPhone.length > 15
     ) {
       setErrorMessage(validationText.phoneInvalid)
       return
@@ -576,7 +609,7 @@ export default function PatientRequestPage() {
           full_name: fullName,
           age: Number.isFinite(parsedAge) && parsedAge >= 0 ? parsedAge : null,
           gender,
-          phone: normalizedPhone,
+          phone: combinedPhone,
           preferred_language: preferredLanguage || null,
           treatment_type: treatmentType,
           complaint_text: complaintText,
@@ -743,16 +776,37 @@ export default function PatientRequestPage() {
                   </div>
 
                   <div>
-                    <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                      {t('request.phone')} *
-                    </label>
-                    <input
-                      type="text"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder={t('request.phonePlaceholder')}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
-                    />
+                    <div className="grid gap-3 grid-cols-[7rem_minmax(0,1fr)]">
+                      <div>
+                        <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
+                          {t('request.phoneCountryCode')} *
+                        </label>
+                        <select
+                          value={phoneCountryCode}
+                          onChange={(e) => setPhoneCountryCode(e.target.value)}
+                          className="w-full rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
+                        >
+                          {PHONE_COUNTRY_CODE_OPTIONS.map((code) => (
+                            <option key={code} value={code}>
+                              {code}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
+                          {t('request.phone')} *
+                        </label>
+                        <input
+                          type="text"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          placeholder={t('request.phoneNumberPlaceholder')}
+                          className="w-full rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   <div>
