@@ -727,7 +727,7 @@ export const en: TranslationShape = {
 
   patientNav: {
     tagline: 'Faculty-Supported Clinical Platform',
-    myPortal: 'My Portal',
+    myPortal: 'Check My Request Status',
     newRequest: 'New Treatment Request',
     backToHome: 'Back to Home',
   },

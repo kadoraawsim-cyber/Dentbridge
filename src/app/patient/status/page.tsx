@@ -583,16 +583,6 @@ export default function PatientStatusPage() {
                   {t('footer.facultyPortal')}
                 </Link>
               </li>
-              <li>
-                <Link href="/student/cases" className="hover:text-white">
-                  {t('footer.casePool')}
-                </Link>
-              </li>
-              <li>
-                <span className="cursor-default text-slate-600">
-                  {t('footer.clinicalRequirements')}
-                </span>
-              </li>
             </ul>
           </div>
 

@@ -11,7 +11,7 @@ export const tr: TranslationShape = {
 
   patientNav: {
     tagline: 'Fakülte Destekli Klinik Platform',
-    myPortal: 'Portalım',
+    myPortal: 'Talep Durumumu Kontrol Et',
     newRequest: 'Yeni Tedavi Talebi',
     backToHome: 'Ana Sayfaya Dön',
   },
