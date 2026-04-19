@@ -121,6 +121,7 @@ export type TranslationShape = {
     durationFewDays: string
     durationOneToTwoWeeks: string
     durationMoreThanMonth: string
+    durationRoutineNoSpecificStart: string
     medicalConditionLabel: string
     medicalConditionDetailsLabel: string
     medicalConditionDetailsPlaceholder: string
@@ -901,6 +902,7 @@ export const en: TranslationShape = {
     durationFewDays: 'A few days',
     durationOneToTwoWeeks: '1–2 weeks',
     durationMoreThanMonth: 'More than a month',
+    durationRoutineNoSpecificStart: 'Routine / No specific start date',
     medicalConditionLabel: 'Important Medical Condition',
     medicalConditionDetailsLabel: 'Please describe your medical condition',
     medicalConditionDetailsPlaceholder: 'Describe your medical condition',

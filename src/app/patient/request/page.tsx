@@ -48,6 +48,7 @@ const DURATION_OPTIONS = [
   { value: 'A few days', tKey: 'request.durationFewDays' },
   { value: '1-2 weeks', tKey: 'request.durationOneToTwoWeeks' },
   { value: 'More than a month', tKey: 'request.durationMoreThanMonth' },
+  { value: 'Routine / No specific start date', tKey: 'request.durationRoutineNoSpecificStart' },
 ] as const
 
 function getUrgencyFromPainScore(painScore: string) {
@@ -105,6 +106,7 @@ type PatientRequestDraft = {
   bestContactTime: string
   medicalCondition: string
   medicalConditionDetails: string
+  hasTouchedMedicalCondition: boolean
   consent: boolean
 }
 
@@ -136,6 +138,10 @@ function parsePatientRequestDraft(value: string | null): PatientRequestDraft | n
       medicalCondition: typeof parsed.medicalCondition === 'string' ? parsed.medicalCondition : 'None',
       medicalConditionDetails:
         typeof parsed.medicalConditionDetails === 'string' ? parsed.medicalConditionDetails : '',
+      hasTouchedMedicalCondition:
+        typeof parsed.hasTouchedMedicalCondition === 'boolean'
+          ? parsed.hasTouchedMedicalCondition
+          : typeof parsed.medicalCondition === 'string' && parsed.medicalCondition !== 'None',
       consent: typeof parsed.consent === 'boolean' ? parsed.consent : false,
     }
   } catch {
@@ -175,6 +181,7 @@ export default function PatientRequestPage() {
   const [bestContactTime, setBestContactTime] = useState('')
   const [medicalCondition, setMedicalCondition] = useState('None')
   const [medicalConditionDetails, setMedicalConditionDetails] = useState('')
+  const [hasTouchedMedicalCondition, setHasTouchedMedicalCondition] = useState(false)
   const [consent, setConsent] = useState(false)
   const [attachment, setAttachment] = useState<File | null>(null)
 
@@ -244,7 +251,7 @@ export default function PatientRequestPage() {
       Boolean(complaintText.trim()),
       Boolean(painScore),
       Boolean(symptomDuration),
-      Boolean(medicalCondition),
+      hasTouchedMedicalCondition && Boolean(medicalCondition),
       medicalCondition !== 'Other' || Boolean(medicalConditionDetails.trim()),
       consent,
     ],
@@ -254,6 +261,7 @@ export default function PatientRequestPage() {
       consent,
       fullName,
       gender,
+      hasTouchedMedicalCondition,
       medicalCondition,
       medicalConditionDetails,
       painScore,
@@ -295,6 +303,7 @@ export default function PatientRequestPage() {
       setBestContactTime(savedDraft.bestContactTime)
       setMedicalCondition(savedDraft.medicalCondition)
       setMedicalConditionDetails(savedDraft.medicalConditionDetails)
+      setHasTouchedMedicalCondition(savedDraft.hasTouchedMedicalCondition)
       setConsent(savedDraft.consent)
     } else if (window.sessionStorage.getItem(PATIENT_REQUEST_DRAFT_KEY)) {
       window.sessionStorage.removeItem(PATIENT_REQUEST_DRAFT_KEY)
@@ -333,6 +342,7 @@ export default function PatientRequestPage() {
       bestContactTime,
       medicalCondition,
       medicalConditionDetails,
+      hasTouchedMedicalCondition,
       consent,
     }
 
@@ -350,6 +360,7 @@ export default function PatientRequestPage() {
     fullName,
     gender,
     hasRestoredDraft,
+    hasTouchedMedicalCondition,
     medicalCondition,
     medicalConditionDetails,
     painScore,
@@ -506,6 +517,7 @@ export default function PatientRequestPage() {
     setBestContactTime('')
     setMedicalCondition('None')
     setMedicalConditionDetails('')
+    setHasTouchedMedicalCondition(false)
     setTreatmentType('')
     setComplaintText('')
     setPreferredDays('')
@@ -598,22 +610,25 @@ export default function PatientRequestPage() {
             onSubmit={handleSubmit}
             className="relative w-full overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200 bg-white shadow-sm"
           >
-            <div className="pointer-events-none absolute inset-y-0 left-3 z-10 sm:left-4">
-              <div className="absolute left-1/2 top-5 -translate-x-1/2 rounded-full border border-emerald-100 bg-white px-2 py-1 text-[11px] font-semibold text-emerald-700 shadow-sm sm:text-xs">
+            <div className="pointer-events-none absolute inset-y-0 left-4 z-10 w-12 sm:left-5 sm:w-14">
+              <div
+                className="absolute left-1/2 min-w-[3rem] -translate-x-1/2 rounded-full border border-emerald-200 bg-white px-2.5 py-1 text-center text-[11px] font-semibold text-emerald-700 shadow-sm ring-4 ring-white transition-all duration-500 ease-out sm:min-w-[3.25rem] sm:text-xs"
+                style={{ top: `calc(1.25rem + (100% - 4.5rem) * ${progressPercent / 100})` }}
+              >
                 {progressPercent}%
               </div>
-              <div className="absolute bottom-6 left-1/2 top-14 w-px -translate-x-1/2 rounded-full bg-slate-200" />
+              <div className="absolute bottom-6 left-1/2 top-10 w-px -translate-x-1/2 rounded-full bg-slate-200" />
               <div
-                className="absolute left-1/2 top-14 w-px -translate-x-1/2 rounded-full bg-emerald-500 transition-all"
-                style={{ height: `calc((100% - 5rem) * ${progressPercent / 100})` }}
+                className="absolute left-1/2 top-10 w-px -translate-x-1/2 rounded-full bg-emerald-500 transition-all duration-500 ease-out"
+                style={{ height: `calc((100% - 4rem) * ${progressPercent / 100})` }}
               />
               <div
-                className="absolute left-1/2 h-3.5 w-3.5 -translate-x-1/2 rounded-full border-2 border-white bg-emerald-500 shadow-[0_0_0_2px_rgba(16,185,129,0.15)] transition-all"
-                style={{ top: `calc(3.5rem + (100% - 5rem - 0.875rem) * ${progressPercent / 100})` }}
+                className="absolute left-1/2 h-3.5 w-3.5 -translate-x-1/2 rounded-full border-2 border-white bg-emerald-500 shadow-[0_0_0_2px_rgba(16,185,129,0.15)] transition-all duration-500 ease-out"
+                style={{ top: `calc(2.5rem + (100% - 4rem - 0.875rem) * ${progressPercent / 100})` }}
               />
             </div>
 
-            <div className="space-y-6 py-4 pl-10 pr-4 sm:space-y-8 sm:px-8 sm:py-8 sm:pl-14">
+            <div className="space-y-6 py-4 pl-12 pr-4 sm:space-y-8 sm:px-8 sm:py-8 sm:pl-16">
               {/* Patient Information Section */}
               <section ref={(node) => { stepSectionRefs.current[0] = node }}>
                 <div className="mb-4 sm:mb-5 flex items-center gap-2">
@@ -784,6 +799,7 @@ export default function PatientRequestPage() {
                           value={medicalCondition}
                           onChange={(e) => {
                             const value = e.target.value
+                            setHasTouchedMedicalCondition(true)
                             setMedicalCondition(value)
 
                             if (value !== 'Other') {
@@ -837,14 +853,15 @@ export default function PatientRequestPage() {
                 </div>
 
                 <div className="rounded-xl sm:rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 sm:px-6 sm:py-8">
+                  <div className="mb-4 rounded-xl border border-teal-100 bg-teal-50 px-3 py-2.5 text-sm font-medium leading-relaxed text-teal-900 sm:px-4">
+                    {t('request.uploadHelpText')}
+                  </div>
+
                   <label className="block cursor-pointer">
                     <div className="text-center">
                       <UploadCloud className="mx-auto mb-2 sm:mb-3 h-6 w-6 sm:h-8 sm:w-8 text-slate-400" />
                       <p className="text-sm sm:text-base font-medium text-slate-700">{t('request.uploadTitle')}</p>
                       <p className="mt-1 text-xs sm:text-sm text-slate-500">{t('request.uploadSubtitle')}</p>
-                      <p className="mt-1 sm:mt-2 text-[10px] sm:text-xs text-slate-500">
-                        {t('request.uploadHelpText')}
-                      </p>
                     </div>
 
                     <input
@@ -989,7 +1006,7 @@ export default function PatientRequestPage() {
               )}
             </div>
 
-            <div className="flex flex-col gap-2.5 border-t border-slate-200 bg-slate-50 py-4 pl-10 pr-4 sm:gap-3 sm:flex-row sm:justify-end sm:px-8 sm:py-5 sm:pl-14">
+            <div className="flex flex-col gap-2.5 border-t border-slate-200 bg-slate-50 py-4 pl-12 pr-4 sm:gap-3 sm:flex-row sm:justify-end sm:px-8 sm:py-5 sm:pl-16">
               <Link
                 href="/"
                 className="inline-flex w-full sm:w-auto items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 sm:py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-400"

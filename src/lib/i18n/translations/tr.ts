@@ -192,6 +192,7 @@ export const tr: TranslationShape = {
     durationFewDays: 'Birkaç gündür',
     durationOneToTwoWeeks: '1–2 haftadır',
     durationMoreThanMonth: '1 aydan uzun süredir',
+    durationRoutineNoSpecificStart: 'Rutin / Belirli bir başlangıç zamanı yok',
     medicalConditionLabel: 'Önemli Bir Sağlık Durumu',
     medicalConditionDetailsLabel: 'Lütfen sağlık durumunuzu açıklayın',
     medicalConditionDetailsPlaceholder: 'Sağlık durumunuzu açıklayın',
