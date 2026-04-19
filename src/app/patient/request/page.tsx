@@ -631,7 +631,7 @@ export default function PatientRequestPage() {
             onSubmit={handleSubmit}
             className="relative w-full overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200 bg-white shadow-sm"
           >
-            <div className="pointer-events-none absolute inset-y-0 left-4 z-10 w-12 sm:left-5 sm:w-14">
+            <div className="pointer-events-none absolute inset-y-0 left-2 z-10 w-12 sm:left-3 sm:w-14">
               <div
                 className="absolute left-1/2 top-4 min-w-[3rem] -translate-x-1/2 rounded-full border border-emerald-200 bg-white px-2.5 py-1 text-center text-[11px] font-semibold text-emerald-700 shadow-sm ring-4 ring-white sm:min-w-[3.25rem] sm:text-xs"
               >
