@@ -302,13 +302,46 @@ export default function PatientRequestPage() {
     ]
   )
 
-  const completedSteps = formProgressSteps.filter((step) => step.completed).length
-  const progressPercent = Math.round((completedSteps / formProgressSteps.length) * 100)
+  const requiredFieldChecks = useMemo(
+    () => [
+      Boolean(fullName.trim()),
+      Boolean(dateOfBirth),
+      Boolean(phone.trim()),
+      Boolean(countryCode),
+      hasSgk !== '',
+      Boolean(preferredUniversity),
+      Boolean(treatmentType),
+      Boolean(complaintText.trim()),
+      Boolean(painScore),
+      Boolean(symptomDuration),
+      Boolean(priorTreatment),
+      Boolean(medicalCondition),
+      consent,
+    ],
+    [
+      complaintText,
+      consent,
+      countryCode,
+      dateOfBirth,
+      fullName,
+      hasSgk,
+      medicalCondition,
+      painScore,
+      phone,
+      preferredUniversity,
+      priorTreatment,
+      symptomDuration,
+      treatmentType,
+    ]
+  )
+  const completedRequiredFields = requiredFieldChecks.filter(Boolean).length
+  const progressPercent = Math.round(
+    (completedRequiredFields / requiredFieldChecks.length) * 100
+  )
   const currentStepIndex = useMemo(() => {
     const firstIncomplete = formProgressSteps.findIndex((step) => !step.completed)
     return firstIncomplete === -1 ? formProgressSteps.length - 1 : firstIncomplete
   }, [formProgressSteps])
-  const currentStep = formProgressSteps[currentStepIndex] ?? formProgressSteps[0]
 
   const countryOptions = useMemo(() => {
     const displayNames = new Intl.DisplayNames([locale === 'tr' ? 'tr' : 'en'], {
@@ -715,30 +748,24 @@ export default function PatientRequestPage() {
         {!submittedId && (
           <form
             onSubmit={handleSubmit}
-            className="w-full overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200 bg-white shadow-sm"
+            className="relative w-full overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200 bg-white shadow-sm"
           >
-            <div className="sticky top-0 z-20 border-b border-slate-100 bg-white/95 px-4 py-3 backdrop-blur sm:px-8 sm:py-4">
-              <div className="flex items-center justify-between gap-3 text-xs sm:text-sm">
-                <div className="min-w-0">
-                  <p className="truncate font-semibold text-slate-900">
-                    {locale === 'tr' ? 'Form ilerlemesi' : 'Form progress'}
-                  </p>
-                  <p className="mt-0.5 truncate text-slate-500">
-                    {currentStep?.label} · {currentStepIndex + 1}/{formProgressSteps.length}
-                  </p>
-                </div>
-                <p className="shrink-0 font-semibold text-teal-700">{progressPercent}%</p>
+            <div className="pointer-events-none absolute inset-y-0 left-3 z-10 sm:left-4">
+              <div className="absolute left-1/2 top-5 -translate-x-1/2 rounded-full border border-emerald-100 bg-white px-2 py-1 text-[11px] font-semibold text-emerald-700 shadow-sm sm:text-xs">
+                {progressPercent}%
               </div>
-
-              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200">
-                <div
-                  className="h-full rounded-full bg-teal-600 transition-all"
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
+              <div className="absolute bottom-6 left-1/2 top-14 w-px -translate-x-1/2 rounded-full bg-slate-200" />
+              <div
+                className="absolute left-1/2 top-14 w-px -translate-x-1/2 rounded-full bg-emerald-500 transition-all"
+                style={{ height: `calc((100% - 5rem) * ${progressPercent / 100})` }}
+              />
+              <div
+                className="absolute left-1/2 h-3.5 w-3.5 -translate-x-1/2 rounded-full border-2 border-white bg-emerald-500 shadow-[0_0_0_2px_rgba(16,185,129,0.15)] transition-all"
+                style={{ top: `calc(3.5rem + (100% - 5rem - 0.875rem) * ${progressPercent / 100})` }}
+              />
             </div>
 
-            <div className="space-y-6 sm:space-y-8 p-4 sm:p-8">
+            <div className="space-y-6 py-4 pl-10 pr-4 sm:space-y-8 sm:px-8 sm:py-8 sm:pl-14">
               {/* Patient Information Section */}
               <section ref={(node) => { stepSectionRefs.current[0] = node }}>
                 <div className="mb-4 sm:mb-5 flex items-center gap-2">
@@ -772,7 +799,7 @@ export default function PatientRequestPage() {
                       onChange={(e) => setDateOfBirth(e.target.value)}
                       max={new Date().toISOString().split('T')[0]}
                       placeholder={t('request.dateOfBirthPlaceholder')}
-                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none transition focus:border-slate-900 sm:px-4 sm:py-3"
+                      className="w-full appearance-none rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none transition focus:border-slate-900 sm:px-4 sm:py-3"
                     />
                   </div>
 
@@ -1215,7 +1242,7 @@ export default function PatientRequestPage() {
               )}
             </div>
 
-            <div className="flex flex-col gap-2.5 sm:gap-3 border-t border-slate-200 bg-slate-50 px-4 py-4 sm:flex-row sm:justify-end sm:px-8 sm:py-5">
+            <div className="flex flex-col gap-2.5 border-t border-slate-200 bg-slate-50 py-4 pl-10 pr-4 sm:gap-3 sm:flex-row sm:justify-end sm:px-8 sm:py-5 sm:pl-14">
               <Link
                 href="/"
                 className="inline-flex w-full sm:w-auto items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 sm:py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-400"
