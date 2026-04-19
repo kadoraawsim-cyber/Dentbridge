@@ -529,26 +529,28 @@ export default function PatientStatusPage() {
         )}
       </section>
 
-      <footer className="bg-slate-950 py-14 text-slate-300">
-        <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 md:grid-cols-2 lg:grid-cols-4 lg:px-8">
+      <footer className="bg-slate-950 py-8 sm:py-14 text-slate-300">
+        <div className="mx-auto grid max-w-7xl gap-6 sm:gap-10 px-4 sm:px-6 md:grid-cols-2 lg:grid-cols-3 lg:px-8">
           <div>
             <div className="mb-4 flex items-center gap-3">
               <img
                 src="/dentbridge-icon.png"
                 alt="DentBridge icon"
-                className="h-10 w-10 object-contain"
+                className="h-8 w-8 sm:h-10 sm:w-10 shrink-0 object-contain"
               />
               <div>
-                <p className="font-bold text-white">DentBridge</p>
-                <p className="text-xs text-slate-400">{t('footer.tagline')}</p>
+                <p className="font-bold text-white text-sm sm:text-base">DentBridge</p>
+                <p className="text-[10px] sm:text-xs text-slate-400">{t('footer.tagline')}</p>
               </div>
             </div>
-            <p className="text-sm leading-relaxed text-slate-400">{t('footer.description')}</p>
+            <p className="text-xs sm:text-sm leading-relaxed text-slate-400">
+              {t('footer.description')}
+            </p>
           </div>
 
           <div>
-            <h3 className="mb-4 font-semibold text-white">{t('footer.patientServices')}</h3>
-            <ul className="space-y-2 text-sm text-slate-400">
+            <h3 className="mb-3 sm:mb-4 text-sm sm:text-base font-semibold text-white">{t('footer.patientServices')}</h3>
+            <ul className="space-y-2 text-xs sm:text-sm text-slate-400">
               <li>
                 <Link href="/patient/request" className="hover:text-white">
                   {t('footer.requestTreatment')}
@@ -560,43 +562,54 @@ export default function PatientStatusPage() {
                 </Link>
               </li>
               <li>
-                <span className="cursor-default text-slate-600">
-                  {t('footer.affordableCareInfo')}
-                </span>
-              </li>
-              <li>
-                <span className="cursor-default text-slate-600">{t('footer.faq')}</span>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="mb-4 font-semibold text-white">{t('footer.clinicalPortals')}</h3>
-            <ul className="space-y-2 text-sm text-slate-400">
-              <li>
-                <Link href="/student/login" className="hover:text-white">
-                  {t('footer.studentPortal')}
+                <Link href="/privacy" className="hover:text-white">
+                  {t('footer.privacyPolicy')}
                 </Link>
               </li>
               <li>
-                <Link href="/admin/login" className="hover:text-white">
-                  {t('footer.facultyPortal')}
+                <Link href="/faq" className="hover:text-white">
+                  {t('footer.faq')}
                 </Link>
               </li>
             </ul>
           </div>
 
           <div>
-            <h3 className="mb-4 font-semibold text-white">{t('footer.contact')}</h3>
-            <ul className="space-y-2 text-sm text-slate-400">
-              <li>Istanbul, Türkiye</li>
-              <li>{t('footer.universityPilot')}</li>
-              <li>{t('footer.whatsappSupport')}</li>
+            <h3 className="mb-3 sm:mb-4 text-sm sm:text-base font-semibold text-white">{t('footer.contact')}</h3>
+            <ul className="space-y-2 text-xs sm:text-sm text-slate-400">
+              <li>
+                Istanbul, Türkiye
+              </li>
+              <li>
+                <a href="mailto:Dentbridge.tr@gmail.com" className="hover:text-white">
+                  {t('footer.email')}
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://instagram.com/dentbridge.tr"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-white"
+                >
+                  {t('footer.instagram')}
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://wa.me/905411072665"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-white"
+                >
+                  {t('footer.whatsappSupport')}
+                </a>
+              </li>
             </ul>
           </div>
         </div>
 
-        <div className="mx-auto mt-10 max-w-7xl border-t border-slate-800 px-4 pt-6 text-xs text-slate-500 sm:px-6 lg:px-8">
+        <div className="mx-auto mt-8 sm:mt-10 max-w-7xl border-t border-slate-800 px-4 pt-5 sm:pt-6 text-[11px] sm:text-xs text-slate-500 sm:px-6 lg:px-8">
           {t('footer.copyright').replace('{year}', String(new Date().getFullYear()))}
         </div>
       </footer>
