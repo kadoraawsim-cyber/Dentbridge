@@ -42,7 +42,8 @@ const HOW_IT_WORKS = [
   { step: 1, icon: FileText },
   { step: 2, icon: ShieldCheck },
   { step: 3, icon: Users },
-  { step: 4, icon: Stethoscope },
+  { step: 4, icon: CalendarCheck },
+  { step: 5, icon: Stethoscope },
 ] as const
 
 const DEPARTMENTS = [

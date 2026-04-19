@@ -45,16 +45,18 @@ export const tr: TranslationShape = {
   landing: {
     howItWorksTitle: 'Nasıl Çalışır?',
     howItWorksDesc:
-      'Klinik vaka eşleştirme platformumuz, her hastanın yapılandırılmış bakım almasını sağlarken bir sonraki nesil diş hekimlerini destekler.',
+      'Talebinizi gönderin, fakültemizin vakanızı incelemesine izin verin ve yapılandırılmış, denetimli bir süreçle doğru bölüm ve öğrenciyle eşleşin.',
     step1Title: '1. Talep Gönderin',
-    step1Desc: 'Hasta, diş ihtiyaçlarını açıklayan kısa bir form doldurur.',
+    step1Desc: 'Diş şikayetinizi ve temel tedavi ihtiyacınızı anlatan kısa bir form doldurun.',
     step2Title: '2. Fakülte İncelemesi',
-    step2Desc: 'Akademik ekibimiz talebinizi inceler ve kategorize eder.',
+    step2Desc: 'Talebiniz, vakanızı anlamak ve en uygun klinik yolu belirlemek için fakülte tarafından incelenir.',
     step3Title: '3. Akıllı Eşleştirme',
-    step3Desc: 'Doğru bölüm ve klinik öğrenci ile eşleştirilirsiniz.',
-    step4Title: '4. Tedavi',
-    step4Desc:
-      'Deneyimli öğretim üyelerinin doğrudan denetimi altında bakım sağlanır.',
+    step3Desc: 'Vakanız, tedavi ihtiyacınıza göre doğru bölüm ve en uygun öğrenciyle eşleştirilir.',
+    step4Title: '4. İletişim ve Randevu',
+    step4Desc: 'Bir sonraki adımı planlamak ve randevunuzu oluşturmak için sizinle iletişime geçilir.',
+    step5Title: '5. Denetimli Tedavi',
+    step5Desc:
+      'Tedavi, nitelikli fakülte denetimi altında yapılandırılmış ve şeffaf bir şekilde ilerler.',
     whyTitle: 'Neden Üniversite Denetimli Bakımı Tercih Etmelisiniz?',
     whyCareTitle: 'Uygun Fiyatlı Bakım',
     whyCareDesc:

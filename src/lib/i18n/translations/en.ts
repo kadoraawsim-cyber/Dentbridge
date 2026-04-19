@@ -62,6 +62,8 @@ export type TranslationShape = {
     step3Desc: string
     step4Title: string
     step4Desc: string
+    step5Title: string
+    step5Desc: string
     whyTitle: string
     whyCareTitle: string
     whyCareDesc: string
@@ -795,15 +797,20 @@ export const en: TranslationShape = {
   landing: {
     howItWorksTitle: 'How It Works',
     howItWorksDesc:
-      'Our clinical case matching platform ensures every patient gets structured care while empowering the next generation of dentists.',
+      'Submit your request, let our faculty review your case, and get matched to the right department and student through a structured supervised process.',
     step1Title: '1. Submit Request',
-    step1Desc: 'Patient completes a short form explaining their dental needs.',
+    step1Desc: 'Complete a short form describing your dental concern and basic treatment needs.',
     step2Title: '2. Faculty Review',
-    step2Desc: 'Our academic team reviews and categorizes your request.',
-    step3Title: '3. Smart Match',
-    step3Desc: 'Matched with the right department and clinical student.',
-    step4Title: '4. Treatment',
-    step4Desc: 'Care provided under direct supervision of experienced faculty.',
+    step2Desc:
+      'Your request is reviewed by faculty to understand your case and identify the most appropriate clinical path.',
+    step3Title: '3. Smart Matching',
+    step3Desc:
+      'Your case is matched to the right department and the most suitable student based on your treatment needs.',
+    step4Title: '4. Contact & Scheduling',
+    step4Desc: 'You are contacted to arrange the next step and schedule your appointment.',
+    step5Title: '5. Supervised Treatment',
+    step5Desc:
+      'Treatment proceeds in a structured and transparent way under qualified faculty supervision.',
     whyTitle: 'Why Choose University-Supervised Care?',
     whyCareTitle: 'Affordable Care',
     whyCareDesc: 'Access high-quality treatment at lower cost than many private clinics.',
