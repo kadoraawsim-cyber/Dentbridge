@@ -19,6 +19,11 @@ export const metadata: Metadata = {
   title: "DentBridge — Faculty-Supported Clinical Platform",
   description:
     "DentBridge connects patients with affordable university dental care provided by senior students under faculty supervision.",
+  icons: {
+    icon: "/dentbridge-icon.png",
+    shortcut: "/dentbridge-icon.png",
+    apple: "/dentbridge-icon.png",
+  },
 };
 
 export default function RootLayout({
