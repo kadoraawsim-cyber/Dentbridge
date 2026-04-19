@@ -252,7 +252,7 @@ export default function PatientRequestPage() {
       Boolean(painScore),
       Boolean(symptomDuration),
       hasTouchedMedicalCondition && Boolean(medicalCondition),
-      medicalCondition !== 'Other' || Boolean(medicalConditionDetails.trim()),
+      medicalCondition !== '' && (medicalCondition !== 'Other' || Boolean(medicalConditionDetails.trim())),
       consent,
     ],
     [
