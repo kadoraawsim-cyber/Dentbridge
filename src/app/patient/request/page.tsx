@@ -407,6 +407,39 @@ export default function PatientRequestPage() {
     }
   }, [restoredStepIndex])
 
+  function clearPersistedDraft() {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    window.sessionStorage.removeItem(PATIENT_REQUEST_DRAFT_KEY)
+    window.sessionStorage.removeItem(PATIENT_REQUEST_STEP_KEY)
+  }
+
+  function resetPatientRequestForm() {
+    clearPersistedDraft()
+    setSubmittedId(null)
+    setErrorMessage('')
+    setFullName('')
+    setPhone('')
+    setAge('')
+    setGender('')
+    setPreferredLanguage('')
+    setPainScore('')
+    setSymptomDuration('')
+    setContactMethod('')
+    setBestContactTime('')
+    setMedicalCondition('None')
+    setMedicalConditionDetails('')
+    setHasTouchedMedicalCondition(false)
+    setTreatmentType('')
+    setComplaintText('')
+    setPreferredDays('')
+    setConsent(false)
+    setAttachment(null)
+    setRestoredStepIndex(null)
+  }
+
   async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
     setSubmittedId(null)
@@ -500,29 +533,10 @@ export default function PatientRequestPage() {
       return
     }
 
-    if (typeof window !== 'undefined') {
-      window.sessionStorage.removeItem(PATIENT_REQUEST_DRAFT_KEY)
-      window.sessionStorage.removeItem(PATIENT_REQUEST_STEP_KEY)
-    }
-
+    clearPersistedDraft()
     setSubmittedId('submitted')
-    setFullName('')
-    setPhone('')
-    setAge('')
-    setGender('')
-    setPreferredLanguage('')
-    setPainScore('')
-    setSymptomDuration('')
-    setContactMethod('')
-    setBestContactTime('')
-    setMedicalCondition('None')
-    setMedicalConditionDetails('')
-    setHasTouchedMedicalCondition(false)
-    setTreatmentType('')
-    setComplaintText('')
-    setPreferredDays('')
-    setConsent(false)
-    setAttachment(null)
+    resetPatientRequestForm()
+    setSubmittedId('submitted')
   }
 
   return (
@@ -547,7 +561,14 @@ export default function PatientRequestPage() {
             <Link href="/patient/status" className="hover:text-slate-900">
               {t('patientNav.myPortal')}
             </Link>
-            <Link href="/patient/request" className="text-slate-900">
+            <Link
+              href="/patient/request"
+              onClick={(e) => {
+                e.preventDefault()
+                resetPatientRequestForm()
+              }}
+              className="text-slate-900"
+            >
               {t('patientNav.newRequest')}
             </Link>
           </nav>
@@ -612,8 +633,7 @@ export default function PatientRequestPage() {
           >
             <div className="pointer-events-none absolute inset-y-0 left-4 z-10 w-12 sm:left-5 sm:w-14">
               <div
-                className="absolute left-1/2 min-w-[3rem] -translate-x-1/2 rounded-full border border-emerald-200 bg-white px-2.5 py-1 text-center text-[11px] font-semibold text-emerald-700 shadow-sm ring-4 ring-white transition-all duration-500 ease-out sm:min-w-[3.25rem] sm:text-xs"
-                style={{ top: `calc(1.25rem + (100% - 4.5rem) * ${progressPercent / 100})` }}
+                className="absolute left-1/2 top-4 min-w-[3rem] -translate-x-1/2 rounded-full border border-emerald-200 bg-white px-2.5 py-1 text-center text-[11px] font-semibold text-emerald-700 shadow-sm ring-4 ring-white sm:min-w-[3.25rem] sm:text-xs"
               >
                 {progressPercent}%
               </div>
@@ -1049,7 +1069,14 @@ export default function PatientRequestPage() {
             <h3 className="mb-3 sm:mb-4 text-sm sm:text-base font-semibold text-white">{t('footer.patientServices')}</h3>
             <ul className="space-y-2 text-xs sm:text-sm text-slate-400">
               <li>
-                <Link href="/patient/request" className="hover:text-white">
+                <Link
+                  href="/patient/request"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    resetPatientRequestForm()
+                  }}
+                  className="hover:text-white"
+                >
                   {t('footer.requestTreatment')}
                 </Link>
               </li>
