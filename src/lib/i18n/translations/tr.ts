@@ -61,9 +61,9 @@ export const tr: TranslationShape = {
     whyCareTitle: 'Uygun Fiyatlı Bakım',
     whyCareDesc:
       'Tedaviyi daha erişilebilir hale getirmek için tasarlanmış, denetimli akademik bir ortamda kaliteli diş bakımı alın.',
-    whyOversightTitle: 'Güvenilir Klinik Bakım',
+    whyOversightTitle: 'Doğru Tedavi, Doğru Eşleşmeyle Başlar',
     whyOversightDesc:
-      'Tedaviniz, dikkatli denetim ve hasta güvenliği etrafında tasarlanmış akademik bir ortamda gerçekleşir.',
+      'Vakanız dikkatlice değerlendirilir ve en uygun bölüme yönlendirilir, böylece zaman kaybetmeden doğru tedavi süreci başlar.',
     whyMultiTitle: 'İhtiyaçlarınıza Göre Yönlendirilen Bakım',
     whyMultiDesc:
       'Talebiniz; belirtileriniz, tedavi ihtiyaçlarınız ve klinik öncelikleriniz dikkate alınarak incelenir.',
@@ -73,6 +73,27 @@ export const tr: TranslationShape = {
     whyDigitalTitle: 'Modern Klinik Ortam',
     whyDigitalDesc:
       'Düzenli akademik iş akışlarından, çağdaş tesislerden ve denetimli tedavi planlamasından yararlanın.',
+    activePartnersTitle: 'DentBridge Üzerinden Şu Anda Hizmet Veren Kurum',
+    activePartnerBadge: 'Aktif Partner',
+    activePartnerMapsButton: 'Google Haritalar’da Aç',
+    activePartnerFutureNote:
+      'Gelecekte DentBridge sistemine yeni akademik partnerler eklenebilir.',
+    partners: {
+      istinye: {
+        logoAlt: 'İstinye Üniversitesi Diş Hekimliği Fakültesi ve İstinye Dental Hospital logosu',
+        nameLine1: 'İstinye Üniversitesi Diş Hekimliği Fakültesi',
+        nameLine2: 'İstinye Dental Hospital',
+        address: 'Ayazağa, Defne Sk. No:1 D:34408, 34408 Sarıyer/İstanbul, Türkiye',
+        description:
+          'DentBridge şu anda hasta tedavi başvurularını İstanbul’daki ilk aktif akademik partneri olan İstinye Üniversitesi Diş Hekimliği Fakültesi ve İstinye Dental Hospital üzerinden kabul etmektedir.',
+        trustNote:
+          'Hastane, İstinye Üniversitesi Diş Hekimliği Fakültesi’nin akademik ve klinik merkezi olarak öne çıkmakta; gelişmiş altyapı, geniş tedavi kapasitesi ve hasta odaklı yaklaşımıyla güven vermektedir.',
+        highlight1: 'Akademik ve klinik diş tedavisi ortamı',
+        highlight2: 'Gelişmiş altyapı ve modern diş hekimliği teknolojileri',
+        highlight3: 'Multidisipliner tedavi yaklaşımı',
+        highlight4: 'Sarıyer, İstanbul’da erişilebilir konum',
+      },
+    },
     deptsTitle: 'Klinik Bölümlerimiz',
     deptsDesc:
       'DentBridge, her hastayı semptomlar, tedavi ihtiyaçları ve fakülte değerlendirmesine göre en uygun üniversite diş hekimliği bölümüne yönlendirir.',
