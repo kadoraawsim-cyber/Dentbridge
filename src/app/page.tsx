@@ -208,7 +208,7 @@ export default function HomePage() {
               <div className="flex shrink-0 items-center justify-center lg:justify-start">
                 <div className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-2 shadow-sm">
                   <img
-                    src="/images/isu-logo.png"
+                    src="/bina1.webp"
                     alt={t('landing.activePartnerStripLogoAlt')}
                     className="h-7 w-auto object-contain sm:h-8"
                   />
