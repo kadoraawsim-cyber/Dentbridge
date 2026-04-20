@@ -75,24 +75,6 @@ export type TranslationShape = {
     whySupportDesc: string
     whyDigitalTitle: string
     whyDigitalDesc: string
-    activePartnersTitle: string
-    activePartnerBadge: string
-    activePartnerMapsButton: string
-    activePartnerFutureNote: string
-    partners: {
-      istinye: {
-        logoAlt: string
-        nameLine1: string
-        nameLine2: string
-        address: string
-        description: string
-        trustNote: string
-        highlight1: string
-        highlight2: string
-        highlight3: string
-        highlight4: string
-      }
-    }
     deptsTitle: string
     deptsDesc: string
     deptWhatTreats: string
@@ -859,27 +841,6 @@ export const en: TranslationShape = {
     whyDigitalTitle: 'Modern Clinical Environment',
     whyDigitalDesc:
       'Benefit from organized academic workflows, contemporary facilities, and supervised treatment planning.',
-    activePartnersTitle: 'Currently Available Through DentBridge',
-    activePartnerBadge: 'Active Partner',
-    activePartnerMapsButton: 'Open in Google Maps',
-    activePartnerFutureNote:
-      'More academic partners may be added to DentBridge in the future.',
-    partners: {
-      istinye: {
-        logoAlt: 'Istinye University Faculty of Dentistry and Istinye Dental Hospital logo',
-        nameLine1: 'Istinye University Faculty of Dentistry',
-        nameLine2: 'Istinye Dental Hospital',
-        address: 'Ayazağa, Defne Sk. No:1 D:34408, 34408 Sarıyer/İstanbul, Türkiye',
-        description:
-          'DentBridge currently accepts patient treatment requests through its first active academic partner in Istanbul: Istinye University Faculty of Dentistry and Istinye Dental Hospital.',
-        trustNote:
-          'The hospital is presented as the clinical and academic center of Istinye University Faculty of Dentistry, offering advanced infrastructure, broad treatment capacity, and a patient-centered approach.',
-        highlight1: 'Academic and clinical dental care environment',
-        highlight2: 'Advanced infrastructure and modern dental technologies',
-        highlight3: 'Multidisciplinary treatment approach',
-        highlight4: 'Accessible location in Sarıyer, Istanbul',
-      },
-    },
     deptsTitle: 'Our Clinical Departments',
     deptsDesc:
       'DentBridge helps route each patient to the most appropriate university dental department based on symptoms, treatment needs, and faculty review.',

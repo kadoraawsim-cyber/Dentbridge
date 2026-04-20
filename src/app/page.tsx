@@ -16,7 +16,6 @@ import {
   FileText,
   HeartPulse,
   Menu,
-  MapPin,
   ScanLine,
   ShieldCheck,
   ShieldPlus,
@@ -65,16 +64,6 @@ const DEPARTMENTS = [
   { slug: 'pedodontics',    icon: Baby },
   { slug: 'radiology',      icon: ScanLine },
 ] as const
-
-const ACTIVE_PARTNERS = [
-  {
-    slug: 'istinye',
-    logoSrc: '/images/isu logo.png',
-    mapsUrl: 'https://maps.app.goo.gl/9ff82yYpHHAzEuEz7?g_st=ic',
-  },
-] as const
-
-const PARTNER_HIGHLIGHTS = [1, 2, 3, 4] as const
 
 export default function HomePage() {
   const { t } = useI18n()
@@ -207,100 +196,6 @@ export default function HomePage() {
                 className="h-[180px] w-full rounded-xl sm:rounded-2xl object-cover sm:h-[300px] lg:h-[420px]"
               />
             </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="border-b border-slate-200 bg-white px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-6 text-center sm:mb-8">
-            <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-              {t('landing.activePartnersTitle')}
-            </h2>
-          </div>
-
-          <div className="grid gap-6">
-            {ACTIVE_PARTNERS.map((partner) => (
-              <article
-                key={partner.slug}
-                className="overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-teal-50/60 shadow-sm shadow-slate-200/70 sm:rounded-3xl"
-              >
-                <div className="grid gap-6 px-4 py-5 sm:px-6 sm:py-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-8 lg:px-8 lg:py-8">
-                  <div className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <span className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                      <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                      {t('landing.activePartnerBadge')}
-                    </span>
-
-                    <div className="mt-5 flex min-h-[132px] items-center justify-center rounded-2xl border border-slate-100 bg-slate-50 px-5 py-6">
-                      <img
-                        src={partner.logoSrc}
-                        alt={t(`landing.partners.${partner.slug}.logoAlt`)}
-                        className="h-20 w-auto max-w-full object-contain sm:h-24"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="min-w-0">
-                    <div className="flex flex-col gap-4">
-                      <div>
-                        <h3 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
-                          {t(`landing.partners.${partner.slug}.nameLine1`)}
-                        </h3>
-                        <p className="mt-1 text-base font-semibold text-teal-700 sm:text-lg">
-                          {t(`landing.partners.${partner.slug}.nameLine2`)}
-                        </p>
-                      </div>
-
-                      <div className="inline-flex max-w-3xl items-start gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm">
-                        <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-teal-700" />
-                        <span>{t(`landing.partners.${partner.slug}.address`)}</span>
-                      </div>
-
-                      <p className="max-w-3xl text-sm leading-7 text-slate-600 sm:text-base">
-                        {t(`landing.partners.${partner.slug}.description`)}
-                      </p>
-
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        {PARTNER_HIGHLIGHTS.map((highlight) => (
-                          <div
-                            key={highlight}
-                            className="flex items-start gap-3 rounded-2xl border border-slate-200/80 bg-white/90 px-4 py-3 shadow-sm"
-                          >
-                            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-teal-700" />
-                            <p className="text-sm font-medium leading-6 text-slate-700">
-                              {t(`landing.partners.${partner.slug}.highlight${highlight}`)}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
-                        <p className="text-sm leading-7 text-slate-600">
-                          {t(`landing.partners.${partner.slug}.trustNote`)}
-                        </p>
-                      </div>
-
-                      <div className="flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                        <p className="max-w-2xl text-sm text-slate-500">
-                          {t('landing.activePartnerFutureNote')}
-                        </p>
-
-                        <a
-                          href={partner.mapsUrl}
-                          target="_blank"
-                          rel="noreferrer noopener"
-                          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-300 hover:bg-slate-50 sm:w-auto"
-                        >
-                          {t('landing.activePartnerMapsButton')}
-                          <ArrowRight className="h-4 w-4 shrink-0" />
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </article>
-            ))}
           </div>
         </div>
       </section>
