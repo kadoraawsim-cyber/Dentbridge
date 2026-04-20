@@ -75,8 +75,12 @@ export type TranslationShape = {
     whySupportDesc: string
     whyDigitalTitle: string
     whyDigitalDesc: string
+    activePartnerStripEyebrow: string
+    activePartnerStripTitle: string
     activePartnerStripMessage: string
     activePartnerStripButton: string
+    activePartnerStripContactButton: string
+    activePartnerStripCallLabel: string
     activePartnerStripLogoAlt: string
     deptsTitle: string
     deptsDesc: string
@@ -844,9 +848,13 @@ export const en: TranslationShape = {
     whyDigitalTitle: 'Modern Clinical Environment',
     whyDigitalDesc:
       'Benefit from organized academic workflows, contemporary facilities, and supervised treatment planning.',
+    activePartnerStripEyebrow: 'Our exclusive partner',
+    activePartnerStripTitle: 'Istinye University Faculty of Dentistry',
     activePartnerStripMessage:
       'Now accepting patient requests through Istinye University Faculty of Dentistry in Istanbul.',
     activePartnerStripButton: 'View Location',
+    activePartnerStripContactButton: 'Contact Hospital',
+    activePartnerStripCallLabel: 'Call: 444 66 23',
     activePartnerStripLogoAlt:
       'Istinye University Faculty of Dentistry logo',
     deptsTitle: 'Our Clinical Departments',

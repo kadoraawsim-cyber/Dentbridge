@@ -73,9 +73,13 @@ export const tr: TranslationShape = {
     whyDigitalTitle: 'Modern Klinik Ortam',
     whyDigitalDesc:
       'Düzenli akademik iş akışlarından, çağdaş tesislerden ve denetimli tedavi planlamasından yararlanın.',
+    activePartnerStripEyebrow: 'Özel partnerimiz',
+    activePartnerStripTitle: 'İstinye Üniversitesi Diş Hekimliği Fakültesi',
     activePartnerStripMessage:
       'Hasta başvuruları şu anda İstanbul’daki İstinye Üniversitesi Diş Hekimliği Fakültesi üzerinden kabul edilmektedir.',
     activePartnerStripButton: 'Konumu Gör',
+    activePartnerStripContactButton: 'Hastaneyi Ara',
+    activePartnerStripCallLabel: 'Ara: 444 66 23',
     activePartnerStripLogoAlt:
       'İstinye Üniversitesi Diş Hekimliği Fakültesi logosu',
     deptsTitle: 'Klinik Bölümlerimiz',
