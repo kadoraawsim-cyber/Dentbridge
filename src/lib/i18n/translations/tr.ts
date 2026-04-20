@@ -73,6 +73,9 @@ export const tr: TranslationShape = {
     whyDigitalTitle: 'Modern Klinik Ortam',
     whyDigitalDesc:
       'Düzenli akademik iş akışlarından, çağdaş tesislerden ve denetimli tedavi planlamasından yararlanın.',
+    whyImageCaptionTitle: 'ÖZEL AKADEMİK İŞ BİRLİĞİ',
+    whyImageCaptionDesc:
+      'Partner diş hastanemizin akademik mükemmelliğinden ve gelişmiş klinik kaynaklarından yararlanarak.',
     activePartnerStripEyebrow: 'Özel partnerimiz',
     activePartnerStripTitle: 'İstinye Üniversitesi Diş Hekimliği Fakültesi',
     activePartnerStripMessage:
@@ -343,9 +346,9 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
     faq: 'SSS',
     clinicalRequirements: 'Klinik Gereksinimler',
     universityPilot: 'Üniversite destekli pilot platform',
-    email: 'Dentbridge.tr@gmail.com',
-    instagram: '@Dentbridge.tr',
-    whatsappSupport: 'WhatsApp desteği mevcut',
+    email: 'E-posta: Dentbridge.tr@gmail.com',
+    instagram: 'Instagram: @Dentbridge.tr',
+    whatsappSupport: 'WhatsApp: WhatsApp desteği mevcuttur',
     copyright:
       '© 2026 DentBridge. Tüm tedaviler akademik denetim altında sağlanmaktadır.',
   },

@@ -75,6 +75,8 @@ export type TranslationShape = {
     whySupportDesc: string
     whyDigitalTitle: string
     whyDigitalDesc: string
+    whyImageCaptionTitle: string
+    whyImageCaptionDesc: string
     activePartnerStripEyebrow: string
     activePartnerStripTitle: string
     activePartnerStripMessage: string
@@ -848,6 +850,9 @@ export const en: TranslationShape = {
     whyDigitalTitle: 'Modern Clinical Environment',
     whyDigitalDesc:
       'Benefit from organized academic workflows, contemporary facilities, and supervised treatment planning.',
+    whyImageCaptionTitle: 'EXCLUSIVE ACADEMIC PARTNERSHIP',
+    whyImageCaptionDesc:
+      'Benefiting from the academic excellence and advanced clinical resources of our partner dental hospital.',
     activePartnerStripEyebrow: 'Our exclusive partner',
     activePartnerStripTitle: 'Istinye University Faculty of Dentistry',
     activePartnerStripMessage:
@@ -1585,9 +1590,9 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     faq: 'FAQ',
     clinicalRequirements: 'Clinical Requirements',
     universityPilot: 'University-supported pilot platform',
-    email: 'Dentbridge.tr@gmail.com',
-    instagram: '@Dentbridge.tr',
-    whatsappSupport: 'WhatsApp support available',
+    email: 'Email: Dentbridge.tr@gmail.com',
+    instagram: 'Instagram: @Dentbridge.tr',
+    whatsappSupport: 'WhatsApp: WhatsApp support available',
     copyright:
       '© 2026 DentBridge. All treatments are provided under academic supervision.',
   },

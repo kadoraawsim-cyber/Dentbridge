@@ -342,10 +342,10 @@ export default function HomePage() {
                   />
                   <div className="border-t border-slate-100 bg-white/95 px-4 py-3">
                     <p className="text-xs font-medium uppercase tracking-[0.18em] text-teal-700">
-                      {t('landing.whyOversightTitle')}
+                      {t('landing.whyImageCaptionTitle')}
                     </p>
                     <p className="mt-1 text-sm text-slate-600">
-                      {t('landing.whyOversightDesc')}
+                      {t('landing.whyImageCaptionDesc')}
                     </p>
                   </div>
                 </div>
