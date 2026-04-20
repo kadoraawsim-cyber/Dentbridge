@@ -77,7 +77,7 @@ export const tr: TranslationShape = {
       'Hasta başvuruları şu anda İstanbul’daki İstinye Üniversitesi Diş Hekimliği Fakültesi üzerinden kabul edilmektedir.',
     activePartnerStripButton: 'Konumu Gör',
     activePartnerStripLogoAlt:
-      'İstinye Üniversitesi Diş Hekimliği Fakültesi ve İstinye Dental Hospital logosu',
+      'İstinye Üniversitesi Diş Hekimliği Fakültesi logosu',
     deptsTitle: 'Klinik Bölümlerimiz',
     deptsDesc:
       'DentBridge, her hastayı semptomlar, tedavi ihtiyaçları ve fakülte değerlendirmesine göre en uygun üniversite diş hekimliği bölümüne yönlendirir.',

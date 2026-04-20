@@ -848,7 +848,7 @@ export const en: TranslationShape = {
       'Now accepting patient requests through Istinye University Faculty of Dentistry in Istanbul.',
     activePartnerStripButton: 'View Location',
     activePartnerStripLogoAlt:
-      'Istinye University Faculty of Dentistry and Istinye Dental Hospital logo',
+      'Istinye University Faculty of Dentistry logo',
     deptsTitle: 'Our Clinical Departments',
     deptsDesc:
       'DentBridge helps route each patient to the most appropriate university dental department based on symptoms, treatment needs, and faculty review.',

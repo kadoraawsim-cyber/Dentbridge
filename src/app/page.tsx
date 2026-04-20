@@ -172,6 +172,36 @@ export default function HomePage() {
               {t('hero.description')}
             </p>
 
+            <div className="mt-5 max-w-xl rounded-2xl border border-white/15 bg-white/10 p-3 text-left shadow-[0_18px_40px_-28px_rgba(15,23,42,0.65)] backdrop-blur-md sm:mt-6 sm:p-3.5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3.5">
+                <div className="flex justify-center sm:justify-start">
+                  <div className="inline-flex items-center rounded-xl bg-white px-3 py-2 shadow-sm">
+                    <img
+                      src="/isu%202026%20logo.jpg"
+                      alt={t('landing.activePartnerStripLogoAlt')}
+                      className="h-7 w-auto object-contain sm:h-8"
+                    />
+                  </div>
+                </div>
+
+                <p className="min-w-0 flex-1 text-center text-sm font-medium leading-6 text-slate-100 sm:text-left">
+                  {t('landing.activePartnerStripMessage')}
+                </p>
+
+                <div className="flex justify-center sm:justify-end">
+                  <a
+                    href="https://maps.app.goo.gl/9ff82yYpHHAzEuEz7?g_st=ic"
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/95 px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-white"
+                  >
+                    <MapPin className="h-4 w-4 shrink-0 text-teal-700" />
+                    {t('landing.activePartnerStripButton')}
+                  </a>
+                </div>
+              </div>
+            </div>
+
             <div className="mt-6 flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-3 sm:mt-9">
               <Link
                 href="/patient/request"
@@ -196,42 +226,6 @@ export default function HomePage() {
                 alt="University dental care"
                 className="h-[180px] w-full rounded-xl sm:rounded-2xl object-cover sm:h-[300px] lg:h-[420px]"
               />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="border-b border-slate-200 bg-white px-4 py-3 sm:px-6 sm:py-4 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <div className="rounded-2xl border border-slate-200/80 bg-gradient-to-r from-slate-50 via-white to-teal-50/60 px-4 py-3 shadow-[0_10px_30px_-22px_rgba(15,23,42,0.35)] sm:px-5 sm:py-3.5">
-            <div className="flex flex-col items-center gap-3 sm:gap-3 lg:flex-row lg:items-center lg:gap-4">
-              <div className="flex shrink-0 items-center justify-center lg:justify-start">
-                <div className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-2 shadow-sm">
-                  <img
-                    src="/bina1.webp"
-                    alt={t('landing.activePartnerStripLogoAlt')}
-                    className="h-7 w-auto object-contain sm:h-8"
-                  />
-                </div>
-              </div>
-
-              <div className="hidden h-8 w-px shrink-0 bg-slate-200 lg:block" aria-hidden="true" />
-
-              <p className="min-w-0 flex-1 text-center text-sm font-medium leading-6 text-slate-700 sm:text-[15px] lg:text-left">
-                {t('landing.activePartnerStripMessage')}
-              </p>
-
-              <div className="flex shrink-0 justify-center lg:justify-end">
-                <a
-                  href="https://maps.app.goo.gl/9ff82yYpHHAzEuEz7?g_st=ic"
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
-                >
-                  <MapPin className="h-4 w-4 shrink-0 text-teal-700" />
-                  {t('landing.activePartnerStripButton')}
-                </a>
-              </div>
             </div>
           </div>
         </div>
