@@ -880,11 +880,6 @@ export function CaseDetailClient({
                 </div>
 
                 <div>
-                  <p className="mb-1 text-xs text-slate-500">{t('admin.detail.locationLabel')}</p>
-                  <p className="font-medium text-slate-900">{request.city || '—'}</p>
-                </div>
-
-                <div>
                   <p className="mb-1 text-xs text-slate-500">{t('admin.detail.phoneLabel')}</p>
                   <p className="flex items-center gap-1.5 font-medium text-slate-900">
                     <Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" />
