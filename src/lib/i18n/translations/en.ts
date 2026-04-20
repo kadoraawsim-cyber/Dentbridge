@@ -826,9 +826,9 @@ export const en: TranslationShape = {
     whyCareTitle: 'Affordable Care',
     whyCareDesc:
       'Receive quality dental care in a supervised academic environment designed to make treatment more accessible.',
-    whyOversightTitle: 'Trusted Clinical Care',
+    whyOversightTitle: 'Your Care, Our Priority',
     whyOversightDesc:
-      'Your treatment takes place in an academic setting designed around careful supervision and patient safety.',
+      'From your first visit to your final result, your treatment is guided, supervised, and tailored to your needs.',
     whyMultiTitle: 'Care Guided by Your Needs',
     whyMultiDesc:
       'Your request is reviewed with attention to your symptoms, treatment needs, and clinical priorities.',
