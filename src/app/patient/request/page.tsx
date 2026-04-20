@@ -35,6 +35,10 @@ const LANGUAGE_OPTIONS = [
   { value: 'Arabic',  tKey: 'request.langArabic' },
 ] as const
 
+const PREFERRED_UNIVERSITY_OPTIONS = [
+  'İstinye Dental Hospital',
+] as const
+
 const PHONE_COUNTRY_CODE_OPTIONS = [
   '+90',
   '+1',
@@ -133,6 +137,7 @@ type PatientRequestDraft = {
   age: string
   gender: string
   preferredLanguage: string
+  preferredUniversity: string
   treatmentType: string
   complaintText: string
   preferredDays: string
@@ -166,6 +171,8 @@ function parsePatientRequestDraft(value: string | null): PatientRequestDraft | n
       age: typeof parsed.age === 'string' ? parsed.age : '',
       gender: typeof parsed.gender === 'string' ? parsed.gender : '',
       preferredLanguage: typeof parsed.preferredLanguage === 'string' ? parsed.preferredLanguage : '',
+      preferredUniversity:
+        typeof parsed.preferredUniversity === 'string' ? parsed.preferredUniversity : '',
       treatmentType: typeof parsed.treatmentType === 'string' ? parsed.treatmentType : '',
       complaintText: typeof parsed.complaintText === 'string' ? parsed.complaintText : '',
       preferredDays: typeof parsed.preferredDays === 'string' ? parsed.preferredDays : '',
@@ -232,6 +239,7 @@ export default function PatientRequestPage() {
   const [age, setAge] = useState('')
   const [gender, setGender] = useState('')
   const [preferredLanguage, setPreferredLanguage] = useState('')
+  const [preferredUniversity, setPreferredUniversity] = useState('')
 
   const [treatmentType, setTreatmentType] = useState('')
   const [complaintText, setComplaintText] = useState('')
@@ -356,6 +364,7 @@ export default function PatientRequestPage() {
       setAge(savedDraft.age)
       setGender(savedDraft.gender)
       setPreferredLanguage(savedDraft.preferredLanguage)
+      setPreferredUniversity(savedDraft.preferredUniversity)
       setTreatmentType(savedDraft.treatmentType)
       setComplaintText(savedDraft.complaintText)
       setPreferredDays(savedDraft.preferredDays)
@@ -396,6 +405,7 @@ export default function PatientRequestPage() {
       age,
       gender,
       preferredLanguage,
+      preferredUniversity,
       treatmentType,
       complaintText,
       preferredDays,
@@ -431,6 +441,7 @@ export default function PatientRequestPage() {
     phone,
     preferredDays,
     preferredLanguage,
+    preferredUniversity,
     submittedId,
     symptomDuration,
     treatmentType,
@@ -490,6 +501,7 @@ export default function PatientRequestPage() {
     setAge('')
     setGender('')
     setPreferredLanguage('')
+    setPreferredUniversity('')
     setPainScore('')
     setSymptomDuration('')
     setContactMethod('')
@@ -620,6 +632,7 @@ export default function PatientRequestPage() {
           gender,
           phone: combinedPhone,
           preferred_language: preferredLanguage || null,
+          preferred_university: preferredUniversity || null,
           treatment_type: treatmentType,
           complaint_text: complaintText,
           urgency,
@@ -1070,6 +1083,25 @@ export default function PatientRequestPage() {
                       {LANGUAGE_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>
                           {t(opt.tKey)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
+                      Preferred University / Clinic{' '}
+                      <span className="font-normal text-slate-400">{t('request.optional')}</span>
+                    </label>
+                    <select
+                      value={preferredUniversity}
+                      onChange={(e) => setPreferredUniversity(e.target.value)}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
+                    >
+                      <option value="">{t('request.selectPlaceholder')}</option>
+                      {PREFERRED_UNIVERSITY_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
                         </option>
                       ))}
                     </select>
