@@ -74,7 +74,7 @@ export const tr: TranslationShape = {
     whyDigitalDesc:
       'Düzenli akademik iş akışlarından, çağdaş tesislerden ve denetimli tedavi planlamasından yararlanın.',
     activePartnerStripMessage:
-      'Başvurular şu anda İstanbul’daki İstinye Üniversitesi Diş Hekimliği Fakültesi ve İstinye Dental Hospital üzerinden kabul edilmektedir.',
+      'Hasta başvuruları şu anda İstanbul’daki İstinye Üniversitesi Diş Hekimliği Fakültesi üzerinden kabul edilmektedir.',
     activePartnerStripButton: 'Konumu Gör',
     activePartnerStripLogoAlt:
       'İstinye Üniversitesi Diş Hekimliği Fakültesi ve İstinye Dental Hospital logosu',

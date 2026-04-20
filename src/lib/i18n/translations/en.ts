@@ -845,7 +845,7 @@ export const en: TranslationShape = {
     whyDigitalDesc:
       'Benefit from organized academic workflows, contemporary facilities, and supervised treatment planning.',
     activePartnerStripMessage:
-      'Currently accepting requests through Istinye University Faculty of Dentistry & Istinye Dental Hospital in Istanbul.',
+      'Now accepting patient requests through Istinye University Faculty of Dentistry in Istanbul.',
     activePartnerStripButton: 'View Location',
     activePartnerStripLogoAlt:
       'Istinye University Faculty of Dentistry and Istinye Dental Hospital logo',
