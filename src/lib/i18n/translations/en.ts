@@ -75,6 +75,9 @@ export type TranslationShape = {
     whySupportDesc: string
     whyDigitalTitle: string
     whyDigitalDesc: string
+    activePartnerStripMessage: string
+    activePartnerStripButton: string
+    activePartnerStripLogoAlt: string
     deptsTitle: string
     deptsDesc: string
     deptWhatTreats: string
@@ -841,6 +844,11 @@ export const en: TranslationShape = {
     whyDigitalTitle: 'Modern Clinical Environment',
     whyDigitalDesc:
       'Benefit from organized academic workflows, contemporary facilities, and supervised treatment planning.',
+    activePartnerStripMessage:
+      'Currently accepting requests through Istinye University Faculty of Dentistry & Istinye Dental Hospital in Istanbul.',
+    activePartnerStripButton: 'View Location',
+    activePartnerStripLogoAlt:
+      'Istinye University Faculty of Dentistry and Istinye Dental Hospital logo',
     deptsTitle: 'Our Clinical Departments',
     deptsDesc:
       'DentBridge helps route each patient to the most appropriate university dental department based on symptoms, treatment needs, and faculty review.',

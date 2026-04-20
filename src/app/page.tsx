@@ -16,6 +16,7 @@ import {
   FileText,
   HeartPulse,
   Menu,
+  MapPin,
   ScanLine,
   ShieldCheck,
   ShieldPlus,
@@ -195,6 +196,40 @@ export default function HomePage() {
                 alt="University dental care"
                 className="h-[180px] w-full rounded-xl sm:rounded-2xl object-cover sm:h-[300px] lg:h-[420px]"
               />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b border-slate-200 bg-white px-4 py-4 sm:px-6 sm:py-5 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-r from-slate-50 via-white to-teal-50/70 px-3 py-3 shadow-sm shadow-slate-200/60 sm:px-4 sm:py-3.5 lg:px-5">
+            <div className="flex flex-col gap-3 sm:gap-3 lg:flex-row lg:items-center lg:gap-5">
+              <div className="flex shrink-0 justify-center lg:justify-start">
+                <div className="flex h-14 w-full max-w-[8.5rem] items-center justify-center rounded-xl border border-slate-200 bg-white px-3 shadow-sm sm:h-16 sm:max-w-[9.5rem]">
+                  <img
+                    src="/images/isu%20logo.png"
+                    alt={t('landing.activePartnerStripLogoAlt')}
+                    className="h-8 w-auto max-w-full object-contain sm:h-9"
+                  />
+                </div>
+              </div>
+
+              <p className="min-w-0 flex-1 text-center text-sm font-medium leading-6 text-slate-700 sm:text-[15px] lg:text-left">
+                {t('landing.activePartnerStripMessage')}
+              </p>
+
+              <div className="flex shrink-0 justify-center lg:justify-end">
+                <a
+                  href="https://maps.app.goo.gl/9ff82yYpHHAzEuEz7?g_st=ic"
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
+                >
+                  <MapPin className="h-4 w-4 shrink-0 text-teal-700" />
+                  {t('landing.activePartnerStripButton')}
+                </a>
+              </div>
             </div>
           </div>
         </div>

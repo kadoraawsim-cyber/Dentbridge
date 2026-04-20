@@ -73,6 +73,11 @@ export const tr: TranslationShape = {
     whyDigitalTitle: 'Modern Klinik Ortam',
     whyDigitalDesc:
       'Düzenli akademik iş akışlarından, çağdaş tesislerden ve denetimli tedavi planlamasından yararlanın.',
+    activePartnerStripMessage:
+      'Başvurular şu anda İstanbul’daki İstinye Üniversitesi Diş Hekimliği Fakültesi ve İstinye Dental Hospital üzerinden kabul edilmektedir.',
+    activePartnerStripButton: 'Konumu Gör',
+    activePartnerStripLogoAlt:
+      'İstinye Üniversitesi Diş Hekimliği Fakültesi ve İstinye Dental Hospital logosu',
     deptsTitle: 'Klinik Bölümlerimiz',
     deptsDesc:
       'DentBridge, her hastayı semptomlar, tedavi ihtiyaçları ve fakülte değerlendirmesine göre en uygun üniversite diş hekimliği bölümüne yönlendirir.',
