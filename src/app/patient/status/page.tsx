@@ -17,6 +17,41 @@ type PatientRequest = {
   assigned_department: string | null
 }
 
+const PHONE_COUNTRY_CODE_OPTIONS = [
+  '+90',
+  '+1',
+  '+20',
+  '+31',
+  '+33',
+  '+44',
+  '+49',
+  '+91',
+  '+92',
+  '+93',
+  '+94',
+  '+98',
+  '+212',
+  '+213',
+  '+216',
+  '+218',
+  '+374',
+  '+961',
+  '+962',
+  '+963',
+  '+964',
+  '+965',
+  '+966',
+  '+967',
+  '+968',
+  '+970',
+  '+971',
+  '+972',
+  '+973',
+  '+974',
+  '+994',
+  '+995',
+] as const
+
 const STATUS_FLOW_KEYS = [
   'submitted',
   'under_review',
@@ -274,6 +309,7 @@ function StatusStepper({
 export default function PatientStatusPage() {
   const { t, locale } = useI18n()
 
+  const [phoneCountryCode, setPhoneCountryCode] = useState('+90')
   const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
@@ -293,13 +329,15 @@ export default function PatientStatusPage() {
     setResult(null)
     setSearched(false)
 
-    const trimmed = phone.trim()
-    if (!trimmed) return
+    const normalizedPhone = phone.replace(/\D/g, '')
+    if (!normalizedPhone) return
+
+    const lookupPhone = `${phoneCountryCode}${normalizedPhone}`
 
     setLoading(true)
 
     const { data, error } = await supabase
-      .rpc('get_request_status_by_phone', { lookup_phone: trimmed })
+      .rpc('get_request_status_by_phone', { lookup_phone: lookupPhone })
       .maybeSingle()
 
     setLoading(false)
@@ -379,13 +417,56 @@ export default function PatientStatusPage() {
             </label>
 
             <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
-              <input
-                type="text"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder={t('request.phonePlaceholder')}
-                className="h-11 flex-1 rounded-xl border border-slate-200 px-4 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
-              />
+              <div className="flex h-11 flex-1 items-stretch overflow-hidden rounded-xl border border-slate-200 bg-white transition focus-within:border-slate-400 focus-within:ring-2 focus-within:ring-slate-100">
+                <select
+                  value={phoneCountryCode}
+                  onChange={(e) => setPhoneCountryCode(e.target.value)}
+                  aria-label={t('request.phoneCountryCode')}
+                  className="w-[88px] shrink-0 border-0 bg-transparent px-3 text-sm font-medium text-slate-900 outline-none"
+                >
+                  {PHONE_COUNTRY_CODE_OPTIONS.map((code) => (
+                    <option key={code} value={code}>
+                      {code}
+                    </option>
+                  ))}
+                </select>
+
+                <div className="my-2 w-px bg-slate-200" aria-hidden="true" />
+
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoComplete="tel-national"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                  onKeyDown={(e) => {
+                    if (
+                      e.ctrlKey ||
+                      e.metaKey ||
+                      e.altKey ||
+                      [
+                        'Backspace',
+                        'Delete',
+                        'Tab',
+                        'ArrowLeft',
+                        'ArrowRight',
+                        'Home',
+                        'End',
+                        'Enter',
+                      ].includes(e.key)
+                    ) {
+                      return
+                    }
+
+                    if (!/^\d$/.test(e.key)) {
+                      e.preventDefault()
+                    }
+                  }}
+                  placeholder={t('request.phoneNumberPlaceholder')}
+                  className="min-w-0 flex-1 border-0 bg-transparent px-4 text-sm text-slate-900 placeholder:text-slate-400 outline-none"
+                />
+              </div>
               <button
                 type="submit"
                 disabled={loading}
