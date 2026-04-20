@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { ShieldCheck, Eye, EyeOff } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
+import { canAccessFacultyPortal } from '@/lib/roles'
 
 export default function AdminLoginPage() {
   const router = useRouter()
@@ -24,7 +25,7 @@ export default function AdminLoginPage() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         const role = session.user.app_metadata?.role
-        if (role === 'admin') {
+        if (canAccessFacultyPortal(role)) {
           router.replace('/admin')
         } else if (role === 'student') {
           router.replace('/student/dashboard')
@@ -60,7 +61,7 @@ export default function AdminLoginPage() {
 
     const role = data.user?.app_metadata?.role
 
-    if (role === 'admin') {
+    if (canAccessFacultyPortal(role)) {
       window.location.href = '/admin'
     } else {
       await supabase.auth.signOut()

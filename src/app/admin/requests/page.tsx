@@ -2,6 +2,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { RequestsClient } from './requests-client'
+import { canAccessFacultyPortal } from '@/lib/roles'
 
 export default async function AdminRequestsPage() {
   const cookieStore = await cookies()
@@ -11,7 +12,7 @@ export default async function AdminRequestsPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user || user.app_metadata?.role !== 'admin') {
+  if (!user || !canAccessFacultyPortal(user.app_metadata?.role)) {
     redirect('/admin/login')
   }
 

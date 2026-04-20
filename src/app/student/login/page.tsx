@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { GraduationCap, Eye, EyeOff } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
+import { canAccessFacultyPortal } from '@/lib/roles'
 
 export default function StudentLoginPage() {
   const router = useRouter()
@@ -26,7 +27,7 @@ export default function StudentLoginPage() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
         const role = user.app_metadata?.role
-        if (role === 'admin') {
+        if (canAccessFacultyPortal(role)) {
           router.replace('/admin')
         } else if (role === 'student') {
           router.replace('/student/dashboard')
@@ -67,7 +68,7 @@ export default function StudentLoginPage() {
     } else {
       await supabase.auth.signOut()
       setErrorMessage(
-        role === 'admin'
+        canAccessFacultyPortal(role)
           ? t('student.login.errorNotStudentPortal')
           : t('student.login.errorNoRole')
       )

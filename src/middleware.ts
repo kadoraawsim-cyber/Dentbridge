@@ -1,11 +1,12 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { canAccessFacultyPortal, getAppRole } from '@/lib/roles'
 
 /**
  * Route protection rules:
  *
- *  /admin/*    → requires role = 'admin'
+ *  /admin/*    → requires role = 'admin' or 'faculty'
  *  /student/*  → requires role = 'student'
  *
  * Explicit pass-throughs (never auth-checked):
@@ -16,7 +17,7 @@ import type { NextRequest } from 'next/server'
  * Any authenticated user with no recognised role is sent to their
  * role-specific login page.
  * A student reaching /admin/* is redirected to /student/dashboard.
- * An admin reaching /student/* is redirected to /admin.
+ * A faculty member or admin reaching /student/* is redirected to /admin.
  */
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -81,10 +82,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/student/login', request.url))
   }
 
-  const role = user.app_metadata?.role as string | undefined
+  const role = getAppRole(user.app_metadata?.role)
 
   // ── No valid role ──────────────────────────────────────────────────────────
-  if (role !== 'admin' && role !== 'student') {
+  if (!role) {
     if (isAdminRoute) {
       return NextResponse.redirect(new URL('/admin/login', request.url))
     }
@@ -92,13 +93,13 @@ export async function middleware(request: NextRequest) {
   }
 
   // ── Wrong role for the route ───────────────────────────────────────────────
-  if (isAdminRoute && role !== 'admin') {
+  if (isAdminRoute && !canAccessFacultyPortal(role)) {
     // Student trying to reach /admin/*
     return NextResponse.redirect(new URL('/student/dashboard', request.url))
   }
 
   if (isStudentRoute && role !== 'student') {
-    // Admin trying to reach /student/*
+    // Faculty/admin trying to reach /student/*
     return NextResponse.redirect(new URL('/admin', request.url))
   }
 

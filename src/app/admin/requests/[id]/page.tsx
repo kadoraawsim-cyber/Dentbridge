@@ -2,6 +2,7 @@ import { cookies } from 'next/headers'
 import { redirect, notFound } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { CaseDetailClient } from './detail-client'
+import { canAccessFacultyPortal } from '@/lib/roles'
 
 export default async function AdminRequestDetailPage({
   params,
@@ -16,7 +17,7 @@ export default async function AdminRequestDetailPage({
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user || user.app_metadata?.role !== 'admin') {
+  if (!user || !canAccessFacultyPortal(user.app_metadata?.role)) {
     redirect('/admin/login')
   }
 

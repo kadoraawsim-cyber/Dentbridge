@@ -1,11 +1,13 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { getAppRole } from '@/lib/roles'
 
 export default function AuthCallbackPage() {
   const router = useRouter()
+  const [error, setError] = useState('')
 
   useEffect(() => {
     async function handleAuth() {
@@ -23,7 +25,28 @@ export default function AuthCallbackPage() {
         }
       }
 
-      router.replace('/auth/set-password')
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      const role = getAppRole(user?.app_metadata?.role)
+
+      if (role === 'student') {
+        router.replace('/auth/set-password/student')
+        return
+      }
+
+      if (role === 'faculty') {
+        router.replace('/auth/set-password/faculty')
+        return
+      }
+
+      if (role === 'admin') {
+        router.replace('/admin')
+        return
+      }
+
+      setError('Invalid or expired invitation link.')
     }
 
     handleAuth()
@@ -31,7 +54,7 @@ export default function AuthCallbackPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-600">
-      Processing invitation...
+      {error || 'Processing invitation...'}
     </main>
   )
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { canAccessFacultyPortal } from '@/lib/roles'
 
 type Action =
   | 'save_draft'
@@ -68,7 +69,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  if (user.app_metadata?.role !== 'admin') {
+  if (!canAccessFacultyPortal(user.app_metadata?.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

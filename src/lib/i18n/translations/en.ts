@@ -481,6 +481,15 @@ export type TranslationShape = {
       inviteStudentSuccess: string
       inviteStudentInvalidEmail: string
       inviteStudentErrorGeneric: string
+      inviteFacultyTitle: string
+      inviteFacultyDesc: string
+      inviteFacultyEmailLabel: string
+      inviteFacultyEmailPlaceholder: string
+      inviteFacultyButton: string
+      inviteFacultySending: string
+      inviteFacultySuccess: string
+      inviteFacultyInvalidEmail: string
+      inviteFacultyErrorGeneric: string
       statNewTodayLabel: string
       statNewTodayDesc: string
       statPendingLabel: string
@@ -1338,6 +1347,17 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
         'Invitation sent. The email link will route through the set-password flow.',
       inviteStudentInvalidEmail: 'Please enter a valid email address.',
       inviteStudentErrorGeneric: 'Unable to send the invitation right now.',
+      inviteFacultyTitle: 'Invite Faculty',
+      inviteFacultyDesc:
+        'Send a faculty invitation email using the dedicated DentBridge faculty account setup flow.',
+      inviteFacultyEmailLabel: 'Faculty email',
+      inviteFacultyEmailPlaceholder: 'faculty@university.edu',
+      inviteFacultyButton: 'Send Invite',
+      inviteFacultySending: 'Sending…',
+      inviteFacultySuccess:
+        'Invitation sent. The email link will route through the faculty set-password flow.',
+      inviteFacultyInvalidEmail: 'Please enter a valid email address.',
+      inviteFacultyErrorGeneric: 'Unable to send the faculty invitation right now.',
       statNewTodayLabel: 'New Today',
       statNewTodayDesc: 'Submitted today',
       statPendingLabel: 'Pending Review',

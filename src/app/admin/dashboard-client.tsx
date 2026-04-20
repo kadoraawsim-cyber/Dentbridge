@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
+import { isAdminRole } from '@/lib/roles'
 
 type PatientRequest = {
   id: string
@@ -35,6 +36,7 @@ type DepartmentCaseItem = {
 interface Props {
   initialRequests: PatientRequest[]
   adminEmail: string
+  currentRole: string | null
 }
 
 function getUrgencyBadgeClass(urgency: string) {
@@ -80,13 +82,17 @@ function RelativeBar({ value }: { value: number }) {
   )
 }
 
-export function DashboardClient({ initialRequests, adminEmail }: Props) {
+export function DashboardClient({ initialRequests, adminEmail, currentRole }: Props) {
   const { t, locale } = useI18n()
   const dateLocale = locale === 'tr' ? 'tr-TR' : 'en-GB'
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteLoading, setInviteLoading] = useState(false)
   const [inviteMessage, setInviteMessage] = useState('')
   const [inviteError, setInviteError] = useState('')
+  const [facultyInviteEmail, setFacultyInviteEmail] = useState('')
+  const [facultyInviteLoading, setFacultyInviteLoading] = useState(false)
+  const [facultyInviteMessage, setFacultyInviteMessage] = useState('')
+  const [facultyInviteError, setFacultyInviteError] = useState('')
 
   function relativeTime(iso: string | null): string {
     if (!iso) return '\u2014'
@@ -204,6 +210,48 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
     }
 
     setInviteLoading(false)
+  }
+
+  async function handleInviteFaculty(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setFacultyInviteMessage('')
+    setFacultyInviteError('')
+
+    const normalizedEmail = facultyInviteEmail.trim().toLowerCase()
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      setFacultyInviteError(t('admin.dashboard.inviteFacultyInvalidEmail'))
+      return
+    }
+
+    setFacultyInviteLoading(true)
+
+    try {
+      const response = await fetch('/api/admin/invitations/faculty', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: normalizedEmail,
+        }),
+      })
+
+      const result = (await response.json()) as { error?: string }
+
+      if (!response.ok) {
+        setFacultyInviteError(result.error || t('admin.dashboard.inviteFacultyErrorGeneric'))
+        setFacultyInviteLoading(false)
+        return
+      }
+
+      setFacultyInviteMessage(t('admin.dashboard.inviteFacultySuccess'))
+      setFacultyInviteEmail('')
+    } catch {
+      setFacultyInviteError(t('admin.dashboard.inviteFacultyErrorGeneric'))
+    }
+
+    setFacultyInviteLoading(false)
   }
 
   const dashboardStats = useMemo(() => {
@@ -486,53 +534,105 @@ export function DashboardClient({ initialRequests, adminEmail }: Props) {
           </div>
         </div>
 
-        <div className="mt-4 sm:mt-6 rounded-xl sm:rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-          <div className="max-w-3xl">
-            <h2 className="text-base font-bold text-slate-900 sm:text-lg">
-              {t('admin.dashboard.inviteStudentTitle')}
-            </h2>
-            <p className="mt-1 text-xs leading-relaxed text-slate-500 sm:text-sm">
-              {t('admin.dashboard.inviteStudentDesc')}
-            </p>
+        {isAdminRole(currentRole) && (
+          <div className="mt-4 sm:mt-6 grid gap-4 sm:gap-6 lg:grid-cols-2">
+            <div className="rounded-xl sm:rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+              <div className="max-w-3xl">
+                <h2 className="text-base font-bold text-slate-900 sm:text-lg">
+                  {t('admin.dashboard.inviteStudentTitle')}
+                </h2>
+                <p className="mt-1 text-xs leading-relaxed text-slate-500 sm:text-sm">
+                  {t('admin.dashboard.inviteStudentDesc')}
+                </p>
+              </div>
+
+              <form onSubmit={handleInviteStudent} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+                <div className="min-w-0 flex-1">
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {t('admin.dashboard.inviteStudentEmailLabel')}
+                  </label>
+                  <input
+                    type="email"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    placeholder={t('admin.dashboard.inviteStudentEmailPlaceholder')}
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-slate-900"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={inviteLoading}
+                  className="inline-flex items-center justify-center rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {inviteLoading
+                    ? t('admin.dashboard.inviteStudentSending')
+                    : t('admin.dashboard.inviteStudentButton')}
+                </button>
+              </form>
+
+              {inviteError && (
+                <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {inviteError}
+                </div>
+              )}
+
+              {inviteMessage && (
+                <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                  {inviteMessage}
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-xl sm:rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+              <div className="max-w-3xl">
+                <h2 className="text-base font-bold text-slate-900 sm:text-lg">
+                  {t('admin.dashboard.inviteFacultyTitle')}
+                </h2>
+                <p className="mt-1 text-xs leading-relaxed text-slate-500 sm:text-sm">
+                  {t('admin.dashboard.inviteFacultyDesc')}
+                </p>
+              </div>
+
+              <form onSubmit={handleInviteFaculty} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+                <div className="min-w-0 flex-1">
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {t('admin.dashboard.inviteFacultyEmailLabel')}
+                  </label>
+                  <input
+                    type="email"
+                    value={facultyInviteEmail}
+                    onChange={(e) => setFacultyInviteEmail(e.target.value)}
+                    placeholder={t('admin.dashboard.inviteFacultyEmailPlaceholder')}
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-slate-900"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={facultyInviteLoading}
+                  className="inline-flex items-center justify-center rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {facultyInviteLoading
+                    ? t('admin.dashboard.inviteFacultySending')
+                    : t('admin.dashboard.inviteFacultyButton')}
+                </button>
+              </form>
+
+              {facultyInviteError && (
+                <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {facultyInviteError}
+                </div>
+              )}
+
+              {facultyInviteMessage && (
+                <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                  {facultyInviteMessage}
+                </div>
+              )}
+            </div>
           </div>
-
-          <form onSubmit={handleInviteStudent} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
-            <div className="min-w-0 flex-1">
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                {t('admin.dashboard.inviteStudentEmailLabel')}
-              </label>
-              <input
-                type="email"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                placeholder={t('admin.dashboard.inviteStudentEmailPlaceholder')}
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-slate-900"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={inviteLoading}
-              className="inline-flex items-center justify-center rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {inviteLoading
-                ? t('admin.dashboard.inviteStudentSending')
-                : t('admin.dashboard.inviteStudentButton')}
-            </button>
-          </form>
-
-          {inviteError && (
-            <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {inviteError}
-            </div>
-          )}
-
-          {inviteMessage && (
-            <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-              {inviteMessage}
-            </div>
-          )}
-        </div>
+        )}
 
         {/* ── Layout מותאם למובייל ומחשב: הכל נכנס למסגרות שלא חורגות מהרוחב ── */}
         <div className="mt-6 sm:mt-8 flex w-full flex-col gap-6 sm:gap-8 lg:flex-row lg:items-start">

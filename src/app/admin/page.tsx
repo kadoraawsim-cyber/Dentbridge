@@ -2,6 +2,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { DashboardClient } from './dashboard-client'
+import { canAccessFacultyPortal } from '@/lib/roles'
 
 export default async function AdminDashboardPage() {
   const cookieStore = await cookies()
@@ -11,7 +12,7 @@ export default async function AdminDashboardPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user || user.app_metadata?.role !== 'admin') {
+  if (!user || !canAccessFacultyPortal(user.app_metadata?.role)) {
     redirect('/admin/login')
   }
 
@@ -24,6 +25,7 @@ export default async function AdminDashboardPage() {
     <DashboardClient
       initialRequests={data ?? []}
       adminEmail={user.email ?? ''}
+      currentRole={user.app_metadata?.role ?? null}
     />
   )
 }
