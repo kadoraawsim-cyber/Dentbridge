@@ -36,7 +36,10 @@ const LANGUAGE_OPTIONS = [
 ] as const
 
 const PREFERRED_UNIVERSITY_OPTIONS = [
-  'İstinye Dental Hospital',
+  {
+    value: 'İstinye Dental Hospital',
+    tKey: 'request.preferredUniversityIstinyeDentalHospital',
+  },
 ] as const
 
 const PHONE_COUNTRY_CODE_OPTIONS = [
@@ -269,6 +272,7 @@ export default function PatientRequestPage() {
         completed:
           Boolean(fullName.trim()) &&
           Boolean(phone.trim()) &&
+          Boolean(preferredUniversity) &&
           Boolean(age) &&
           Boolean(gender),
       },
@@ -314,6 +318,7 @@ export default function PatientRequestPage() {
     () => [
       Boolean(fullName.trim()),
       Boolean(phone.trim()),
+      Boolean(preferredUniversity),
       Boolean(age),
       Boolean(gender),
       Boolean(treatmentType),
@@ -335,6 +340,7 @@ export default function PatientRequestPage() {
       medicalConditionDetails,
       painScore,
       phone,
+      preferredUniversity,
       symptomDuration,
       treatmentType,
     ]
@@ -560,6 +566,11 @@ export default function PatientRequestPage() {
       return
     }
 
+    if (!preferredUniversity) {
+      setErrorMessage(t('request.preferredUniversityRequired'))
+      return
+    }
+
     if (
       !/^\+\d+$/.test(phoneCountryCode) ||
       !/^\d+$/.test(normalizedPhone) ||
@@ -573,6 +584,7 @@ export default function PatientRequestPage() {
     if (
       !fullName ||
       !phone ||
+      !preferredUniversity ||
       !age ||
       !gender ||
       !treatmentType ||
@@ -833,6 +845,24 @@ export default function PatientRequestPage() {
 
                   <div>
                     <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
+                      {t('request.preferredUniversity')} *
+                    </label>
+                    <select
+                      value={preferredUniversity}
+                      onChange={(e) => setPreferredUniversity(e.target.value)}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
+                    >
+                      <option value="">{t('request.selectPlaceholder')}</option>
+                      {PREFERRED_UNIVERSITY_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {t(option.tKey)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
                       {t('request.age')} *
                     </label>
                     <input
@@ -1083,25 +1113,6 @@ export default function PatientRequestPage() {
                       {LANGUAGE_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>
                           {t(opt.tKey)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                      Preferred University / Clinic{' '}
-                      <span className="font-normal text-slate-400">{t('request.optional')}</span>
-                    </label>
-                    <select
-                      value={preferredUniversity}
-                      onChange={(e) => setPreferredUniversity(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
-                    >
-                      <option value="">{t('request.selectPlaceholder')}</option>
-                      {PREFERRED_UNIVERSITY_OPTIONS.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
                         </option>
                       ))}
                     </select>

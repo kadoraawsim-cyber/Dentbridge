@@ -112,6 +112,9 @@ export type TranslationShape = {
     phone: string
     phoneCountryCode: string
     preferredLanguage: string
+    preferredUniversity: string
+    preferredUniversityRequired: string
+    preferredUniversityIstinyeDentalHospital: string
     supportingImages: string
     optional: string
     selectPlaceholder: string
@@ -948,6 +951,9 @@ export const en: TranslationShape = {
     phone: 'Phone Number',
     phoneCountryCode: 'Country Code',
     preferredLanguage: 'Preferred Communication Language',
+    preferredUniversity: 'Preferred University / Clinic',
+    preferredUniversityRequired: 'Please select your preferred university / clinic.',
+    preferredUniversityIstinyeDentalHospital: 'Istinye Dental Hospital',
     supportingImages: 'Supporting Images',
     optional: '(optional)',
     selectPlaceholder: 'Select an option',
