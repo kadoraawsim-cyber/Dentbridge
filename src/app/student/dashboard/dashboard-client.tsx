@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -21,6 +21,8 @@ import {
   AlertCircle,
   Activity,
   Copy,
+  ChevronDown,
+  CalendarDays,
 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
@@ -116,9 +118,11 @@ export function DashboardClient({
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [actionErrors, setActionErrors] = useState<Record<string, string>>({})
   const [copiedCaseId, setCopiedCaseId] = useState<string | null>(null)
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [localStatuses, setLocalStatuses] = useState<Record<string, string>>(
     () => Object.fromEntries(activeCases.map((c) => [c.caseId, c.status]))
   )
+  const profileMenuRef = useRef<HTMLDivElement | null>(null)
 
   const ui =
     locale === 'tr'
@@ -208,6 +212,19 @@ export function DashboardClient({
     await supabase.auth.signOut()
     router.replace('/student/login')
   }
+
+  useEffect(() => {
+    if (!profileMenuOpen) return
+
+    function handlePointerDown(event: MouseEvent) {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setProfileMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    return () => document.removeEventListener('mousedown', handlePointerDown)
+  }, [profileMenuOpen])
 
   async function handleLifecycleAction(
     caseId: string,
@@ -409,8 +426,31 @@ export function DashboardClient({
               </div>
             )}
 
-            <div className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-[10px] sm:text-xs font-bold text-white shadow-sm ring-2 ring-slate-100">
-              {studentInitials}
+            <div ref={profileMenuRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setProfileMenuOpen((prev) => !prev)}
+                className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white p-1 pr-2 text-slate-700 shadow-sm transition hover:bg-slate-50"
+                aria-expanded={profileMenuOpen}
+              >
+                <span className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-[10px] sm:text-xs font-bold text-white ring-2 ring-slate-100">
+                  {studentInitials}
+                </span>
+                <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+              </button>
+
+              {profileMenuOpen && (
+                <div className="absolute right-0 top-full z-20 mt-2 w-48 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+                  <Link
+                    href="/student/planner"
+                    onClick={() => setProfileMenuOpen(false)}
+                    className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
+                  >
+                    <CalendarDays className="h-4 w-4 text-slate-400" />
+                    {t('student.nav.planner')}
+                  </Link>
+                </div>
+              )}
             </div>
 
             <button

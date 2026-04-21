@@ -277,6 +277,7 @@ export type TranslationShape = {
       casePool: string
       exchange: string
       myRequests: string
+      planner: string
       signOut: string
       availableCases: string
     }
@@ -440,6 +441,50 @@ export type TranslationShape = {
       sectionRejected: string
       sectionRevoked: string
       completedNote: string
+    }
+    planner: {
+      pageTitle: string
+      pageDesc: string
+      backToDashboard: string
+      addEvent: string
+      monthView: string
+      weekView: string
+      dayView: string
+      today: string
+      previous: string
+      next: string
+      loading: string
+      loadError: string
+      retry: string
+      emptyStateTitle: string
+      emptyStateDesc: string
+      noEventsForDay: string
+      selectedDateTitle: string
+      upcomingTitle: string
+      activePatientsTitle: string
+      activePatientsDesc: string
+      linkedPatient: string
+      noLinkedPatient: string
+      eventStarts: string
+      eventEnds: string
+      addModalTitle: string
+      addModalDesc: string
+      titleLabel: string
+      titlePlaceholder: string
+      startLabel: string
+      endLabel: string
+      descriptionLabel: string
+      descriptionPlaceholder: string
+      patientLabel: string
+      patientPlaceholder: string
+      saveEvent: string
+      savingEvent: string
+      cancel: string
+      requiredTitle: string
+      invalidRange: string
+      saveError: string
+      saveSuccess: string
+      noActivePatients: string
     }
   }
 
@@ -1207,6 +1252,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
   dashboard: 'Dashboard',
   casePool: 'Case Pool',
   myRequests: 'My Requests',
+  planner: 'My Planner',
   exchange: 'Exchange',
   signOut: 'Sign Out',
   availableCases: 'Available Cases',
@@ -1373,6 +1419,50 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       sectionRejected: 'Declined Requests',
       sectionRevoked: 'Reassigned / Returned to Pool',
       completedNote: 'These cases have been fully completed.',
+    },
+    planner: {
+      pageTitle: 'Student Planner',
+      pageDesc: 'Keep a private schedule of follow-ups, reminders, and patient-linked planning notes.',
+      backToDashboard: 'Back to Dashboard',
+      addEvent: 'Add Event',
+      monthView: 'Month',
+      weekView: 'Week',
+      dayView: 'Day',
+      today: 'Today',
+      previous: 'Previous',
+      next: 'Next',
+      loading: 'Loading planner...',
+      loadError: 'Unable to load planner data right now.',
+      retry: 'Retry',
+      emptyStateTitle: 'No planner events yet',
+      emptyStateDesc: 'Add a private event to start organizing appointments, follow-ups, and study reminders.',
+      noEventsForDay: 'No events scheduled for this day.',
+      selectedDateTitle: 'Selected Date',
+      upcomingTitle: 'Upcoming Events',
+      activePatientsTitle: 'Active Patients',
+      activePatientsDesc: 'Only your currently active patients can be linked to a planner event.',
+      linkedPatient: 'Linked patient',
+      noLinkedPatient: 'No linked patient',
+      eventStarts: 'Starts',
+      eventEnds: 'Ends',
+      addModalTitle: 'Add Planner Event',
+      addModalDesc: 'Create a private event visible only inside your student planner.',
+      titleLabel: 'Event Title',
+      titlePlaceholder: 'Follow-up call with patient',
+      startLabel: 'Start',
+      endLabel: 'End',
+      descriptionLabel: 'Description / Notes',
+      descriptionPlaceholder: 'Add any notes, reminders, or preparation details...',
+      patientLabel: 'Link Patient',
+      patientPlaceholder: 'Select an active patient',
+      saveEvent: 'Save Event',
+      savingEvent: 'Saving...',
+      cancel: 'Cancel',
+      requiredTitle: 'Please enter an event title.',
+      invalidRange: 'End time must be after the start time.',
+      saveError: 'Unable to save the planner event right now.',
+      saveSuccess: 'Planner event saved.',
+      noActivePatients: 'No active patients available to link right now.',
     },
   },
 
