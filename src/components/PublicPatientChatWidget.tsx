@@ -31,11 +31,9 @@ function createMessageId() {
 
 function BridgeyAvatar({
   sizeClass,
-  online = false,
   className = '',
 }: {
   sizeClass: string
-  online?: boolean
   className?: string
 }) {
   return (
@@ -48,9 +46,6 @@ function BridgeyAvatar({
         draggable={false}
         className="object-contain"
       />
-      {online && (
-        <span className="bridgey-online-dot absolute bottom-1 right-1 h-2.5 w-2.5 rounded-full bg-emerald-400" />
-      )}
     </div>
   )
 }
@@ -276,11 +271,11 @@ export default function PublicPatientChatWidget() {
           >
             {/* Header */}
             <div className="border-b border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.98))] px-4 py-3.5 sm:px-5">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-3">
-                  <BridgeyAvatar sizeClass="h-12 w-12" online />
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-start gap-3.5">
+                  <BridgeyAvatar sizeClass="h-14 w-14" className="mt-0.5" />
 
-                  <div className="min-w-0">
+                  <div className="min-w-0 pt-0.5">
                     <h2 className="text-[15px] font-semibold leading-tight text-slate-900">
                       {t('patientChat.headerTitle')}
                     </h2>
@@ -323,12 +318,12 @@ export default function PublicPatientChatWidget() {
                   className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`flex max-w-[92%] items-end gap-2 ${
+                    className={`flex max-w-[92%] items-start gap-2.5 ${
                       message.role === 'user' ? 'justify-end' : 'justify-start'
                     }`}
                   >
                     {message.role === 'assistant' && (
-                      <BridgeyAvatar sizeClass="h-10 w-10" className="mb-0.5 shrink-0" />
+                      <BridgeyAvatar sizeClass="h-10 w-10" className="mt-0.5 shrink-0" />
                     )}
                     <div
                       className={`max-w-[88%] rounded-3xl px-4 py-3 text-sm leading-6 shadow-sm ${
@@ -345,8 +340,8 @@ export default function PublicPatientChatWidget() {
 
               {isSending && (
                 <div className="flex justify-start">
-                  <div className="flex items-end gap-2">
-                    <BridgeyAvatar sizeClass="h-10 w-10" className="mb-0.5 shrink-0" />
+                  <div className="flex items-start gap-2.5">
+                    <BridgeyAvatar sizeClass="h-10 w-10" className="mt-0.5 shrink-0" />
                     <div className="inline-flex items-center gap-2 rounded-3xl rounded-bl-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500 shadow-sm">
                       <Loader2 className="h-4 w-4 animate-spin text-teal-600" />
                       {t('patientChat.loadingReply')}
@@ -450,7 +445,7 @@ export default function PublicPatientChatWidget() {
               >
                 {t('patientChat.teaser')}
               </span>
-              <BridgeyAvatar sizeClass="h-[4.5rem] w-[4.5rem]" online />
+              <BridgeyAvatar sizeClass="h-20 w-20" />
             </button>
           </div>
         )}
@@ -458,10 +453,6 @@ export default function PublicPatientChatWidget() {
       <style jsx>{`
         .bridgey-fab-float {
           animation: bridgey-float 6s ease-in-out infinite;
-        }
-
-        .bridgey-online-dot {
-          animation: bridgey-pulse 2.8s ease-in-out infinite;
         }
 
         .bridgey-panel-enter {
@@ -475,18 +466,6 @@ export default function PublicPatientChatWidget() {
           }
           50% {
             transform: translateY(-4px);
-          }
-        }
-
-        @keyframes bridgey-pulse {
-          0%,
-          100% {
-            transform: scale(1);
-            opacity: 0.9;
-          }
-          50% {
-            transform: scale(1.08);
-            opacity: 0.7;
           }
         }
 
