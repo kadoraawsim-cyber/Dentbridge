@@ -194,7 +194,7 @@ export default function HomePage() {
             <div className="relative w-full max-w-xl">
               <div
                 id="bridgey-home-anchor"
-                className="absolute inset-0 overflow-visible pointer-events-none"
+                className="absolute inset-0 z-20 overflow-visible pointer-events-none"
                 aria-hidden="true"
               />
               <div className="overflow-hidden rounded-2xl sm:rounded-3xl border border-white/15 bg-white/8 p-2 sm:p-2.5 shadow-2xl backdrop-blur sm:p-3">
