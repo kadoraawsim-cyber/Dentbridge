@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { Loader2, MessageCircle, Minus, SendHorizontal } from 'lucide-react'
+import { Loader2, Minus, SendHorizontal } from 'lucide-react'
 import type { PatientChatPageContext, PublicPatientPageId } from '@/lib/chat/patient-site-context'
 import { useI18n } from '@/lib/i18n'
 
 const MAX_CLIENT_MESSAGE_LENGTH = 800
+const BRIDGEY_AVATAR_SRC = '/avatar%20bridgey.PNG'
 
 type ChatMessage = {
   id: string
@@ -25,6 +27,32 @@ function shouldShowPatientChat(pathname: string) {
 
 function createMessageId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+}
+
+function BridgeyAvatar({
+  sizeClass,
+  pulse = false,
+  className = '',
+}: {
+  sizeClass: string
+  pulse?: boolean
+  className?: string
+}) {
+  return (
+    <div className={`relative shrink-0 ${sizeClass} ${className}`}>
+      <Image
+        src={BRIDGEY_AVATAR_SRC}
+        alt="Bridgey avatar"
+        fill
+        sizes="72px"
+        draggable={false}
+        className="object-contain select-none"
+      />
+      {pulse && (
+        <span className="bridgey-online-pulse absolute bottom-[15%] right-[10%] h-2.5 w-2.5 rounded-full bg-emerald-400/90 shadow-[0_0_10px_rgba(74,222,128,0.35)]" />
+      )}
+    </div>
+  )
 }
 
 function getPatientChatPageContext(
@@ -228,13 +256,13 @@ export default function PublicPatientChatWidget() {
       <div
         className="absolute flex flex-col items-end gap-3"
         style={{
-          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
+          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 28px)',
           right: 'calc(env(safe-area-inset-right, 0px) + 16px)',
         }}
       >
         {isOpen && (
           <section
-            className="pointer-events-auto flex h-[min(68dvh,34rem)] max-h-[calc(100dvh-8rem)] flex-col overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_28px_80px_-32px_rgba(15,23,42,0.45)] ring-1 ring-slate-950/5 backdrop-blur sm:h-[min(70dvh,38rem)] sm:max-h-[calc(100dvh-7rem)]"
+            className="bridgey-panel-enter pointer-events-auto flex h-[min(68dvh,34rem)] max-h-[calc(100dvh-8rem)] flex-col overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_28px_80px_-32px_rgba(15,23,42,0.45)] ring-1 ring-slate-950/5 backdrop-blur sm:h-[min(70dvh,38rem)] sm:max-h-[calc(100dvh-7rem)]"
             style={{
               width: 'min(24rem, calc(100vw - 32px))',
             }}
@@ -242,10 +270,7 @@ export default function PublicPatientChatWidget() {
             <div className="border-b border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.98))] px-4 py-3.5 sm:px-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-start gap-3">
-                  <div className="relative mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#0f172a,#1d4d4f)] text-sm font-semibold text-white shadow-[0_18px_35px_-22px_rgba(15,23,42,0.7)]">
-                    B
-                    <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-teal-400" />
-                  </div>
+                  <BridgeyAvatar sizeClass="h-12 w-12" pulse />
 
                   <div className="min-w-0">
                     <h2 className="text-[15px] font-semibold text-slate-900">
@@ -254,11 +279,14 @@ export default function PublicPatientChatWidget() {
                     <p className="mt-0.5 text-sm leading-5 text-slate-500">
                       {t('patientChat.headerSubtitle')}
                     </p>
+                    <p className="mt-1 text-xs font-medium text-emerald-600/90">
+                      {t('patientChat.statusLine')}
+                    </p>
                     <button
                       type="button"
                       onClick={resetConversation}
                       disabled={isSending}
-                      className="mt-2 inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="mt-2 inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {t('patientChat.newChat')}
                     </button>
@@ -286,22 +314,34 @@ export default function PublicPatientChatWidget() {
                   className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-[88%] rounded-3xl px-4 py-3 text-sm leading-6 shadow-sm ${
-                      message.role === 'user'
-                        ? 'rounded-br-xl bg-slate-900 text-white'
-                        : 'rounded-bl-xl border border-slate-200 bg-white text-slate-700'
+                    className={`flex max-w-[92%] items-end gap-2.5 ${
+                      message.role === 'user' ? 'justify-end' : 'justify-start'
                     }`}
                   >
-                    <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                    {message.role === 'assistant' && (
+                      <BridgeyAvatar sizeClass="h-9 w-9" className="mb-1" />
+                    )}
+                    <div
+                      className={`max-w-[88%] rounded-3xl px-4 py-3 text-sm leading-6 shadow-sm ${
+                        message.role === 'user'
+                          ? 'rounded-br-xl bg-slate-900 text-white'
+                          : 'rounded-bl-xl border border-slate-200 bg-white text-slate-700'
+                      }`}
+                    >
+                      <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                    </div>
                   </div>
                 </div>
               ))}
 
               {isSending && (
                 <div className="flex justify-start">
-                  <div className="inline-flex items-center gap-2 rounded-3xl rounded-bl-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500 shadow-sm">
-                    <Loader2 className="h-4 w-4 animate-spin text-teal-600" />
-                    {t('patientChat.loadingReply')}
+                  <div className="flex items-end gap-2.5">
+                    <BridgeyAvatar sizeClass="h-9 w-9" className="mb-1" />
+                    <div className="inline-flex items-center gap-2 rounded-3xl rounded-bl-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500 shadow-sm">
+                      <Loader2 className="h-4 w-4 animate-spin text-teal-600" />
+                      {t('patientChat.loadingReply')}
+                    </div>
                   </div>
                 </div>
               )}
@@ -384,17 +424,70 @@ export default function PublicPatientChatWidget() {
         )}
 
         {!isOpen && (
-          <button
-            type="button"
-            onClick={() => setIsOpen(true)}
-            aria-expanded={false}
-            aria-label={t('patientChat.fabOpen')}
-            className="pointer-events-auto inline-flex h-14 w-14 items-center justify-center rounded-full bg-[linear-gradient(135deg,#0f172a,#1d4d4f)] text-white shadow-[0_24px_48px_-20px_rgba(15,23,42,0.55)] ring-1 ring-white/20 transition hover:scale-[1.02] hover:shadow-[0_28px_54px_-22px_rgba(15,23,42,0.58)]"
-          >
-            <MessageCircle className="h-5 w-5" />
-          </button>
+          <div className="pointer-events-auto flex items-center gap-2.5">
+            <div className="rounded-full border border-slate-200/80 bg-white/95 px-3 py-1.5 text-sm font-medium text-slate-600 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)] backdrop-blur">
+              {t('patientChat.teaser')}
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsOpen(true)}
+              aria-expanded={false}
+              aria-label={t('patientChat.fabOpen')}
+              className="bridgey-fab-float group inline-flex items-center justify-center rounded-full bg-transparent transition hover:scale-[1.05]"
+            >
+              <div className="rounded-full shadow-[0_24px_48px_-20px_rgba(15,23,42,0.45)] transition duration-300 group-hover:shadow-[0_24px_48px_-18px_rgba(45,212,191,0.3)]">
+                <BridgeyAvatar sizeClass="h-16 w-16 sm:h-[4.5rem] sm:w-[4.5rem]" pulse />
+              </div>
+            </button>
+          </div>
         )}
       </div>
+      <style jsx>{`
+        .bridgey-fab-float {
+          animation: bridgey-float 6s ease-in-out infinite;
+        }
+
+        .bridgey-online-pulse {
+          animation: bridgey-pulse 2.6s ease-in-out infinite;
+        }
+
+        .bridgey-panel-enter {
+          animation: bridgey-enter 220ms ease-out;
+        }
+
+        @keyframes bridgey-float {
+          0%,
+          100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-4px);
+          }
+        }
+
+        @keyframes bridgey-pulse {
+          0%,
+          100% {
+            transform: scale(1);
+            opacity: 0.92;
+          }
+          50% {
+            transform: scale(1.16);
+            opacity: 0.7;
+          }
+        }
+
+        @keyframes bridgey-enter {
+          0% {
+            opacity: 0;
+            transform: translateY(10px) scale(0.985);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+      `}</style>
     </div>
   )
 }

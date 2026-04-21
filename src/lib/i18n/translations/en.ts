@@ -252,6 +252,8 @@ export type TranslationShape = {
     fabClose: string
     headerTitle: string
     headerSubtitle: string
+    teaser: string
+    statusLine: string
     newChat: string
     welcome: string
     starterLabel: string
@@ -1259,6 +1261,8 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     fabClose: 'Close Bridgey chat',
     headerTitle: 'Bridgey',
     headerSubtitle: 'Here to help with your DentBridge request',
+    teaser: 'Need help?',
+    statusLine: 'Online • 24/7',
     newChat: 'New chat',
     welcome:
       'Hi! I can help with your request, what happens next, and common questions.',

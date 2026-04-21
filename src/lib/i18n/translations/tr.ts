@@ -334,6 +334,8 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
     fabClose: 'Bridgey sohbetini kapat',
     headerTitle: 'Bridgey',
     headerSubtitle: 'DentBridge başvurunuz için yardımcı',
+    teaser: 'Yardım ister misin?',
+    statusLine: 'Çevrimiçi • 7/24',
     newChat: 'Yeni sohbet',
     welcome:
       'Merhaba! Başvuru süreci ve sık sorulan konularda yardımcı olabilirim.',
