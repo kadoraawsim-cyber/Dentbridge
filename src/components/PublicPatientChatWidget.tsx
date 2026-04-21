@@ -15,6 +15,10 @@ const LAUNCHER_DOCK_PEEK = 28
 const LAUNCHER_DRAG_THRESHOLD = 6
 const LAUNCHER_OPEN_DELAY_MS = 140
 
+function isMobileViewportWidth(viewportWidth: number) {
+  return viewportWidth < 768
+}
+
 type DockSide = 'left' | 'right'
 
 type LauncherState = {
@@ -39,7 +43,7 @@ function clamp(value: number, min: number, max: number) {
 }
 
 function getLauncherBounds(viewportWidth: number, viewportHeight: number): LauncherBounds {
-  const isMobileViewport = viewportWidth < 768
+  const isMobileViewport = isMobileViewportWidth(viewportWidth)
   const horizontalInset = isMobileViewport ? LAUNCHER_VISIBLE_OFFSET : 24
   const topInset = isMobileViewport ? 88 : 24
   const bottomInset = isMobileViewport ? 120 : 96
@@ -66,10 +70,10 @@ function getDockedLauncherX(dock: DockSide, bounds: LauncherBounds) {
   return dock === 'left' ? bounds.leftDock : bounds.rightDock
 }
 
-function normalizeLauncherState(previousState: LauncherState | null): LauncherState {
+function normalizeLauncherState(previousState: LauncherState | null, isMobileViewport: boolean): LauncherState {
   const bounds = getLauncherBounds(window.innerWidth, window.innerHeight)
 
-  if (!previousState) {
+  if (isMobileViewport || !previousState) {
     return {
       x: bounds.rightVisible,
       y: bounds.defaultY,
@@ -190,6 +194,7 @@ export default function PublicPatientChatWidget() {
   const [showLauncherHint, setShowLauncherHint] = useState(true)
   const [launcherState, setLauncherState] = useState<LauncherState | null>(null)
   const [isLauncherDragging, setIsLauncherDragging] = useState(false)
+  const [isMobileLauncher, setIsMobileLauncher] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
   const launcherOpenTimeoutRef = useRef<number | null>(null)
@@ -261,7 +266,9 @@ export default function PublicPatientChatWidget() {
     }
 
     const syncLauncherState = () => {
-      setLauncherState((current) => normalizeLauncherState(current))
+      const mobileViewport = isMobileViewportWidth(window.innerWidth)
+      setIsMobileLauncher(mobileViewport)
+      setLauncherState((current) => normalizeLauncherState(current, mobileViewport))
     }
 
     syncLauncherState()
@@ -294,6 +301,8 @@ export default function PublicPatientChatWidget() {
 
   const isDraftEmpty = draft.trim().length === 0
   const showStarters = messages.length <= 1
+  const shouldRenderLauncherTeaser =
+    !!launcherState && !launcherState.isDocked && (!isMobileLauncher || showLauncherHint)
 
   function resetConversation() {
     setMessages([])
@@ -311,7 +320,7 @@ export default function PublicPatientChatWidget() {
       window.clearTimeout(launcherOpenTimeoutRef.current)
     }
 
-    if (!launcherState.isDocked) {
+    if (isMobileLauncher || !launcherState.isDocked) {
       setIsOpen(true)
       return
     }
@@ -369,7 +378,7 @@ export default function PublicPatientChatWidget() {
   }
 
   function handleLauncherPointerDown(event: React.PointerEvent<HTMLButtonElement>) {
-    if (!launcherState) {
+    if (!launcherState || isMobileLauncher) {
       return
     }
 
@@ -386,6 +395,10 @@ export default function PublicPatientChatWidget() {
   }
 
   function handleLauncherPointerMove(event: React.PointerEvent<HTMLButtonElement>) {
+    if (isMobileLauncher) {
+      return
+    }
+
     const dragState = dragStateRef.current
 
     if (!dragState || dragState.pointerId !== event.pointerId) {
@@ -423,6 +436,10 @@ export default function PublicPatientChatWidget() {
   }
 
   function handleLauncherPointerUp(event: React.PointerEvent<HTMLButtonElement>) {
+    if (isMobileLauncher) {
+      return
+    }
+
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId)
     }
@@ -431,6 +448,10 @@ export default function PublicPatientChatWidget() {
   }
 
   function handleLauncherPointerCancel(event: React.PointerEvent<HTMLButtonElement>) {
+    if (isMobileLauncher) {
+      return
+    }
+
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId)
     }
@@ -706,13 +727,15 @@ export default function PublicPatientChatWidget() {
             }}
             aria-expanded={false}
             aria-label={t('patientChat.fabOpen')}
-            className="bridgey-fab-float group relative inline-flex touch-none items-center justify-center rounded-full bg-transparent transition hover:scale-[1.03]"
+            className={`${isMobileLauncher ? '' : 'bridgey-fab-float '}group relative inline-flex items-center justify-center rounded-full bg-transparent transition hover:scale-[1.03] ${
+              isMobileLauncher ? '' : 'touch-none'
+            }`}
           >
-            {!launcherState.isDocked && (
+            {shouldRenderLauncherTeaser && (
               <span
-                className={`pointer-events-none absolute bottom-full mb-2 rounded-full bg-white/90 px-3 py-1.5 text-xs text-slate-600 shadow-sm backdrop-blur transition duration-200 ${
+                className={`pointer-events-none absolute bottom-full mb-2 rounded-full bg-white/88 px-2.5 py-1 text-[11px] text-slate-600 shadow-sm backdrop-blur transition duration-200 ${
                   showLauncherHint ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'
-                } group-hover:translate-y-0 group-hover:opacity-100`}
+                } ${isMobileLauncher ? '' : 'group-hover:translate-y-0 group-hover:opacity-100'}`}
               >
                 {t('patientChat.teaser')}
               </span>
