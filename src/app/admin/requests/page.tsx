@@ -19,7 +19,7 @@ export default async function AdminRequestsPage() {
   const { data } = await supabase
     .from('patient_requests')
     .select(
-      'id, full_name, age, phone, city, preferred_language, treatment_type, complaint_text, urgency, status, assigned_department, created_at'
+      'id, full_name, age, phone, city, preferred_language, treatment_type, complaint_text, urgency, status, assigned_department, target_student_level, created_at'
     )
     .order('created_at', { ascending: false })
 

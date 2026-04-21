@@ -528,13 +528,26 @@ export type TranslationShape = {
       pendingReviewSuffix: string
       urgentSuffix: string
       searchPlaceholder: string
+      queueTabAll: string
+      queueTabNeedsReview: string
+      queueTabNeedsRouting: string
+      queueTabReleased: string
+      queueTabActive: string
+      queueTabClosed: string
       filterLabel: string
+      departmentFilterLabel: string
       sortLabel: string
+      departmentAll: string
       statusAll: string
       statusSubmitted: string
       statusUnderReview: string
       statusMatched: string
+      statusStudentApproved: string
+      statusContacted: string
+      statusAppointmentScheduled: string
+      statusInTreatment: string
       statusCompleted: string
+      statusCancelled: string
       statusRejected: string
       urgencyAll: string
       urgencyHighLabel: string
@@ -549,16 +562,35 @@ export type TranslationShape = {
       noResultsTitle: string
       noResultsFilteredDesc: string
       noResultsEmptyDesc: string
+      columnPatient: string
+      columnIssue: string
+      columnRouting: string
+      columnUrgency: string
+      columnStatus: string
+      columnSubmitted: string
+      columnQuickActions: string
       reportedIssue: string
       assignedDept: string
       suggestedDept: string
       verify: string
+      quickActions: string
+      quickActionLabel: string
+      quickApply: string
+      quickApplying: string
+      quickOnlyForTriage: string
+      quickDepartmentRequired: string
+      quickUrgencyRequired: string
+      quickApplyError: string
       openCaseFile: string
       statusLabelSubmitted: string
       statusLabelUnderReview: string
       statusLabelMatched: string
+      statusLabelStudentApproved: string
       statusLabelContacted: string
+      statusLabelAppointmentScheduled: string
+      statusLabelInTreatment: string
       statusLabelCompleted: string
+      statusLabelCancelled: string
       statusLabelRejected: string
       urgencyLabelHigh: string
       urgencyLabelMedium: string
@@ -1396,14 +1428,27 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       pendingReviewSuffix: 'pending review',
       urgentSuffix: 'urgent',
       searchPlaceholder: 'Search by name, ID, phone, or issue\u2026',
+      queueTabAll: 'All Cases',
+      queueTabNeedsReview: 'Triage',
+      queueTabNeedsRouting: 'Pending Assignment',
+      queueTabReleased: 'Routing',
+      queueTabActive: 'Active',
+      queueTabClosed: 'Closed',
       filterLabel: 'Filter:',
+      departmentFilterLabel: 'Department:',
       sortLabel: 'Sort:',
+      departmentAll: 'All Departments',
       statusAll: 'All Statuses',
-      statusSubmitted: 'Submitted',
+      statusSubmitted: 'New Request',
       statusUnderReview: 'Under Review',
-      statusMatched: 'Matched',
+      statusMatched: 'Released to Pool',
+      statusStudentApproved: 'Student Assigned',
+      statusContacted: 'Contacted',
+      statusAppointmentScheduled: 'Appointment Scheduled',
+      statusInTreatment: 'In Treatment',
       statusCompleted: 'Completed',
-      statusRejected: 'Rejected',
+      statusCancelled: 'Cancelled',
+      statusRejected: 'Out of Scope',
       urgencyAll: 'All Urgencies',
       urgencyHighLabel: 'High Urgency',
       urgencyMediumLabel: 'Medium',
@@ -1417,17 +1462,36 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       noResultsTitle: 'No cases found',
       noResultsFilteredDesc: 'No cases match the current filters. Adjust or clear the filters to see more.',
       noResultsEmptyDesc: 'No patient cases have been submitted yet.',
+      columnPatient: 'Patient',
+      columnIssue: 'Issue',
+      columnRouting: 'Routing',
+      columnUrgency: 'Urgency',
+      columnStatus: 'Status',
+      columnSubmitted: 'Submitted',
+      columnQuickActions: 'Quick Actions',
       reportedIssue: 'Reported Issue',
       assignedDept: 'Assigned dept.',
       suggestedDept: 'Suggested dept.',
       verify: '(verify)',
+      quickActions: 'Quick Actions',
+      quickActionLabel: 'Update Status',
+      quickApply: 'Apply',
+      quickApplying: 'Applying\u2026',
+      quickOnlyForTriage: 'No inline status update is available for this case from the queue.',
+      quickDepartmentRequired: 'Please confirm a department before applying.',
+      quickUrgencyRequired: 'Please confirm an urgency level before applying.',
+      quickApplyError: 'Unable to apply the routing update right now.',
       openCaseFile: 'Open Case File \u2192',
-      statusLabelSubmitted: 'Submitted',
+      statusLabelSubmitted: 'New Request',
       statusLabelUnderReview: 'Under Review',
-      statusLabelMatched: 'Matched',
+      statusLabelMatched: 'Released to Pool',
+      statusLabelStudentApproved: 'Student Assigned',
       statusLabelContacted: 'Contacted',
+      statusLabelAppointmentScheduled: 'Appointment Scheduled',
+      statusLabelInTreatment: 'In Treatment',
       statusLabelCompleted: 'Completed',
-      statusLabelRejected: 'Rejected',
+      statusLabelCancelled: 'Cancelled',
+      statusLabelRejected: 'Out of Scope',
       urgencyLabelHigh: 'High Urgency',
       urgencyLabelMedium: 'Medium',
       urgencyLabelLow: 'Low',
