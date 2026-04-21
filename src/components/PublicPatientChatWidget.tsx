@@ -8,7 +8,7 @@ import type { PatientChatPageContext, PublicPatientPageId } from '@/lib/chat/pat
 import { useI18n } from '@/lib/i18n'
 
 const MAX_CLIENT_MESSAGE_LENGTH = 800
-const BRIDGEY_AVATAR_SRC = '/new%20avatar%20logo.PNG'
+const BRIDGEY_AVATAR_SRC = '/new avatar logo.PNG'
 
 type ChatMessage = {
   id: string
@@ -31,23 +31,26 @@ function createMessageId() {
 
 function BridgeyAvatar({
   sizeClass,
+  online = false,
   className = '',
 }: {
   sizeClass: string
+  online?: boolean
   className?: string
 }) {
   return (
-    <div className={`relative shrink-0 ${sizeClass} ${className}`}>
-      <div className="relative h-full w-full">
-        <Image
-          src={BRIDGEY_AVATAR_SRC}
-          alt="Bridgey avatar"
-          fill
-          sizes="80px"
-          draggable={false}
-          className="object-contain select-none"
-        />
-      </div>
+    <div className={`relative shrink-0 ${sizeClass} overflow-hidden rounded-full ${className}`}>
+      <Image
+        src={BRIDGEY_AVATAR_SRC}
+        alt="Bridgey"
+        fill
+        sizes="80px"
+        draggable={false}
+        className="object-contain"
+      />
+      {online && (
+        <span className="bridgey-online-dot absolute bottom-1 right-1 h-2.5 w-2.5 rounded-full bg-emerald-400" />
+      )}
     </div>
   )
 }
@@ -111,6 +114,7 @@ export default function PublicPatientChatWidget() {
   const [draft, setDraft] = useState('')
   const [isSending, setIsSending] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [showLauncherHint, setShowLauncherHint] = useState(true)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
 
@@ -153,6 +157,18 @@ export default function PublicPatientChatWidget() {
 
     scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight
   }, [messages, isSending, errorMessage, isOpen])
+
+  useEffect(() => {
+    if (isOpen || !showLauncherHint) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setShowLauncherHint(false)
+    }, 3200)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [isOpen, showLauncherHint])
 
   if (!shouldShowPatientChat(pathname)) {
     return null
@@ -250,13 +266,7 @@ export default function PublicPatientChatWidget() {
 
   return (
     <div className="pointer-events-none fixed inset-0 z-[70]" aria-live="polite">
-      <div
-        className="absolute flex flex-col items-end gap-3"
-        style={{
-          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 56px)',
-          right: 'calc(env(safe-area-inset-right, 0px) + 20px)',
-        }}
-      >
+      <div className="fixed bottom-20 right-4 z-50 flex flex-col items-end gap-3 md:bottom-16 md:right-6">
         {isOpen && (
           <section
             className="bridgey-panel-enter pointer-events-auto flex h-[min(62dvh,32rem)] max-h-[calc(100dvh-10rem)] flex-col overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_28px_80px_-32px_rgba(15,23,42,0.45)] ring-1 ring-slate-950/5 backdrop-blur sm:h-[min(70dvh,38rem)] sm:max-h-[calc(100dvh-8rem)]"
@@ -268,7 +278,7 @@ export default function PublicPatientChatWidget() {
             <div className="border-b border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.98))] px-4 py-3.5 sm:px-5">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
-                  <BridgeyAvatar sizeClass="h-14 w-14" />
+                  <BridgeyAvatar sizeClass="h-12 w-12" online />
 
                   <div className="min-w-0">
                     <h2 className="text-[15px] font-semibold leading-tight text-slate-900">
@@ -423,22 +433,24 @@ export default function PublicPatientChatWidget() {
           </section>
         )}
 
-        {/* Closed launcher — teaser stacked above avatar */}
+        {/* Closed launcher */}
         {!isOpen && (
-          <div className="pointer-events-auto flex items-center gap-1.5">
-            <div className="rounded-full border border-slate-200/70 bg-white/92 px-2.5 py-1 text-[11px] font-medium text-slate-500 shadow-[0_10px_22px_-18px_rgba(15,23,42,0.28)] backdrop-blur-sm">
-              {t('patientChat.teaser')}
-            </div>
+          <div className="pointer-events-auto">
             <button
               type="button"
               onClick={() => setIsOpen(true)}
               aria-expanded={false}
               aria-label={t('patientChat.fabOpen')}
-              className="bridgey-fab-float group inline-flex items-center justify-center rounded-full bg-transparent transition hover:scale-[1.05]"
+              className="bridgey-fab-float group relative inline-flex items-center justify-center rounded-full bg-transparent transition hover:scale-[1.05]"
             >
-              <div className="transition duration-300 group-hover:drop-shadow-[0_12px_24px_rgba(45,212,191,0.22)]">
-                <BridgeyAvatar sizeClass="h-[4.5rem] w-[4.5rem]" />
-              </div>
+              <span
+                className={`pointer-events-none absolute bottom-full mb-2 rounded-full bg-white/90 px-3 py-1.5 text-xs text-slate-600 shadow-sm backdrop-blur transition duration-200 ${
+                  showLauncherHint ? 'opacity-100 translate-y-0' : 'translate-y-1 opacity-0'
+                } group-hover:translate-y-0 group-hover:opacity-100`}
+              >
+                {t('patientChat.teaser')}
+              </span>
+              <BridgeyAvatar sizeClass="h-[4.5rem] w-[4.5rem]" online />
             </button>
           </div>
         )}
@@ -446,6 +458,10 @@ export default function PublicPatientChatWidget() {
       <style jsx>{`
         .bridgey-fab-float {
           animation: bridgey-float 6s ease-in-out infinite;
+        }
+
+        .bridgey-online-dot {
+          animation: bridgey-pulse 2.8s ease-in-out infinite;
         }
 
         .bridgey-panel-enter {
@@ -459,6 +475,18 @@ export default function PublicPatientChatWidget() {
           }
           50% {
             transform: translateY(-4px);
+          }
+        }
+
+        @keyframes bridgey-pulse {
+          0%,
+          100% {
+            transform: scale(1);
+            opacity: 0.9;
+          }
+          50% {
+            transform: scale(1.08);
+            opacity: 0.7;
           }
         }
 
