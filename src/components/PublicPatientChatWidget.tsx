@@ -8,7 +8,7 @@ import type { PatientChatPageContext, PublicPatientPageId } from '@/lib/chat/pat
 import { useI18n } from '@/lib/i18n'
 
 const MAX_CLIENT_MESSAGE_LENGTH = 800
-const BRIDGEY_AVATAR_SRC = '/avatar%20bridgey.PNG'
+const BRIDGEY_AVATAR_SRC = '/new%20avatar%20logo.PNG'
 
 type ChatMessage = {
   id: string
@@ -31,28 +31,23 @@ function createMessageId() {
 
 function BridgeyAvatar({
   sizeClass,
-  pulse = false,
   className = '',
 }: {
   sizeClass: string
-  pulse?: boolean
   className?: string
 }) {
   return (
     <div className={`relative shrink-0 ${sizeClass} ${className}`}>
-      <div className="relative h-full w-full overflow-hidden rounded-full">
+      <div className="relative h-full w-full">
         <Image
           src={BRIDGEY_AVATAR_SRC}
           alt="Bridgey avatar"
           fill
           sizes="80px"
           draggable={false}
-          className="object-cover select-none mix-blend-multiply"
+          className="object-contain select-none"
         />
       </div>
-      {pulse && (
-        <span className="bridgey-online-pulse absolute bottom-[6%] right-[4%] h-3 w-3 rounded-full bg-emerald-400 ring-2 ring-white shadow-[0_0_8px_rgba(74,222,128,0.5)]" />
-      )}
     </div>
   )
 }
@@ -273,7 +268,7 @@ export default function PublicPatientChatWidget() {
             <div className="border-b border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.98))] px-4 py-3.5 sm:px-5">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
-                  <BridgeyAvatar sizeClass="h-14 w-14" pulse />
+                  <BridgeyAvatar sizeClass="h-14 w-14" />
 
                   <div className="min-w-0">
                     <h2 className="text-[15px] font-semibold leading-tight text-slate-900">
@@ -430,8 +425,8 @@ export default function PublicPatientChatWidget() {
 
         {/* Closed launcher — teaser stacked above avatar */}
         {!isOpen && (
-          <div className="pointer-events-auto flex flex-col items-end gap-2.5">
-            <div className="rounded-full border border-slate-200/70 bg-white/96 px-4 py-2 text-sm font-medium text-slate-700 shadow-[0_8px_32px_-6px_rgba(15,23,42,0.12)] backdrop-blur-sm">
+          <div className="pointer-events-auto flex items-center gap-1.5">
+            <div className="rounded-full border border-slate-200/70 bg-white/92 px-2.5 py-1 text-[11px] font-medium text-slate-500 shadow-[0_10px_22px_-18px_rgba(15,23,42,0.28)] backdrop-blur-sm">
               {t('patientChat.teaser')}
             </div>
             <button
@@ -441,8 +436,8 @@ export default function PublicPatientChatWidget() {
               aria-label={t('patientChat.fabOpen')}
               className="bridgey-fab-float group inline-flex items-center justify-center rounded-full bg-transparent transition hover:scale-[1.05]"
             >
-              <div className="rounded-full shadow-[0_16px_44px_-12px_rgba(15,23,42,0.32)] transition duration-300 group-hover:shadow-[0_16px_44px_-10px_rgba(45,212,191,0.38)]">
-                <BridgeyAvatar sizeClass="h-[4.5rem] w-[4.5rem]" pulse />
+              <div className="transition duration-300 group-hover:drop-shadow-[0_12px_24px_rgba(45,212,191,0.22)]">
+                <BridgeyAvatar sizeClass="h-[4.5rem] w-[4.5rem]" />
               </div>
             </button>
           </div>
@@ -451,10 +446,6 @@ export default function PublicPatientChatWidget() {
       <style jsx>{`
         .bridgey-fab-float {
           animation: bridgey-float 6s ease-in-out infinite;
-        }
-
-        .bridgey-online-pulse {
-          animation: bridgey-pulse 2.6s ease-in-out infinite;
         }
 
         .bridgey-panel-enter {
@@ -468,18 +459,6 @@ export default function PublicPatientChatWidget() {
           }
           50% {
             transform: translateY(-4px);
-          }
-        }
-
-        @keyframes bridgey-pulse {
-          0%,
-          100% {
-            transform: scale(1);
-            opacity: 0.92;
-          }
-          50% {
-            transform: scale(1.18);
-            opacity: 0.65;
           }
         }
 
