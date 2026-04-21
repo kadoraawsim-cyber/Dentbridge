@@ -8,7 +8,7 @@ import type { PatientChatPageContext, PublicPatientPageId } from '@/lib/chat/pat
 import { useI18n } from '@/lib/i18n'
 
 const MAX_CLIENT_MESSAGE_LENGTH = 800
-const BRIDGEY_AVATAR_SRC = '/new avatar logo.PNG'
+const BRIDGEY_AVATAR_SRC = '/new_avatar_logo-removebg-preview.png'
 
 type ChatMessage = {
   id: string
