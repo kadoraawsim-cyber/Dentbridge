@@ -247,6 +247,25 @@ export type TranslationShape = {
     footerNote: string
   }
 
+  patientChat: {
+    fabOpen: string
+    fabClose: string
+    headerTitle: string
+    headerSubtitle: string
+    welcome: string
+    starterLabel: string
+    starterRequestForm: string
+    starterAfterSubmit: string
+    starterStatus: string
+    starterPhotos: string
+    inputPlaceholder: string
+    send: string
+    sending: string
+    close: string
+    loadingReply: string
+    errorFallback: string
+  }
+
   // ── Student portal ─────────────────────────────────────────────────────────
   student: {
     login: {
@@ -1232,6 +1251,26 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     pendingReview: 'Pending review',
     footerNote:
       'Showing your most recent request. For questions, contact the clinic directly.',
+  },
+
+  patientChat: {
+    fabOpen: 'Open patient chat',
+    fabClose: 'Close patient chat',
+    headerTitle: 'Patient Assistant',
+    headerSubtitle: 'Administrative support for DentBridge requests',
+    welcome:
+      'Hello. I can help with the request form, submission steps, and public patient questions.',
+    starterLabel: 'Suggested questions',
+    starterRequestForm: 'How do I fill out the request form?',
+    starterAfterSubmit: 'What happens after I submit?',
+    starterStatus: 'Can I check my request status?',
+    starterPhotos: 'Can I upload photos or x-rays?',
+    inputPlaceholder: 'Write your question…',
+    send: 'Send',
+    sending: 'Sending…',
+    close: 'Close',
+    loadingReply: 'Preparing a reply…',
+    errorFallback: 'Unable to send your message right now. Please try again.',
   },
 
   student: {

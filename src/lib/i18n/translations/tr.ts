@@ -329,6 +329,26 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
       'En son talebiniz görüntülenmektedir. Sorularınız için kliniğe doğrudan başvurun.',
   },
 
+  patientChat: {
+    fabOpen: 'Hasta sohbetini aç',
+    fabClose: 'Hasta sohbetini kapat',
+    headerTitle: 'Hasta Asistanı',
+    headerSubtitle: 'DentBridge başvuruları için idari destek',
+    welcome:
+      'Merhaba. Başvuru formu, gönderim adımları ve herkese açık hasta soruları konusunda yardımcı olabilirim.',
+    starterLabel: 'Önerilen sorular',
+    starterRequestForm: 'Başvuru formunu nasıl doldururum?',
+    starterAfterSubmit: 'Gönderdikten sonra ne olur?',
+    starterStatus: 'Başvurumun durumunu kontrol edebilir miyim?',
+    starterPhotos: 'Fotoğraf veya röntgen yükleyebilir miyim?',
+    inputPlaceholder: 'Sorunuzu yazın…',
+    send: 'Gönder',
+    sending: 'Gönderiliyor…',
+    close: 'Kapat',
+    loadingReply: 'Yanıt hazırlanıyor…',
+    errorFallback: 'Mesajınız şu anda gönderilemedi. Lütfen tekrar deneyin.',
+  },
+
   footer: {
     tagline: 'Fakülte Destekli Klinik Platform',
     description:
