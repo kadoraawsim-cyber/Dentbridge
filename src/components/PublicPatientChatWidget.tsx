@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { Loader2, MessageCircle, SendHorizontal, Sparkles, X } from 'lucide-react'
+import { Loader2, MessageCircle, Minus, SendHorizontal } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 
 const MAX_CLIENT_MESSAGE_LENGTH = 800
@@ -91,6 +91,12 @@ export default function PublicPatientChatWidget() {
   const isDraftEmpty = draft.trim().length === 0
   const showStarters = messages.length <= 1
 
+  function resetConversation() {
+    setMessages([])
+    setDraft('')
+    setErrorMessage('')
+  }
+
   async function submitMessage(rawMessage: string) {
     const trimmedMessage = rawMessage.trim()
 
@@ -166,30 +172,41 @@ export default function PublicPatientChatWidget() {
       <div
         className="absolute flex flex-col items-end gap-3"
         style={{
-          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
-          right: '16px',
+          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
+          right: 'calc(env(safe-area-inset-right, 0px) + 16px)',
         }}
       >
         {isOpen && (
           <section
-            className="pointer-events-auto flex h-[min(70dvh,38rem)] flex-col overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_28px_80px_-32px_rgba(15,23,42,0.45)] ring-1 ring-slate-950/5 backdrop-blur"
+            className="pointer-events-auto flex h-[min(68dvh,34rem)] max-h-[calc(100dvh-8rem)] flex-col overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_28px_80px_-32px_rgba(15,23,42,0.45)] ring-1 ring-slate-950/5 backdrop-blur sm:h-[min(70dvh,38rem)] sm:max-h-[calc(100dvh-7rem)]"
             style={{
               width: 'min(24rem, calc(100vw - 32px))',
             }}
           >
-            <div className="border-b border-slate-200/80 bg-[linear-gradient(135deg,rgba(241,245,249,0.98),rgba(255,255,255,0.98))] px-4 py-4 sm:px-5">
+            <div className="border-b border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.98))] px-4 py-3.5 sm:px-5">
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-teal-100 bg-teal-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-teal-700">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    DentBridge
+                <div className="flex min-w-0 items-start gap-3">
+                  <div className="relative mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#0f172a,#1d4d4f)] text-sm font-semibold text-white shadow-[0_18px_35px_-22px_rgba(15,23,42,0.7)]">
+                    B
+                    <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-teal-400" />
                   </div>
-                  <h2 className="text-base font-semibold text-slate-900">
-                    {t('patientChat.headerTitle')}
-                  </h2>
-                  <p className="mt-1 text-sm leading-5 text-slate-500">
-                    {t('patientChat.headerSubtitle')}
-                  </p>
+
+                  <div className="min-w-0">
+                    <h2 className="text-[15px] font-semibold text-slate-900">
+                      {t('patientChat.headerTitle')}
+                    </h2>
+                    <p className="mt-0.5 text-sm leading-5 text-slate-500">
+                      {t('patientChat.headerSubtitle')}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={resetConversation}
+                      disabled={isSending}
+                      className="mt-2 inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {t('patientChat.newChat')}
+                    </button>
+                  </div>
                 </div>
 
                 <button
@@ -198,14 +215,14 @@ export default function PublicPatientChatWidget() {
                   aria-label={t('patientChat.close')}
                   className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
                 >
-                  <X className="h-4 w-4" />
+                  <Minus className="h-4 w-4" />
                 </button>
               </div>
             </div>
 
             <div
               ref={scrollContainerRef}
-              className="flex-1 space-y-4 overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(240,253,250,0.55),transparent_42%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-4 py-4 sm:px-5"
+              className="flex-1 space-y-3 overflow-y-auto overscroll-contain bg-[radial-gradient(circle_at_top,rgba(240,253,250,0.55),transparent_42%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-4 py-3.5 sm:px-5"
             >
               {messages.map((message) => (
                 <div
@@ -234,8 +251,8 @@ export default function PublicPatientChatWidget() {
               )}
 
               {showStarters && (
-                <div className="pt-1">
-                  <p className="mb-2 text-xs font-medium uppercase tracking-[0.14em] text-slate-400">
+                <div className="rounded-2xl border border-slate-100 bg-white/80 px-3 py-3 shadow-sm shadow-slate-100/60">
+                  <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.14em] text-slate-400">
                     {t('patientChat.starterLabel')}
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -245,7 +262,7 @@ export default function PublicPatientChatWidget() {
                         type="button"
                         onClick={() => void submitMessage(prompt)}
                         disabled={isSending}
-                        className="rounded-full border border-slate-200 bg-white px-3 py-2 text-left text-xs font-medium text-slate-600 transition hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="rounded-full border border-slate-200/90 bg-slate-50 px-3 py-2 text-left text-xs font-medium text-slate-600 transition hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {prompt}
                       </button>
@@ -310,15 +327,17 @@ export default function PublicPatientChatWidget() {
           </section>
         )}
 
-        <button
-          type="button"
-          onClick={() => setIsOpen((current) => !current)}
-          aria-expanded={isOpen}
-          aria-label={isOpen ? t('patientChat.fabClose') : t('patientChat.fabOpen')}
-          className="pointer-events-auto inline-flex h-14 w-14 items-center justify-center rounded-full bg-[linear-gradient(135deg,#0f172a,#1d4d4f)] text-white shadow-[0_24px_48px_-20px_rgba(15,23,42,0.55)] ring-1 ring-white/20 transition hover:scale-[1.02] hover:shadow-[0_28px_54px_-22px_rgba(15,23,42,0.58)]"
-        >
-          {isOpen ? <X className="h-5 w-5" /> : <MessageCircle className="h-5 w-5" />}
-        </button>
+        {!isOpen && (
+          <button
+            type="button"
+            onClick={() => setIsOpen(true)}
+            aria-expanded={false}
+            aria-label={t('patientChat.fabOpen')}
+            className="pointer-events-auto inline-flex h-14 w-14 items-center justify-center rounded-full bg-[linear-gradient(135deg,#0f172a,#1d4d4f)] text-white shadow-[0_24px_48px_-20px_rgba(15,23,42,0.55)] ring-1 ring-white/20 transition hover:scale-[1.02] hover:shadow-[0_28px_54px_-22px_rgba(15,23,42,0.58)]"
+          >
+            <MessageCircle className="h-5 w-5" />
+          </button>
+        )}
       </div>
     </div>
   )

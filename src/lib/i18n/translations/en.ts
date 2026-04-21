@@ -252,6 +252,7 @@ export type TranslationShape = {
     fabClose: string
     headerTitle: string
     headerSubtitle: string
+    newChat: string
     welcome: string
     starterLabel: string
     starterRequestForm: string
@@ -1254,17 +1255,18 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
   },
 
   patientChat: {
-    fabOpen: 'Open patient chat',
-    fabClose: 'Close patient chat',
-    headerTitle: 'Patient Assistant',
-    headerSubtitle: 'Administrative support for DentBridge requests',
+    fabOpen: 'Open Bridgey chat',
+    fabClose: 'Close Bridgey chat',
+    headerTitle: 'Bridgey',
+    headerSubtitle: 'Here to help with your DentBridge request',
+    newChat: 'New chat',
     welcome:
-      'Hello. I can help with the request form, submission steps, and public patient questions.',
+      'Hi! I can help with your request, what happens next, and common questions.',
     starterLabel: 'Suggested questions',
-    starterRequestForm: 'How do I fill out the request form?',
+    starterRequestForm: 'How do I request treatment?',
     starterAfterSubmit: 'What happens after I submit?',
-    starterStatus: 'Can I check my request status?',
-    starterPhotos: 'Can I upload photos or x-rays?',
+    starterStatus: 'Can I check my status?',
+    starterPhotos: 'Can I upload photos?',
     inputPlaceholder: 'Write your question…',
     send: 'Send',
     sending: 'Sending…',
