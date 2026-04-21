@@ -191,19 +191,19 @@ export default function HomePage() {
           </div>
 
           <div className="mt-4 flex flex-col items-center justify-center gap-4 sm:mt-0 sm:gap-5">
-            <div className="flex w-full justify-center sm:justify-end">
+            <div className="relative w-full max-w-xl">
               <div
                 id="bridgey-home-anchor"
-                className="flex min-h-16 items-center justify-center sm:min-h-20"
+                className="absolute inset-0 overflow-visible pointer-events-none"
+                aria-hidden="true"
               />
-            </div>
-
-            <div className="w-full max-w-xl overflow-hidden rounded-2xl sm:rounded-3xl border border-white/15 bg-white/8 p-2 sm:p-2.5 shadow-2xl backdrop-blur sm:p-3">
-              <img
-                src="/hero-dental-clinic.png"
-                alt="University dental care"
-                className="h-[180px] w-full rounded-xl sm:rounded-2xl object-cover sm:h-[300px] lg:h-[420px]"
-              />
+              <div className="overflow-hidden rounded-2xl sm:rounded-3xl border border-white/15 bg-white/8 p-2 sm:p-2.5 shadow-2xl backdrop-blur sm:p-3">
+                <img
+                  src="/hero-dental-clinic.png"
+                  alt="University dental care"
+                  className="h-[180px] w-full rounded-xl sm:rounded-2xl object-cover sm:h-[300px] lg:h-[420px]"
+                />
+              </div>
             </div>
 
             <div className="w-full max-w-xl rounded-2xl border border-white/15 bg-white/10 p-3 text-left shadow-[0_18px_40px_-28px_rgba(15,23,42,0.65)] backdrop-blur-md sm:p-3.5">

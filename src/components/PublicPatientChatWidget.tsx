@@ -193,19 +193,22 @@ export default function PublicPatientChatWidget() {
 
   const isDraftEmpty = draft.trim().length === 0
   const showStarters = messages.length <= 1
+  const isHomePage = pathname === '/'
   const closedLauncher = closedLauncherAnchor
     ? createPortal(
-        <div className="pointer-events-auto">
-          <button
-            type="button"
-            onClick={() => setIsOpen(true)}
-            aria-expanded={false}
-            aria-label={t('patientChat.fabOpen')}
-            className="bridgey-fab-float inline-flex items-center justify-center rounded-full bg-transparent transition hover:scale-[1.03]"
-          >
-            <BridgeyAvatar sizeClass="h-16 w-16 sm:h-20 sm:w-20" />
-          </button>
-        </div>,
+        <button
+          type="button"
+          onClick={() => setIsOpen(true)}
+          aria-expanded={false}
+          aria-label={t('patientChat.fabOpen')}
+          className={`bridgey-fab-float pointer-events-auto absolute inline-flex items-center justify-center rounded-full bg-transparent transition hover:scale-[1.03] ${
+            isHomePage
+              ? 'top-3 right-3 sm:top-4 sm:right-4'
+              : 'top-1 right-0 sm:top-2'
+          }`}
+        >
+          <BridgeyAvatar sizeClass={isHomePage ? 'h-14 w-14 sm:h-20 sm:w-20' : 'h-10 w-10 sm:h-14 sm:w-14'} />
+        </button>,
         closedLauncherAnchor
       )
     : null
