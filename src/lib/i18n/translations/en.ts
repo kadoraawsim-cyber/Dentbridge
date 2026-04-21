@@ -381,9 +381,12 @@ export type TranslationShape = {
       submitting: string
       badgeApproved: string
       badgePending: string
+      badgeRevoked: string
       pendingFacultyReview: string
       approvedCheckDashboard: string
       requestDeclined: string
+      requestRevokedByFaculty: string
+      requestRevokedNote: string
       unassigned: string
       imageAlt: string
       viewFullSize: string
@@ -426,13 +429,16 @@ export type TranslationShape = {
       statusPending: string
       statusApproved: string
       statusRejected: string
+      statusRevoked: string
       messagePending: string
       messageApproved: string
       messageRejected: string
+      messageRevoked: string
       goToDashboard: string
       sectionActive: string
       sectionCompleted: string
       sectionRejected: string
+      sectionRevoked: string
       completedNote: string
     }
   }
@@ -668,18 +674,31 @@ export type TranslationShape = {
       savedDraft: string
       savedApproved: string
       savedRejected: string
+      savedReturnedToPool: string
       savedTriageUpdated: string
       statusUpdated: string
+      returnToPoolButton: string
+      returnToPoolConfirmTitle: string
+      returnToPoolConfirmDesc: string
+      returnToPoolWarning: string
+      returnToPoolReasonLabel: string
+      returnToPoolReasonPlaceholder: string
+      returnToPoolNotAllowed: string
+      returnToPoolErrorGeneric: string
+      returningToPool: string
+      confirmReturnToPool: string
       historyTitle: string
       historyEmpty: string
       historyCaseReleased: string
       historyStudentSubmitted: string
       historyStudentApproved: string
       historyStudentRejected: string
+      historyStudentRevoked: string
       historyRejectionUndone: string
       historyDepartmentChanged: string
       historyClinicalNotesUpdated: string
       historyCaseCancelled: string
+      historyReturnedToPool: string
       reviewRecordTitle: string
       reviewedByLabel: string
       lastReviewedLabel: string
@@ -764,6 +783,7 @@ export type TranslationShape = {
       studentReqPending: string
       studentReqApproved: string
       studentReqRejected: string
+      studentReqRevoked: string
       timeJustNow: string
       timeYesterday: string
       timeMinutesSuffix: string
@@ -1292,9 +1312,13 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       submitting: 'Submitting\u2026',
       badgeApproved: 'APPROVED',
       badgePending: 'PENDING',
+      badgeRevoked: 'REVOKED',
       pendingFacultyReview: 'Pending Faculty Review',
       approvedCheckDashboard: 'Approved \u2014 check your dashboard',
       requestDeclined: 'Request Declined',
+      requestRevokedByFaculty: 'Reassigned by Faculty',
+      requestRevokedNote:
+        'This case was rerouted and returned to the pool after your assignment was removed.',
       unassigned: 'Unassigned',
       imageAlt: 'Patient clinical image',
       viewFullSize: 'View full size',
@@ -1337,13 +1361,17 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       statusPending: 'PENDING',
       statusApproved: 'APPROVED',
       statusRejected: 'REJECTED',
+      statusRevoked: 'REVOKED',
       messagePending: 'Your request is waiting for faculty review.',
       messageApproved: 'Your request was approved. Continue from the dashboard.',
       messageRejected: 'Your request was declined for this case.',
+      messageRevoked:
+        'Faculty updated the case routing and returned it to the pool. You are no longer assigned to this case.',
       goToDashboard: 'Go to Dashboard',
       sectionActive: 'Active & Pending',
       sectionCompleted: 'Completed Treatments',
       sectionRejected: 'Declined Requests',
+      sectionRevoked: 'Reassigned / Returned to Pool',
       completedNote: 'These cases have been fully completed.',
     },
   },
@@ -1582,18 +1610,34 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       savedDraft: 'Draft saved.',
       savedApproved: 'Approved and released to pool.',
       savedRejected: 'Case marked as rejected.',
+      savedReturnedToPool: 'Student assignment revoked and case returned to pool.',
       savedTriageUpdated: 'Triage updated.',
       statusUpdated: 'Status updated.',
+      returnToPoolButton: 'Revoke & Return to Pool',
+      returnToPoolConfirmTitle: 'Return this case to the pool?',
+      returnToPoolConfirmDesc:
+        'This will remove the current student assignment and make the case available for a new student request in the updated department.',
+      returnToPoolWarning:
+        'The currently assigned student will lose access to this case and will see that it was rerouted by faculty.',
+      returnToPoolReasonLabel: 'Reason for reassignment',
+      returnToPoolReasonPlaceholder: 'Explain why this case is being rerouted',
+      returnToPoolNotAllowed:
+        'This case can no longer be returned to the pool from its current stage.',
+      returnToPoolErrorGeneric: 'Unable to return this case to the pool right now.',
+      returningToPool: 'Returning to pool\u2026',
+      confirmReturnToPool: 'Confirm Return to Pool',
       historyTitle: 'Case History / Activity Log',
       historyEmpty: 'No case activity recorded yet.',
       historyCaseReleased: 'Case released to pool',
       historyStudentSubmitted: 'Student request submitted',
       historyStudentApproved: 'Student request approved',
       historyStudentRejected: 'Student request rejected',
+      historyStudentRevoked: 'Student assignment revoked',
       historyRejectionUndone: 'Rejection undone',
       historyDepartmentChanged: 'Department changed',
       historyClinicalNotesUpdated: 'Clinical notes updated',
       historyCaseCancelled: 'Case cancelled',
+      historyReturnedToPool: 'Case returned to pool',
       reviewRecordTitle: 'Faculty Review Record',
       reviewedByLabel: 'Reviewed by',
       lastReviewedLabel: 'Last reviewed',
@@ -1677,6 +1721,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       studentReqPending: 'Pending',
       studentReqApproved: 'Approved',
       studentReqRejected: 'Rejected',
+      studentReqRevoked: 'Revoked',
       timeJustNow: 'Just now',
       timeYesterday: 'Yesterday',
       timeMinutesSuffix: 'm ago',

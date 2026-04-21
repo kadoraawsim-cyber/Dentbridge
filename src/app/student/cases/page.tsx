@@ -22,7 +22,7 @@ export type PoolCase = {
 
 export type RequestInfo = {
   requestId: string
-  status: 'pending' | 'approved' | 'rejected'
+  status: 'pending' | 'approved' | 'rejected' | 'revoked'
 }
 
 export type ContactInfo = {

@@ -146,9 +146,11 @@ type ActivityLogType =
   | 'student_request_submitted'
   | 'student_request_approved'
   | 'student_request_rejected'
+  | 'student_request_revoked'
   | 'rejection_undone'
   | 'department_changed'
   | 'clinical_notes_updated'
+  | 'case_returned_to_pool'
   | 'case_cancelled'
 
 type ActivityLogEntry = {
@@ -190,6 +192,11 @@ function buildInitialActivityLog(
 
       if (studentRequest.status === 'rejected') {
         entries.push(makeLogEntry('student_request_rejected', studentRequest.reviewed_at, studentRequest.student_email))
+      }
+
+      if (studentRequest.status === 'revoked') {
+        entries.push(makeLogEntry('student_request_revoked', studentRequest.reviewed_at, studentRequest.student_email))
+        entries.push(makeLogEntry('case_returned_to_pool', studentRequest.reviewed_at))
       }
     }
   }
@@ -295,6 +302,7 @@ export function CaseDetailClient({
       case 'pending':  return t('admin.db.studentReqPending')
       case 'approved': return t('admin.db.studentReqApproved')
       case 'rejected': return t('admin.db.studentReqRejected')
+      case 'revoked':  return t('admin.db.studentReqRevoked')
       default:         return status
     }
   }
@@ -309,12 +317,16 @@ export function CaseDetailClient({
         return t('admin.detail.historyStudentApproved')
       case 'student_request_rejected':
         return t('admin.detail.historyStudentRejected')
+      case 'student_request_revoked':
+        return t('admin.detail.historyStudentRevoked')
       case 'rejection_undone':
         return t('admin.detail.historyRejectionUndone')
       case 'department_changed':
         return t('admin.detail.historyDepartmentChanged')
       case 'clinical_notes_updated':
         return t('admin.detail.historyClinicalNotesUpdated')
+      case 'case_returned_to_pool':
+        return t('admin.detail.historyReturnedToPool')
       case 'case_cancelled':
         return t('admin.detail.historyCaseCancelled')
       default:
@@ -349,6 +361,8 @@ export function CaseDetailClient({
   const [pendingCancel, setPendingCancel] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
   const [triageReason, setTriageReason] = useState('')
+  const [pendingReturnToPool, setPendingReturnToPool] = useState(false)
+  const [returnToPoolReason, setReturnToPoolReason] = useState('')
   const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>(
     () => buildInitialActivityLog(initialRequest, initialStudentRequests)
   )
@@ -410,6 +424,7 @@ export function CaseDetailClient({
 
   // Allow post-release triage edits without changing the current case status.
   const canEditTriage = ['matched', 'student_approved', 'contacted', 'appointment_scheduled', 'in_treatment'].includes(currentStatus)
+  const canReturnToPool = ['student_approved', 'contacted', 'appointment_scheduled'].includes(currentStatus)
 
   // Keep the old isTerminal alias so the triage form disable logic still works
   const isTerminal = !isTriagePhase
@@ -602,9 +617,102 @@ export function CaseDetailClient({
     if (nextEntries.length > 0) {
       setActivityLog((prev) => [...nextEntries, ...prev])
     }
+    setPendingReturnToPool(false)
+    setReturnToPoolReason('')
     setTriageReason('')
     setIsEditingTriage(false)
     showSaved(t('admin.detail.savedTriageUpdated'))
+  }
+
+  async function handleReturnToPool() {
+    if (!canReturnToPool) {
+      setErrorMessage(t('admin.detail.returnToPoolNotAllowed'))
+      return
+    }
+
+    const trimmedReason = returnToPoolReason.trim()
+    if (!trimmedReason) {
+      setErrorMessage(t('admin.detail.reasonRequired'))
+      return
+    }
+
+    setSaving(true)
+    setErrorMessage('')
+
+    const res = await fetch(`/api/admin/cases/${request.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'return_to_pool',
+        assigned_department: assignedDepartment,
+        urgency: mapDetailToUrgency(urgencyLevel),
+        target_student_level: targetStudentLevel,
+        clinical_notes: clinicalNotes,
+        reason: trimmedReason,
+      }),
+    })
+
+    setSaving(false)
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Unknown error' }))
+      setErrorMessage(
+        (err as { error?: string }).error ?? t('admin.detail.returnToPoolErrorGeneric')
+      )
+      return
+    }
+
+    const { data } = (await res.json()) as {
+      data: {
+        status: string
+        reviewed_by: string | null
+        reviewed_at: string
+        request_id?: string
+      }
+    }
+
+    setRequest((prev) => ({
+      ...prev,
+      assigned_department: assignedDepartment,
+      urgency: mapDetailToUrgency(urgencyLevel),
+      target_student_level: targetStudentLevel,
+      clinical_notes: clinicalNotes,
+      status: data.status,
+      reviewed_by: data.reviewed_by,
+      reviewed_at: data.reviewed_at,
+    }))
+
+    const revokedRequest = data.request_id
+      ? studentRequests.find((studentRequest) => studentRequest.id === data.request_id)
+      : null
+
+    if (data.request_id) {
+      setStudentRequests((prev) =>
+        prev.map((studentRequest) =>
+          studentRequest.id === data.request_id
+            ? {
+                ...studentRequest,
+                status: 'revoked',
+                reviewed_by: data.reviewed_by ?? adminEmail,
+                reviewed_at: data.reviewed_at,
+              }
+            : studentRequest
+        )
+      )
+    }
+
+    setActivityLog((prev) => [
+      makeLogEntry('case_returned_to_pool', data.reviewed_at),
+      ...(data.request_id
+        ? [makeLogEntry('student_request_revoked', data.reviewed_at, revokedRequest?.student_email ?? null)]
+        : []),
+      ...prev,
+    ])
+    setPendingReturnToPool(false)
+    setReturnToPoolReason('')
+    setTriageReason('')
+    setIsEditingTriage(false)
+    showSaved(t('admin.detail.savedReturnedToPool'))
   }
 
   async function handleLifecycleAction(
@@ -691,6 +799,8 @@ export function CaseDetailClient({
       reviewed_at: data.reviewed_at,
     })
     setIsEditingTriage(false)
+    setPendingReturnToPool(false)
+    setReturnToPoolReason('')
     setTriageReason('')
     showSaved(t('admin.detail.savedDraft'))
   }
@@ -738,6 +848,8 @@ export function CaseDetailClient({
       ...prev,
     ])
     setIsEditingTriage(false)
+    setPendingReturnToPool(false)
+    setReturnToPoolReason('')
     setTriageReason('')
     showSaved(t('admin.detail.savedApproved'))
   }
@@ -771,6 +883,8 @@ export function CaseDetailClient({
       reviewed_at: data.reviewed_at,
     })
     setIsEditingTriage(false)
+    setPendingReturnToPool(false)
+    setReturnToPoolReason('')
     setTriageReason('')
     showSaved(t('admin.detail.savedRejected'))
   }
@@ -1133,12 +1247,29 @@ export function CaseDetailClient({
                       onClick={() => {
                         resetTriageForm()
                         setIsEditingTriage(false)
+                        setPendingReturnToPool(false)
+                        setReturnToPoolReason('')
                       }}
                       disabled={saving}
                       className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
                     >
                       {t('admin.detail.cancel')}
                     </button>
+
+                    {canReturnToPool && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPendingReturnToPool(true)
+                          setReturnToPoolReason('')
+                          setErrorMessage('')
+                        }}
+                        disabled={saving}
+                        className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-800 transition hover:bg-amber-100 disabled:opacity-60"
+                      >
+                        {t('admin.detail.returnToPoolButton')}
+                      </button>
+                    )}
 
                     <button
                       type="button"
@@ -1150,6 +1281,53 @@ export function CaseDetailClient({
                     </button>
                   </div>
                 ) : null}
+
+                {canEditTriage && isEditingTriage && pendingReturnToPool && (
+                  <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                    <p className="mb-2 text-sm font-semibold text-amber-900">
+                      {t('admin.detail.returnToPoolConfirmTitle')}
+                    </p>
+                    <p className="mb-2 text-sm text-amber-800">
+                      {t('admin.detail.returnToPoolConfirmDesc')}
+                    </p>
+                    <p className="mb-3 text-sm text-amber-700">
+                      {t('admin.detail.returnToPoolWarning')}
+                    </p>
+                    <label className="mb-2 block text-sm font-semibold text-amber-900">
+                      {t('admin.detail.returnToPoolReasonLabel')} *
+                    </label>
+                    <input
+                      type="text"
+                      value={returnToPoolReason}
+                      onChange={(e) => setReturnToPoolReason(e.target.value)}
+                      placeholder={t('admin.detail.returnToPoolReasonPlaceholder')}
+                      className="h-11 w-full rounded-lg border border-amber-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-amber-500"
+                    />
+                    <div className="mt-4 flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPendingReturnToPool(false)
+                          setReturnToPoolReason('')
+                        }}
+                        disabled={saving}
+                        className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+                      >
+                        {t('admin.detail.cancel')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleReturnToPool}
+                        disabled={saving || !returnToPoolReason.trim()}
+                        className="rounded-xl bg-amber-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-800 disabled:opacity-60"
+                      >
+                        {saving
+                          ? t('admin.detail.returningToPool')
+                          : t('admin.detail.confirmReturnToPool')}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1489,6 +1667,8 @@ export function CaseDetailClient({
                               ? 'border border-emerald-200 bg-emerald-50 text-emerald-700'
                               : req.status === 'rejected'
                                 ? 'border border-red-200 bg-red-50 text-red-700'
+                                : req.status === 'revoked'
+                                  ? 'border border-slate-200 bg-slate-100 text-slate-700'
                                 : 'border border-amber-200 bg-amber-50 text-amber-700'
                           }`}
                         >

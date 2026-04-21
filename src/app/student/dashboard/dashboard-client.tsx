@@ -37,7 +37,7 @@ type PoolCase = {
 type MyRequest = {
   id: string
   case_id: string
-  status: 'pending' | 'approved' | 'rejected'
+  status: 'pending' | 'approved' | 'rejected' | 'revoked'
   created_at: string
 }
 

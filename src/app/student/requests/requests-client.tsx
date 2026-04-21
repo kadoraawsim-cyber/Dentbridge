@@ -63,6 +63,7 @@ export function RequestsClient({ myRequests, caseMap }: Props) {
       case 'approved': return 'bg-emerald-50 text-emerald-700 border border-emerald-200'
       case 'pending':  return 'bg-amber-50 text-amber-700 border border-amber-200'
       case 'rejected': return 'bg-red-50 text-red-700 border border-red-200'
+      case 'revoked':  return 'bg-slate-100 text-slate-700 border border-slate-200'
       default:         return 'bg-slate-100 text-slate-700 border border-slate-200'
     }
   }
@@ -72,6 +73,7 @@ export function RequestsClient({ myRequests, caseMap }: Props) {
       case 'approved': return t('student.requests.statusApproved')
       case 'pending':  return t('student.requests.statusPending')
       case 'rejected': return t('student.requests.statusRejected')
+      case 'revoked':  return t('student.requests.statusRevoked')
       default:         return status.toUpperCase()
     }
   }
@@ -115,6 +117,7 @@ export function RequestsClient({ myRequests, caseMap }: Props) {
   })
 
   const rejectedRequests = myRequests.filter((req) => req.status === 'rejected')
+  const revokedRequests = myRequests.filter((req) => req.status === 'revoked')
 
   function renderCard(req: RequestRow) {
     const caseInfo = caseMap[req.case_id]
@@ -173,6 +176,7 @@ export function RequestsClient({ myRequests, caseMap }: Props) {
             {req.status === 'approved' && !isCompleted && t('student.requests.messageApproved')}
             {isCompleted && t('student.requests.completedNote')}
             {req.status === 'rejected' && t('student.requests.messageRejected')}
+            {req.status === 'revoked' && t('student.requests.messageRevoked')}
           </div>
 
           {req.status === 'approved' && !isCompleted && (
@@ -326,6 +330,23 @@ export function RequestsClient({ myRequests, caseMap }: Props) {
                 </div>
                 <div className="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
                   {rejectedRequests.map(renderCard)}
+                </div>
+              </div>
+            )}
+
+            {revokedRequests.length > 0 && (
+              <div>
+                <div className="mb-4 flex items-center gap-2">
+                  <XCircle className="h-4 w-4 text-slate-500" />
+                  <h2 className="text-lg font-bold text-slate-900">
+                    {t('student.requests.sectionRevoked')}
+                  </h2>
+                  <span className="rounded-full bg-slate-200 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
+                    {revokedRequests.length}
+                  </span>
+                </div>
+                <div className="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
+                  {revokedRequests.map(renderCard)}
                 </div>
               </div>
             )}

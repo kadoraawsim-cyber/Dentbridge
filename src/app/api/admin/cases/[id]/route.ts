@@ -8,6 +8,7 @@ type Action =
   | 'update_triage'
   | 'approve'
   | 'reject'
+  | 'return_to_pool'
   | 'approve_student_request'
   | 'reject_student_request'
   | 'undo_reject_student_request'
@@ -89,6 +90,7 @@ export async function PATCH(
     'update_triage',
     'approve',
     'reject',
+    'return_to_pool',
     'approve_student_request',
     'reject_student_request',
     'undo_reject_student_request',
@@ -103,7 +105,7 @@ export async function PATCH(
   }
 
   if (
-    ['reject_student_request', 'undo_reject_student_request', 'mark_cancelled'].includes(action) &&
+    ['reject_student_request', 'undo_reject_student_request', 'mark_cancelled', 'return_to_pool'].includes(action) &&
     reason.length < 3
   ) {
     return NextResponse.json({ error: 'Reason is required' }, { status: 400 })
@@ -199,6 +201,91 @@ export async function PATCH(
         status: 'pending',
         reviewed_by: null,
         reviewed_at: null,
+      },
+    })
+  }
+
+  if (action === 'return_to_pool') {
+    const { data: currentCase, error: currentCaseError } = await supabase
+      .from('patient_requests')
+      .select(
+        'status, assigned_department, urgency, target_student_level, clinical_notes'
+      )
+      .eq('id', id)
+      .single()
+
+    if (currentCaseError || !currentCase) {
+      return NextResponse.json(
+        { error: currentCaseError?.message ?? 'Case not found' },
+        { status: currentCaseError ? 500 : 404 }
+      )
+    }
+
+    const eligibleStatuses = ['student_approved', 'contacted', 'appointment_scheduled']
+    if (!eligibleStatuses.includes((currentCase.status || '').toLowerCase())) {
+      return NextResponse.json(
+        { error: 'This case can no longer be returned to the pool from its current stage.' },
+        { status: 409 }
+      )
+    }
+
+    const { data: approvedRequest, error: approvedRequestError } = await supabase
+      .from('student_case_requests')
+      .select('id, student_email')
+      .eq('case_id', id)
+      .eq('status', 'approved')
+      .maybeSingle()
+
+    if (approvedRequestError) {
+      return NextResponse.json({ error: approvedRequestError.message }, { status: 500 })
+    }
+
+    if (!approvedRequest) {
+      return NextResponse.json(
+        { error: 'No approved student assignment was found for this case.' },
+        { status: 409 }
+      )
+    }
+
+    const { error: revokeRequestError } = await supabase
+      .from('student_case_requests')
+      .update({
+        status: 'revoked',
+        reviewed_by: reviewedBy,
+        reviewed_at: reviewedAt,
+      })
+      .eq('id', approvedRequest.id)
+      .eq('case_id', id)
+
+    if (revokeRequestError) {
+      return NextResponse.json({ error: revokeRequestError.message }, { status: 500 })
+    }
+
+    const { error: returnCaseError } = await supabase
+      .from('patient_requests')
+      .update({
+        assigned_department: assigned_department ?? currentCase.assigned_department,
+        urgency: urgency ?? currentCase.urgency,
+        target_student_level: target_student_level ?? currentCase.target_student_level,
+        clinical_notes: clinical_notes ?? currentCase.clinical_notes,
+        status: 'matched',
+        reviewed_by: reviewedBy,
+        reviewed_at: reviewedAt,
+      })
+      .eq('id', id)
+
+    if (returnCaseError) {
+      return NextResponse.json({ error: returnCaseError.message }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        status: 'matched',
+        reviewed_by: reviewedBy,
+        reviewed_at: reviewedAt,
+        request_id: approvedRequest.id,
+        student_email: approvedRequest.student_email,
       },
     })
   }

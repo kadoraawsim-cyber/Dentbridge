@@ -102,8 +102,8 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
     }))
   }
 
-  const myRequestCount = Object.values(localRequests).filter(r => r.status === 'pending').length
-  const pendingCount   = myRequestCount
+  const myRequestCount = initialCases.filter((caseItem) => !!localRequests[caseItem.id]).length
+  const pendingCount = Object.values(localRequests).filter((r) => r.status === 'pending').length
 
   const filtered = useMemo(() => {
     let result = initialCases
@@ -443,17 +443,30 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
               const isApproved     = myRequest?.status === 'approved'
               const isPending      = myRequest?.status === 'pending'
               const isRejected     = myRequest?.status === 'rejected'
+              const isRevoked      = myRequest?.status === 'revoked'
 
               return (
                 <article
                   key={c.id}
                   className={`flex flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition hover:shadow-md ${
-                    isApproved ? 'border-emerald-200' : isPending ? 'border-amber-200' : 'border-slate-200'
+                    isApproved
+                      ? 'border-emerald-200'
+                      : isPending
+                        ? 'border-amber-200'
+                        : isRevoked
+                          ? 'border-slate-300'
+                          : 'border-slate-200'
                   }`}
                 >
                   {/* Card header strip */}
                   <div className={`flex flex-wrap items-center justify-between gap-y-1 border-b px-4 py-3 sm:px-5 ${
-                    isApproved ? 'border-emerald-100 bg-emerald-50/60' : isPending ? 'border-amber-100 bg-amber-50/60' : 'border-slate-100 bg-slate-50/60'
+                    isApproved
+                      ? 'border-emerald-100 bg-emerald-50/60'
+                      : isPending
+                        ? 'border-amber-100 bg-amber-50/60'
+                        : isRevoked
+                          ? 'border-slate-200 bg-slate-100/80'
+                          : 'border-slate-100 bg-slate-50/60'
                   }`}>
                     <span className="font-mono text-xs font-bold text-slate-500">
                       #{c.id.slice(0, 8).toUpperCase()}
@@ -473,6 +486,11 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
                       {isPending && (
                         <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
                           <Clock className="h-2.5 w-2.5" /> {t('student.cases.badgePending')}
+                        </span>
+                      )}
+                      {isRevoked && (
+                        <span className="flex items-center gap-1 rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-700">
+                          <XCircle className="h-2.5 w-2.5" /> {t('student.cases.badgeRevoked')}
                         </span>
                       )}
                     </div>
@@ -598,6 +616,18 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
                           <XCircle className="h-4 w-4" />
                           {t('student.cases.requestDeclined')}
                         </div>
+                      )}
+
+                      {isRevoked && (
+                        <>
+                          <div className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700">
+                            <XCircle className="h-4 w-4" />
+                            {t('student.cases.requestRevokedByFaculty')}
+                          </div>
+                          <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                            {t('student.cases.requestRevokedNote')}
+                          </p>
+                        </>
                       )}
                     </div>
                   </div>
