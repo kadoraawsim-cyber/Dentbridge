@@ -14,6 +14,7 @@ import {
   Clock3,
   LogOut,
   Plus,
+  Trash2,
   Users,
   X,
 } from 'lucide-react'
@@ -49,6 +50,14 @@ type PlannerResponse = {
 interface Props {
   studentEmail: string
   studentFullName: string
+}
+
+type PlannerFormState = {
+  title: string
+  description: string
+  startAt: string
+  endAt: string
+  patientId: string
 }
 
 function startOfDay(date: Date) {
@@ -126,6 +135,29 @@ function getInitials(fullName: string, email: string) {
   return source.slice(0, 2).toUpperCase()
 }
 
+function sortPlannerEvents(items: PlannerEvent[]) {
+  return [...items].sort(
+    (left, right) =>
+      new Date(left.start_at).getTime() - new Date(right.start_at).getTime()
+  )
+}
+
+function getEventTone(event: PlannerEvent) {
+  if (event.patient_id) {
+    return {
+      card: 'border-teal-200 bg-teal-50/90 hover:bg-teal-100/80',
+      badge: 'bg-teal-100 text-teal-700',
+      subtle: 'text-teal-700',
+    }
+  }
+
+  return {
+    card: 'border-indigo-200 bg-indigo-50/90 hover:bg-indigo-100/80',
+    badge: 'bg-indigo-100 text-indigo-700',
+    subtle: 'text-indigo-700',
+  }
+}
+
 export function PlannerClient({ studentEmail, studentFullName }: Props) {
   const router = useRouter()
   const { t, locale } = useI18n()
@@ -142,7 +174,9 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
   const [saveSuccess, setSaveSuccess] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState(() => {
+  const [deleting, setDeleting] = useState(false)
+  const [editingEventId, setEditingEventId] = useState<string | null>(null)
+  const [form, setForm] = useState<PlannerFormState>(() => {
     const range = buildDefaultRange(new Date())
     return {
       title: '',
@@ -157,6 +191,7 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
     () => getInitials(studentFullName, studentEmail),
     [studentEmail, studentFullName]
   )
+  const isEditing = !!editingEventId
 
   async function handleSignOut() {
     await supabase.auth.signOut()
@@ -232,6 +267,7 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
 
   function openAddModal(baseDate?: Date) {
     const range = buildDefaultRange(baseDate ?? selectedDate)
+    setEditingEventId(null)
     setForm({
       title: '',
       description: '',
@@ -243,7 +279,22 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
     setShowModal(true)
   }
 
-  async function handleCreateEvent() {
+  function openEditModal(event: PlannerEvent) {
+    setEditingEventId(event.id)
+    setForm({
+      title: event.title,
+      description: event.description || '',
+      startAt: toDateTimeInputValue(new Date(event.start_at)),
+      endAt: event.end_at
+        ? toDateTimeInputValue(new Date(event.end_at))
+        : toDateTimeInputValue(new Date(event.start_at)),
+      patientId: event.patient_id || '',
+    })
+    setSaveError('')
+    setShowModal(true)
+  }
+
+  async function handleSubmitEvent() {
     if (!form.title.trim()) {
       setSaveError(t('student.planner.requiredTitle'))
       return
@@ -265,8 +316,10 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
     setSaving(true)
     setSaveError('')
 
-    const response = await fetch('/api/student/planner', {
-      method: 'POST',
+    const response = await fetch(
+      editingEventId ? `/api/student/planner/${editingEventId}` : '/api/student/planner',
+      {
+        method: editingEventId ? 'PATCH' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         title: form.title.trim(),
@@ -276,27 +329,60 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
         patient_id: form.patientId || null,
         language: locale,
       }),
-    })
+      }
+    )
 
     setSaving(false)
 
     if (!response.ok) {
-      const body = await response.json().catch(() => ({ error: t('student.planner.saveError') }))
-      setSaveError((body as { error?: string }).error ?? t('student.planner.saveError'))
+      const body = await response.json().catch(() => ({
+        error: editingEventId ? t('student.planner.updateError') : t('student.planner.saveError'),
+      }))
+      setSaveError(
+        (body as { error?: string }).error ??
+          (editingEventId ? t('student.planner.updateError') : t('student.planner.saveError'))
+      )
       return
     }
 
     const body = (await response.json()) as { data: PlannerEvent }
     setEvents((prev) =>
-      [...prev, body.data].sort(
-        (left, right) =>
-          new Date(left.start_at).getTime() - new Date(right.start_at).getTime()
-      )
+      editingEventId
+        ? sortPlannerEvents(prev.map((event) => (event.id === body.data.id ? body.data : event)))
+        : sortPlannerEvents([...prev, body.data])
     )
     setSelectedDate(startOfDay(new Date(body.data.start_at)))
     setCurrentDate(startOfDay(new Date(body.data.start_at)))
     setShowModal(false)
-    setSaveSuccess(t('student.planner.saveSuccess'))
+    setEditingEventId(null)
+    setSaveSuccess(
+      editingEventId ? t('student.planner.updateSuccess') : t('student.planner.saveSuccess')
+    )
+    window.setTimeout(() => setSaveSuccess(''), 2500)
+  }
+
+  async function handleDeleteEvent() {
+    if (!editingEventId) return
+
+    setDeleting(true)
+    setSaveError('')
+
+    const response = await fetch(`/api/student/planner/${editingEventId}`, {
+      method: 'DELETE',
+    })
+
+    setDeleting(false)
+
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({ error: t('student.planner.deleteError') }))
+      setSaveError((body as { error?: string }).error ?? t('student.planner.deleteError'))
+      return
+    }
+
+    setEvents((prev) => prev.filter((event) => event.id !== editingEventId))
+    setShowModal(false)
+    setEditingEventId(null)
+    setSaveSuccess(t('student.planner.deleteSuccess'))
     window.setTimeout(() => setSaveSuccess(''), 2500)
   }
 
@@ -317,16 +403,22 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
   }
 
   function renderEventPill(event: PlannerEvent) {
+    const tone = getEventTone(event)
     return (
-      <div
+      <button
         key={event.id}
-        className="rounded-lg border border-teal-100 bg-teal-50 px-2.5 py-2 text-left"
+        type="button"
+        onClick={(clickEvent) => {
+          clickEvent.stopPropagation()
+          openEditModal(event)
+        }}
+        className={`w-full rounded-lg border px-2.5 py-2 text-left transition ${tone.card}`}
       >
         <p className="truncate text-xs font-semibold text-slate-900">{event.title}</p>
         <p className="mt-1 text-[11px] text-slate-500">
           {formatTimeRange(event, dateLocale, t)}
         </p>
-      </div>
+      </button>
     )
   }
 
@@ -358,11 +450,18 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
             const isSelected = dayKey === selectedDateKey
 
             return (
-              <button
+              <div
                 key={dayKey}
-                type="button"
                 onClick={() => setSelectedDate(startOfDay(day))}
-                className={`min-h-[130px] border-r border-b border-slate-100 px-3 py-3 text-left transition hover:bg-slate-50 ${
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    setSelectedDate(startOfDay(day))
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                className={`min-h-[130px] border-r border-b border-slate-100 px-3 py-3 text-left transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-200 ${
                   isSelected ? 'bg-teal-50/70' : 'bg-white'
                 }`}
               >
@@ -387,7 +486,7 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
                 <div className="mt-3 space-y-2">
                   {dayEvents.slice(0, 3).map(renderEventPill)}
                 </div>
-              </button>
+              </div>
             )
           })}
         </div>
@@ -408,11 +507,18 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
           const isToday = dayKey === toDateKey(new Date())
 
           return (
-            <button
+            <div
               key={dayKey}
-              type="button"
               onClick={() => setSelectedDate(startOfDay(day))}
-              className={`rounded-2xl border p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault()
+                  setSelectedDate(startOfDay(day))
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              className={`rounded-2xl border p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-teal-200 ${
                 isSelected
                   ? 'border-teal-200 bg-teal-50/70'
                   : 'border-slate-200 bg-white'
@@ -440,7 +546,7 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
                   dayEvents.map(renderEventPill)
                 )}
               </div>
-            </button>
+            </div>
           )
         })}
       </div>
@@ -480,7 +586,12 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
             </p>
           ) : (
             selectedDateEvents.map((event) => (
-              <div key={event.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+              <button
+                key={event.id}
+                type="button"
+                onClick={() => openEditModal(event)}
+                className={`w-full rounded-2xl border px-4 py-4 text-left transition ${getEventTone(event).card}`}
+              >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-base font-semibold text-slate-900">{event.title}</p>
@@ -499,7 +610,7 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
                     {event.description}
                   </p>
                 )}
-              </div>
+              </button>
             ))
           )}
         </div>
@@ -736,7 +847,12 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
                       <p className="text-sm text-slate-400">{t('student.planner.noEventsForDay')}</p>
                     ) : (
                       upcomingEvents.map((event) => (
-                        <div key={event.id} className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+                        <button
+                          key={event.id}
+                          type="button"
+                          onClick={() => openEditModal(event)}
+                          className={`w-full rounded-xl border px-4 py-3 text-left transition ${getEventTone(event).card}`}
+                        >
                           <p className="text-sm font-semibold text-slate-900">{event.title}</p>
                           <p className="mt-1 text-xs text-slate-500">
                             {formatDateLabel(new Date(event.start_at), dateLocale, {
@@ -746,7 +862,7 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
                               minute: '2-digit',
                             })}
                           </p>
-                        </div>
+                        </button>
                       ))
                     )}
                   </div>
@@ -788,12 +904,18 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
           <div className="w-full max-w-xl rounded-3xl border border-slate-200 bg-white shadow-2xl">
             <div className="flex items-start justify-between border-b border-slate-100 px-6 py-5">
               <div>
-                <h2 className="text-xl font-bold text-slate-900">{t('student.planner.addModalTitle')}</h2>
+                <h2 className="text-xl font-bold text-slate-900">
+                  {isEditing ? t('student.planner.editEvent') : t('student.planner.addModalTitle')}
+                </h2>
                 <p className="mt-1 text-sm text-slate-500">{t('student.planner.addModalDesc')}</p>
               </div>
               <button
                 type="button"
-                onClick={() => setShowModal(false)}
+                onClick={() => {
+                  setShowModal(false)
+                  setEditingEventId(null)
+                  setSaveError('')
+                }}
                 className="rounded-full border border-slate-200 p-2 text-slate-500 transition hover:bg-slate-50 hover:text-slate-900"
               >
                 <X className="h-4 w-4" />
@@ -889,21 +1011,42 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
             </div>
 
             <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-5">
+              {isEditing && (
+                <button
+                  type="button"
+                  onClick={handleDeleteEvent}
+                  disabled={saving || deleting}
+                  className="mr-auto inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-60"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  {deleting ? t('student.planner.deletingEvent') : t('student.planner.deleteEvent')}
+                </button>
+              )}
               <button
                 type="button"
-                onClick={() => setShowModal(false)}
-                disabled={saving}
+                onClick={() => {
+                  setShowModal(false)
+                  setEditingEventId(null)
+                  setSaveError('')
+                }}
+                disabled={saving || deleting}
                 className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
               >
                 {t('student.planner.cancel')}
               </button>
               <button
                 type="button"
-                onClick={handleCreateEvent}
-                disabled={saving}
+                onClick={handleSubmitEvent}
+                disabled={saving || deleting}
                 className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
               >
-                {saving ? t('student.planner.savingEvent') : t('student.planner.saveEvent')}
+                {saving
+                  ? isEditing
+                    ? t('student.planner.updatingEvent')
+                    : t('student.planner.savingEvent')
+                  : isEditing
+                    ? t('student.planner.updateEvent')
+                    : t('student.planner.saveEvent')}
               </button>
             </div>
           </div>

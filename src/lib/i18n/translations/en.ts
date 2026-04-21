@@ -447,6 +447,7 @@ export type TranslationShape = {
       pageDesc: string
       backToDashboard: string
       addEvent: string
+      editEvent: string
       monthView: string
       weekView: string
       dayView: string
@@ -478,12 +479,21 @@ export type TranslationShape = {
       patientLabel: string
       patientPlaceholder: string
       saveEvent: string
+      updateEvent: string
       savingEvent: string
+      updatingEvent: string
       cancel: string
+      close: string
+      deleteEvent: string
+      deletingEvent: string
       requiredTitle: string
       invalidRange: string
       saveError: string
       saveSuccess: string
+      updateError: string
+      updateSuccess: string
+      deleteError: string
+      deleteSuccess: string
       noActivePatients: string
     }
   }
@@ -1425,6 +1435,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       pageDesc: 'Keep a private schedule of follow-ups, reminders, and patient-linked planning notes.',
       backToDashboard: 'Back to Dashboard',
       addEvent: 'Add Event',
+      editEvent: 'Edit Event',
       monthView: 'Month',
       weekView: 'Week',
       dayView: 'Day',
@@ -1456,12 +1467,21 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       patientLabel: 'Link Patient',
       patientPlaceholder: 'Select an active patient',
       saveEvent: 'Save Event',
+      updateEvent: 'Update Event',
       savingEvent: 'Saving...',
+      updatingEvent: 'Updating...',
       cancel: 'Cancel',
+      close: 'Close',
+      deleteEvent: 'Delete',
+      deletingEvent: 'Deleting...',
       requiredTitle: 'Please enter an event title.',
       invalidRange: 'End time must be after the start time.',
       saveError: 'Unable to save the planner event right now.',
       saveSuccess: 'Planner event saved.',
+      updateError: 'Unable to update the planner event right now.',
+      updateSuccess: 'Planner event updated.',
+      deleteError: 'Unable to delete the planner event right now.',
+      deleteSuccess: 'Planner event deleted.',
       noActivePatients: 'No active patients available to link right now.',
     },
   },
