@@ -9,6 +9,84 @@ import { useI18n } from '@/lib/i18n'
 
 const MAX_CLIENT_MESSAGE_LENGTH = 800
 const BRIDGEY_AVATAR_SRC = '/new_avatar_logo-removebg-preview.png'
+const LAUNCHER_SIZE = 80
+const LAUNCHER_VISIBLE_OFFSET = 16
+const LAUNCHER_DOCK_PEEK = 28
+const LAUNCHER_DRAG_THRESHOLD = 6
+const LAUNCHER_OPEN_DELAY_MS = 140
+
+type DockSide = 'left' | 'right'
+
+type LauncherState = {
+  x: number
+  y: number
+  dock: DockSide
+  isDocked: boolean
+}
+
+type LauncherBounds = {
+  leftDock: number
+  leftVisible: number
+  rightDock: number
+  rightVisible: number
+  minY: number
+  maxY: number
+  defaultY: number
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max)
+}
+
+function getLauncherBounds(viewportWidth: number, viewportHeight: number): LauncherBounds {
+  const isMobileViewport = viewportWidth < 768
+  const horizontalInset = isMobileViewport ? LAUNCHER_VISIBLE_OFFSET : 24
+  const topInset = isMobileViewport ? 88 : 24
+  const bottomInset = isMobileViewport ? 120 : 96
+  const minY = topInset
+  const maxY = Math.max(minY, viewportHeight - LAUNCHER_SIZE - bottomInset)
+  const rightVisible = Math.max(horizontalInset, viewportWidth - LAUNCHER_SIZE - horizontalInset)
+
+  return {
+    leftDock: -LAUNCHER_DOCK_PEEK,
+    leftVisible: horizontalInset,
+    rightDock: viewportWidth - LAUNCHER_SIZE + LAUNCHER_DOCK_PEEK,
+    rightVisible,
+    minY,
+    maxY,
+    defaultY: maxY,
+  }
+}
+
+function getLauncherOpenX(dock: DockSide, bounds: LauncherBounds) {
+  return dock === 'left' ? bounds.leftVisible : bounds.rightVisible
+}
+
+function getDockedLauncherX(dock: DockSide, bounds: LauncherBounds) {
+  return dock === 'left' ? bounds.leftDock : bounds.rightDock
+}
+
+function normalizeLauncherState(previousState: LauncherState | null): LauncherState {
+  const bounds = getLauncherBounds(window.innerWidth, window.innerHeight)
+
+  if (!previousState) {
+    return {
+      x: bounds.rightVisible,
+      y: bounds.defaultY,
+      dock: 'right',
+      isDocked: false,
+    }
+  }
+
+  return {
+    x: previousState.isDocked
+      ? getDockedLauncherX(previousState.dock, bounds)
+      : clamp(previousState.x, bounds.leftVisible, bounds.rightVisible),
+    y: clamp(previousState.y, bounds.minY, bounds.maxY),
+    dock: previousState.dock,
+    isDocked: previousState.isDocked,
+  }
+}
 
 type ChatMessage = {
   id: string
@@ -110,8 +188,20 @@ export default function PublicPatientChatWidget() {
   const [isSending, setIsSending] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [showLauncherHint, setShowLauncherHint] = useState(true)
+  const [launcherState, setLauncherState] = useState<LauncherState | null>(null)
+  const [isLauncherDragging, setIsLauncherDragging] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
+  const launcherOpenTimeoutRef = useRef<number | null>(null)
+  const dragStateRef = useRef<{
+    pointerId: number
+    startX: number
+    startY: number
+    originX: number
+    originY: number
+    moved: boolean
+  } | null>(null)
+  const suppressLauncherClickRef = useRef(false)
 
   useEffect(() => {
     if (!shouldShowPatientChat(pathname)) {
@@ -165,6 +255,31 @@ export default function PublicPatientChatWidget() {
     return () => window.clearTimeout(timeoutId)
   }, [isOpen, showLauncherHint])
 
+  useEffect(() => {
+    if (!shouldShowPatientChat(pathname)) {
+      return
+    }
+
+    const syncLauncherState = () => {
+      setLauncherState((current) => normalizeLauncherState(current))
+    }
+
+    syncLauncherState()
+    window.addEventListener('resize', syncLauncherState)
+
+    return () => {
+      window.removeEventListener('resize', syncLauncherState)
+    }
+  }, [pathname])
+
+  useEffect(() => {
+    return () => {
+      if (launcherOpenTimeoutRef.current) {
+        window.clearTimeout(launcherOpenTimeoutRef.current)
+      }
+    }
+  }, [])
+
   if (!shouldShowPatientChat(pathname)) {
     return null
   }
@@ -184,6 +299,143 @@ export default function PublicPatientChatWidget() {
     setMessages([])
     setDraft('')
     setErrorMessage('')
+  }
+
+  function openChatFromLauncher() {
+    if (!launcherState) {
+      setIsOpen(true)
+      return
+    }
+
+    if (launcherOpenTimeoutRef.current) {
+      window.clearTimeout(launcherOpenTimeoutRef.current)
+    }
+
+    if (!launcherState.isDocked) {
+      setIsOpen(true)
+      return
+    }
+
+    const bounds = getLauncherBounds(window.innerWidth, window.innerHeight)
+    setLauncherState((current) =>
+      current
+        ? {
+            ...current,
+            x: getLauncherOpenX(current.dock, bounds),
+            isDocked: false,
+          }
+        : current
+    )
+
+    launcherOpenTimeoutRef.current = window.setTimeout(() => {
+      setIsOpen(true)
+      launcherOpenTimeoutRef.current = null
+    }, LAUNCHER_OPEN_DELAY_MS)
+  }
+
+  function finishLauncherDrag(pointerClientX: number) {
+    const dragState = dragStateRef.current
+
+    if (!dragState) {
+      return
+    }
+
+    if (dragState.moved) {
+      const bounds = getLauncherBounds(window.innerWidth, window.innerHeight)
+      const nextDock: DockSide =
+        pointerClientX <= window.innerWidth / 2 ? 'left' : 'right'
+
+      suppressLauncherClickRef.current = true
+      setShowLauncherHint(false)
+      setLauncherState((current) =>
+        current
+          ? {
+              ...current,
+              x: getDockedLauncherX(nextDock, bounds),
+              y: clamp(current.y, bounds.minY, bounds.maxY),
+              dock: nextDock,
+              isDocked: true,
+            }
+          : current
+      )
+
+      window.setTimeout(() => {
+        suppressLauncherClickRef.current = false
+      }, 180)
+    }
+
+    dragStateRef.current = null
+    setIsLauncherDragging(false)
+  }
+
+  function handleLauncherPointerDown(event: React.PointerEvent<HTMLButtonElement>) {
+    if (!launcherState) {
+      return
+    }
+
+    dragStateRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: launcherState.x,
+      originY: launcherState.y,
+      moved: false,
+    }
+
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  function handleLauncherPointerMove(event: React.PointerEvent<HTMLButtonElement>) {
+    const dragState = dragStateRef.current
+
+    if (!dragState || dragState.pointerId !== event.pointerId) {
+      return
+    }
+
+    const deltaX = event.clientX - dragState.startX
+    const deltaY = event.clientY - dragState.startY
+
+    if (
+      !dragState.moved &&
+      Math.hypot(deltaX, deltaY) >= LAUNCHER_DRAG_THRESHOLD
+    ) {
+      dragState.moved = true
+      setIsLauncherDragging(true)
+      setShowLauncherHint(false)
+    }
+
+    if (!dragState.moved) {
+      return
+    }
+
+    const bounds = getLauncherBounds(window.innerWidth, window.innerHeight)
+
+    setLauncherState((current) =>
+      current
+        ? {
+            ...current,
+            x: clamp(dragState.originX + deltaX, bounds.leftVisible, bounds.rightVisible),
+            y: clamp(dragState.originY + deltaY, bounds.minY, bounds.maxY),
+            isDocked: false,
+          }
+        : current
+    )
+  }
+
+  function handleLauncherPointerUp(event: React.PointerEvent<HTMLButtonElement>) {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+
+    finishLauncherDrag(event.clientX)
+  }
+
+  function handleLauncherPointerCancel(event: React.PointerEvent<HTMLButtonElement>) {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+
+    finishLauncherDrag(event.clientX)
   }
 
   async function submitMessage(rawMessage: string) {
@@ -427,29 +679,48 @@ export default function PublicPatientChatWidget() {
             </div>
           </section>
         )}
+      </div>
 
-        {/* Closed launcher */}
-        {!isOpen && (
-          <div className="pointer-events-auto">
-            <button
-              type="button"
-              onClick={() => setIsOpen(true)}
-              aria-expanded={false}
-              aria-label={t('patientChat.fabOpen')}
-              className="bridgey-fab-float group relative inline-flex items-center justify-center rounded-full bg-transparent transition hover:scale-[1.05]"
-            >
+      {/* Closed launcher */}
+      {!isOpen && launcherState && (
+        <div
+          className="pointer-events-auto fixed z-[71]"
+          style={{
+            left: launcherState.x,
+            top: launcherState.y,
+            transition: isLauncherDragging ? 'none' : 'left 220ms ease, top 220ms ease',
+          }}
+        >
+          <button
+            type="button"
+            onPointerDown={handleLauncherPointerDown}
+            onPointerMove={handleLauncherPointerMove}
+            onPointerUp={handleLauncherPointerUp}
+            onPointerCancel={handleLauncherPointerCancel}
+            onClick={() => {
+              if (suppressLauncherClickRef.current || isLauncherDragging) {
+                return
+              }
+
+              openChatFromLauncher()
+            }}
+            aria-expanded={false}
+            aria-label={t('patientChat.fabOpen')}
+            className="bridgey-fab-float group relative inline-flex touch-none items-center justify-center rounded-full bg-transparent transition hover:scale-[1.03]"
+          >
+            {!launcherState.isDocked && (
               <span
                 className={`pointer-events-none absolute bottom-full mb-2 rounded-full bg-white/90 px-3 py-1.5 text-xs text-slate-600 shadow-sm backdrop-blur transition duration-200 ${
-                  showLauncherHint ? 'opacity-100 translate-y-0' : 'translate-y-1 opacity-0'
+                  showLauncherHint ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'
                 } group-hover:translate-y-0 group-hover:opacity-100`}
               >
                 {t('patientChat.teaser')}
               </span>
-              <BridgeyAvatar sizeClass="h-20 w-20" />
-            </button>
-          </div>
-        )}
-      </div>
+            )}
+            <BridgeyAvatar sizeClass="h-20 w-20" />
+          </button>
+        </div>
+      )}
       <style jsx>{`
         .bridgey-fab-float {
           animation: bridgey-float 6s ease-in-out infinite;
