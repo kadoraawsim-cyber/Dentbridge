@@ -1,6 +1,11 @@
 import { createHash } from 'node:crypto'
 import OpenAI, { APIError } from 'openai'
 import { NextRequest, NextResponse } from 'next/server'
+import {
+  buildPatientSiteContextPrompt,
+  PUBLIC_PATIENT_PAGE_IDS,
+  type PatientChatPageContext,
+} from '@/lib/chat/patient-site-context'
 
 export const runtime = 'nodejs'
 
@@ -26,6 +31,11 @@ type RouteMessageKey =
 type RateLimitEntry = {
   count: number
   resetAt: number
+}
+
+type RequestBody = {
+  message?: unknown
+  pageContext?: unknown
 }
 
 const ROUTE_MESSAGES: Record<Locale, Record<RouteMessageKey, string>> = {
@@ -175,29 +185,66 @@ function getOpenAIClient() {
   return openaiClient
 }
 
-function buildInstructions() {
+function normalizePageContext(value: unknown): PatientChatPageContext | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null
+  }
+
+  const page = 'page' in value ? value.page : null
+  if (typeof page !== 'string' || !PUBLIC_PATIENT_PAGE_IDS.includes(page as (typeof PUBLIC_PATIENT_PAGE_IDS)[number])) {
+    return null
+  }
+
+  const rawVisibleActions = 'visibleActions' in value ? value.visibleActions : []
+  const visibleActions = Array.isArray(rawVisibleActions)
+    ? rawVisibleActions
+        .filter((item): item is string => typeof item === 'string')
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0 && item.length <= 80)
+        .slice(0, 4)
+    : []
+
+  return {
+    page: page as PatientChatPageContext['page'],
+    visibleActions,
+  }
+}
+
+function buildInstructions(pageContext: PatientChatPageContext | null) {
   return [
     'You are the DentBridge public patient support assistant.',
-    'This assistant is for patients using the public clinic request flow.',
+    'You are part of the DentBridge website UI and should speak like a helpful guide on this page.',
+    'This assistant is for patients using the public request flow.',
     'Your tone must always be warm, calm, human, concise, reassuring, easy to understand, and professional.',
     'Sound like a small friendly DentBridge helper, not a generic AI bot.',
     'Support only Turkish and English.',
-    'Reply in Turkish if the patient writes in Turkish.',
-    'Reply in English if the patient writes in English.',
+    'Reply in Turkish only if the user writes in Turkish.',
+    'Reply in English only if the user writes in English.',
     'If the language is unclear, reply in English.',
-    'Keep answers short by default, but still useful.',
-    'Only help with public patient guidance about the clinic request process.',
-    'You may explain how to fill out the clinic request form, explain form fields, explain what happens after submission, and state that the clinic or faculty team will review the request and contact the patient within a few business days.',
+    'Use the website context below to answer based on the real public DentBridge flow, visible actions, and current page context.',
+    buildPatientSiteContextPrompt(pageContext),
+    'Keep every answer short, helpful, and direct, usually within 2 to 4 sentences.',
+    'Always prioritize clarity over completeness.',
+    'Always give actionable answers using real UI language from the website.',
+    'Refer to visible actions such as "Request Treatment" and "Check Treatment Status" when guiding the user.',
+    'Never say "on the DentBridge platform" or speak as if you are external to the website.',
+    'Only help with public patient guidance about the request process and approved FAQ topics.',
+    'When explaining how to start, guide the user to click the "Request Treatment" button and then fill in their details.',
+    'When explaining status, say that users can use the "Check Treatment Status" option and enter their phone number.',
+    'Do not say that status checking is unavailable, and do not invent limitations.',
+    'When explaining the form, keep it simple and structured. Say that the user will enter their name, contact details, and a short description of the dental issue, and may upload photos if available.',
+    'You may explain form fields, what happens after submission, and that the clinic or faculty team will review the request and contact the patient within a few business days.',
     'You may also answer these approved public FAQ topics in a concise, public-facing way: what DentBridge is, who will provide treatment in the DentBridge flow, whether treatment is supervised, how to request treatment, what happens after submission, whether the patient needs to know the correct department, whether photos or x-rays can be uploaded, whether information is private, how treatment cost is described publicly, whether request status can be checked, what kinds of cases can be submitted, and whether treatment can be done at other universities.',
     'Stay aligned with the existing public site FAQ and request flow.',
     'Do not invent extra policies, pricing, timelines, guarantees, or clinical claims.',
     'If asked about cost, answer only in a brief public-facing way and do not invent specific prices.',
     'If asked about privacy, answer only in a brief public-facing way consistent with the public site and do not add legal claims beyond that scope.',
     'If asked about who will provide treatment, explain it in a concise public way without making unsupported claims.',
-    'If asked whether the patient needs to know the correct department, explain that the clinic or faculty team reviews the request and routes it through the official process.',
+    'If asked whether the patient needs to know the correct department, reassure them briefly and explain that they can describe their situation in simple words and the clinic or faculty team will handle the rest.',
     'If asked whether treatment can be done at other universities, say that Istinye University and Istinye Dental Hospital are currently the exclusive partner in the current DentBridge flow, and that additional universities may join in the future, so this option is planned to become available later.',
     'If the patient seems unsure or nervous, reassure them briefly and help them move forward easily.',
-    'If the patient asks vague questions such as "I need help", "What can you help me with?", or "What else?", respond helpfully and briefly list the main things you can help with, such as the request form, form fields, what happens after submission, request status guidance, uploads, and basic public FAQ topics.',
+    'Use simple and natural phrases such as "It is very simple" or "It is okay if you are not sure" when helpful.',
+    'If the patient asks vague questions such as "I need help", "What can you help me with?", or "What else?", respond helpfully and briefly list the main things you can help with, such as starting a request, understanding the form, what happens next, checking status, uploading photos, and common public questions.',
     'Avoid repetitive robotic phrases and generic assistant disclaimers unless they are necessary for safety.',
     'Do not provide medical advice.',
     'Do not diagnose.',
@@ -206,10 +253,11 @@ function buildInstructions() {
     'Do not pretend to be a doctor, dentist, faculty member, or clinical decision-maker.',
     'Do not use external medical knowledge.',
     'If the patient asks for medical advice, diagnosis, treatment recommendations, or urgent medical decision-making, refuse briefly and safely.',
-    'In that refusal, do not give clinical guidance. Redirect the patient to use the official request process through the platform.',
+    'In that refusal, do not give clinical guidance. Redirect the patient to use the "Request Treatment" button or email DentBridge.tr@gmail.com when needed.',
     'If you are not confident, or if the question is outside the approved public FAQ and request-flow scope, say so politely and direct the patient to DentBridge.tr@gmail.com.',
     'When giving that fallback, keep it natural and professional in the same language as the user.',
     'Do not claim to access live records, internal systems, dashboards, or case status.',
+    'Do not use markdown, bold formatting, or long lists in replies.',
     'Keep every answer concise and UI-friendly.',
   ].join(' ')
 }
@@ -244,7 +292,7 @@ export async function POST(request: NextRequest) {
     return jsonResponse({ error: getMessage(locale, 'invalidContentType') }, 415)
   }
 
-  let body: { message?: unknown }
+  let body: RequestBody
 
   try {
     const parsed = (await request.json()) as unknown
@@ -253,12 +301,13 @@ export async function POST(request: NextRequest) {
       return jsonResponse({ error: getMessage(locale, 'invalidBody') }, 400)
     }
 
-    body = parsed as { message?: unknown }
+    body = parsed as RequestBody
   } catch {
     return jsonResponse({ error: getMessage(locale, 'invalidBody') }, 400)
   }
 
   const message = typeof body.message === 'string' ? body.message.trim() : ''
+  const pageContext = normalizePageContext(body.pageContext)
 
   if (!message) {
     return jsonResponse({ error: getMessage(locale, 'messageRequired') }, 400)
@@ -276,7 +325,7 @@ export async function POST(request: NextRequest) {
   try {
     const response = await openai.responses.create({
       model: OPENAI_MODEL,
-      instructions: buildInstructions(),
+      instructions: buildInstructions(pageContext),
       input: message,
       max_output_tokens: MAX_OUTPUT_TOKENS,
       store: false,

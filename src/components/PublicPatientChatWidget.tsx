@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { Loader2, MessageCircle, Minus, SendHorizontal } from 'lucide-react'
+import type { PatientChatPageContext, PublicPatientPageId } from '@/lib/chat/patient-site-context'
 import { useI18n } from '@/lib/i18n'
 
 const MAX_CLIENT_MESSAGE_LENGTH = 800
@@ -24,6 +25,57 @@ function shouldShowPatientChat(pathname: string) {
 
 function createMessageId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+}
+
+function getPatientChatPageContext(
+  pathname: string,
+  requestTreatmentLabel: string,
+  statusLabel: string
+): PatientChatPageContext | null {
+  const byPage: Record<PublicPatientPageId, PatientChatPageContext> = {
+    home: {
+      page: 'home',
+      visibleActions: [requestTreatmentLabel, statusLabel],
+    },
+    'patient-request': {
+      page: 'patient-request',
+      visibleActions: [requestTreatmentLabel],
+    },
+    'patient-status': {
+      page: 'patient-status',
+      visibleActions: [statusLabel],
+    },
+    faq: {
+      page: 'faq',
+      visibleActions: [requestTreatmentLabel, statusLabel],
+    },
+    privacy: {
+      page: 'privacy',
+      visibleActions: [requestTreatmentLabel, statusLabel],
+    },
+  }
+
+  if (pathname === '/') {
+    return byPage.home
+  }
+
+  if (pathname === '/patient/request') {
+    return byPage['patient-request']
+  }
+
+  if (pathname === '/patient/status') {
+    return byPage['patient-status']
+  }
+
+  if (pathname === '/faq') {
+    return byPage.faq
+  }
+
+  if (pathname === '/privacy') {
+    return byPage.privacy
+  }
+
+  return null
 }
 
 export default function PublicPatientChatWidget() {
@@ -87,6 +139,7 @@ export default function PublicPatientChatWidget() {
     t('patientChat.starterStatus'),
     t('patientChat.starterPhotos'),
   ]
+  const pageContext = getPatientChatPageContext(pathname, t('nav.requestTreatment'), t('cta.checkStatus'))
 
   const isDraftEmpty = draft.trim().length === 0
   const showStarters = messages.length <= 1
@@ -123,7 +176,10 @@ export default function PublicPatientChatWidget() {
           'Accept-Language': locale,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message: trimmedMessage }),
+        body: JSON.stringify({
+          message: trimmedMessage,
+          pageContext,
+        }),
       })
 
       const payload = (await response.json().catch(() => null)) as
