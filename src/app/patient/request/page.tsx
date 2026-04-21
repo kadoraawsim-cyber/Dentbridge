@@ -725,13 +725,22 @@ export default function PatientRequestPage() {
           {t('patientNav.backToHome')}
         </Link>
 
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-4xl font-bold tracking-tight text-slate-900">
-            {t('request.pageTitle')}
-          </h1>
-          <p className="mt-2 sm:mt-3 max-w-3xl text-sm sm:text-base text-slate-600">
-            {t('request.pageDescription')}
-          </p>
+        <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-start sm:justify-between">
+          <div className="max-w-3xl">
+            <h1 className="text-2xl sm:text-4xl font-bold tracking-tight text-slate-900">
+              {t('request.pageTitle')}
+            </h1>
+            <p className="mt-2 sm:mt-3 text-sm sm:text-base text-slate-600">
+              {t('request.pageDescription')}
+            </p>
+          </div>
+
+          <div className="flex justify-center sm:justify-end">
+            <div
+              id="bridgey-request-anchor"
+              className="flex min-h-16 shrink-0 items-center justify-center sm:min-h-20"
+            />
+          </div>
         </div>
 
         {submittedId && (
