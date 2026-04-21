@@ -139,11 +139,17 @@ export default function FacultySetPasswordPage() {
               <div>
                 <label className="mb-2 block text-sm font-medium">Phone number</label>
                 <input
-                  type="text"
+                  type="tel"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) =>
+                    setPhone(
+                      e.target.value.replace(/[^\d+]/g, '').replace(/(?!^)\+/g, '')
+                    )
+                  }
                   className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
                   placeholder="+90 5XX XXX XX XX"
+                  pattern="^\+[0-9]{10,14}$"
+                  title="Please enter a valid phone number starting with a country code, like +905371234567"
                 />
               </div>
 
