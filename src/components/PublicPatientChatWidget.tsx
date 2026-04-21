@@ -40,14 +40,14 @@ function BridgeyAvatar({
 }) {
   return (
     <div className={`relative shrink-0 ${sizeClass} ${className}`}>
-      <div className="relative h-full w-full overflow-hidden rounded-full bg-white ring-1 ring-slate-200/60">
+      <div className="relative h-full w-full overflow-hidden rounded-full">
         <Image
           src={BRIDGEY_AVATAR_SRC}
           alt="Bridgey avatar"
           fill
           sizes="80px"
           draggable={false}
-          className="object-cover select-none"
+          className="object-cover select-none mix-blend-multiply"
         />
       </div>
       {pulse && (
