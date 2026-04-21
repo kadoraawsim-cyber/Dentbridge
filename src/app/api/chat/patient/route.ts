@@ -41,15 +41,15 @@ const ROUTE_MESSAGES: Record<Locale, Record<RouteMessageKey, string>> = {
     generationFailed: 'Unable to generate a reply right now.',
   },
   tr: {
-    forbidden: 'Bu sohbet ucu yalnizca hastalar icin kullanilabilir.',
-    invalidOrigin: 'Bu istek kaynagina izin verilmiyor.',
-    invalidContentType: 'Content-Type application/json olmalidir.',
-    invalidBody: 'Gecersiz istek govdesi.',
+    forbidden: 'Bu sohbet ucu yalnızca hastalar için kullanılabilir.',
+    invalidOrigin: 'Bu istek kaynağına izin verilmiyor.',
+    invalidContentType: 'Content-Type application/json olmalıdır.',
+    invalidBody: 'Geçersiz istek gövdesi.',
     messageRequired: 'Mesaj gereklidir.',
     messageTooLong: `Mesaj en fazla ${MAX_MESSAGE_LENGTH} karakter olabilir.`,
-    rateLimited: 'Cok fazla istek gonderildi. Lutfen kisa bir sure sonra tekrar deneyin.',
-    serviceUnavailable: 'Hasta sohbeti su anda gecici olarak kullanilamiyor.',
-    generationFailed: 'Su anda bir yanit olusturulamadi.',
+    rateLimited: 'Çok fazla istek gönderildi. Lütfen kısa bir süre sonra tekrar deneyin.',
+    serviceUnavailable: 'Hasta sohbeti şu anda geçici olarak kullanılamıyor.',
+    generationFailed: 'Şu anda bir yanıt oluşturulamadı.',
   },
 }
 
