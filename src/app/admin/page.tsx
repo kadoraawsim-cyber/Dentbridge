@@ -18,7 +18,7 @@ export default async function AdminDashboardPage() {
 
   const { data } = await supabase
     .from('patient_requests')
-    .select('id, full_name, treatment_type, urgency, status, assigned_department, created_at')
+    .select('id, full_name, treatment_type, urgency, status, assigned_department, created_at, reviewed_at')
     .order('created_at', { ascending: false })
 
   return (

@@ -472,6 +472,8 @@ export type TranslationShape = {
       caseAwaitingReview: string
       casesAwaitingReview: string
       openWorkQueue: string
+      exportCsvButton: string
+      exportCsvFilename: string
       inviteStudentTitle: string
       inviteStudentDesc: string
       inviteStudentEmailLabel: string
@@ -499,11 +501,23 @@ export type TranslationShape = {
       statMatchedDesc: string
       statTotalLabel: string
       statTotalDesc: string
+      statAvgTriageTimeLabel: string
+      statAvgTriageTimeDesc: string
+      statAvgTriageTimeNoData: string
       urgentQueueTitle: string
       viewAll: string
       reviewNow: string
       recentRequests: string
       viewAllLink: string
+      csvHeaderPatientId: string
+      csvHeaderPatientName: string
+      csvHeaderIssue: string
+      csvHeaderUrgency: string
+      csvHeaderStatus: string
+      csvHeaderAssignedDepartment: string
+      csvHeaderSubmittedDate: string
+      avgTriageHours: string
+      avgTriageDays: string
       tablePatient: string
       tableIssue: string
       tableUrgency: string
@@ -1368,6 +1382,8 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       caseAwaitingReview: '1 case awaiting review',
       casesAwaitingReview: 'cases awaiting review',
       openWorkQueue: 'Open Work Queue',
+      exportCsvButton: 'Export CSV',
+      exportCsvFilename: 'dentbridge-patient-requests',
       inviteStudentTitle: 'Invite Student',
       inviteStudentDesc:
         'Send a student invitation email using the correct DentBridge account setup flow.',
@@ -1399,11 +1415,23 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       statMatchedDesc: 'Released to student pool',
       statTotalLabel: 'Total Requests',
       statTotalDesc: 'All time',
+      statAvgTriageTimeLabel: 'Avg. Triage Time',
+      statAvgTriageTimeDesc: 'Average time to reach a first triage decision',
+      statAvgTriageTimeNoData: 'No data yet',
       urgentQueueTitle: 'High-Urgency Cases Awaiting Review',
       viewAll: 'View all \u2192',
       reviewNow: 'Review Now',
       recentRequests: 'Recent Requests',
       viewAllLink: 'View All',
+      csvHeaderPatientId: 'Patient ID',
+      csvHeaderPatientName: 'Patient Name',
+      csvHeaderIssue: 'Issue',
+      csvHeaderUrgency: 'Urgency',
+      csvHeaderStatus: 'Status',
+      csvHeaderAssignedDepartment: 'Assigned Department',
+      csvHeaderSubmittedDate: 'Submitted Date',
+      avgTriageHours: 'hours',
+      avgTriageDays: 'days',
       tablePatient: 'Patient',
       tableIssue: 'Issue',
       tableUrgency: 'Urgency',

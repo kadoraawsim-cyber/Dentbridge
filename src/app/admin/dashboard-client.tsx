@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   AlertCircle,
   ChevronRight,
+  Download,
   LogOut,
   Clock,
   Inbox,
@@ -25,6 +26,7 @@ type PatientRequest = {
   status: string
   assigned_department: string | null
   created_at: string | null
+  reviewed_at: string | null
 }
 
 type DepartmentCaseItem = {
@@ -85,6 +87,14 @@ function RelativeBar({ value }: { value: number }) {
 export function DashboardClient({ initialRequests, adminEmail, currentRole }: Props) {
   const { t, locale } = useI18n()
   const dateLocale = locale === 'tr' ? 'tr-TR' : 'en-GB'
+  const numberFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat(locale === 'tr' ? 'tr-TR' : 'en-GB', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 1,
+      }),
+    [locale]
+  )
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteLoading, setInviteLoading] = useState(false)
   const [inviteMessage, setInviteMessage] = useState('')
@@ -164,6 +174,91 @@ export function DashboardClient({ initialRequests, adminEmail, currentRole }: Pr
       default:       return urgency || t('admin.requests.urgencyLabelUnspecified')
     }
   }
+
+  function formatSubmittedDate(iso: string | null): string {
+    if (!iso) return ''
+
+    return new Date(iso).toLocaleDateString(dateLocale, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    })
+  }
+
+  function escapeCsvValue(value: string): string {
+    const normalized = value.replaceAll('"', '""')
+    return `"${normalized}"`
+  }
+
+  function handleExportCsv() {
+    const headers = [
+      t('admin.dashboard.csvHeaderPatientId'),
+      t('admin.dashboard.csvHeaderPatientName'),
+      t('admin.dashboard.csvHeaderIssue'),
+      t('admin.dashboard.csvHeaderUrgency'),
+      t('admin.dashboard.csvHeaderStatus'),
+      t('admin.dashboard.csvHeaderAssignedDepartment'),
+      t('admin.dashboard.csvHeaderSubmittedDate'),
+    ]
+
+    const rows = initialRequests.map((request) => [
+      request.id,
+      request.full_name,
+      tTreatment(request.treatment_type),
+      tUrgency(request.urgency),
+      tStatus(request.status),
+      request.assigned_department ? tDepartment(request.assigned_department) : '',
+      formatSubmittedDate(request.created_at),
+    ])
+
+    const csv = [headers, ...rows]
+      .map((row) => row.map((value) => escapeCsvValue(String(value ?? ''))).join(','))
+      .join('\n')
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    const dateSuffix = new Date().toISOString().slice(0, 10)
+
+    link.href = url
+    link.download = `${t('admin.dashboard.exportCsvFilename')}-${dateSuffix}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
+  const avgTriageTimeLabel = useMemo(() => {
+    const completedTriageDurations = initialRequests
+      .filter((request) =>
+        ['matched', 'rejected'].includes((request.status || '').toLowerCase()) &&
+        request.created_at &&
+        request.reviewed_at
+      )
+      .map((request) => {
+        const createdAt = new Date(request.created_at as string).getTime()
+        const reviewedAt = new Date(request.reviewed_at as string).getTime()
+        return reviewedAt - createdAt
+      })
+      .filter((duration) => duration >= 0)
+
+    if (completedTriageDurations.length === 0) {
+      return t('admin.dashboard.statAvgTriageTimeNoData')
+    }
+
+    const avgMs =
+      completedTriageDurations.reduce((sum, duration) => sum + duration, 0) /
+      completedTriageDurations.length
+
+    const hours = avgMs / (1000 * 60 * 60)
+
+    if (hours < 24) {
+      return `${numberFormatter.format(hours)} ${t('admin.dashboard.avgTriageHours')}`
+    }
+
+    const days = hours / 24
+    return `${numberFormatter.format(days)} ${t('admin.dashboard.avgTriageDays')}`
+  }, [initialRequests, numberFormatter, t])
 
   async function handleSignOut() {
     await supabase.auth.signOut()
@@ -413,17 +508,28 @@ export function DashboardClient({ initialRequests, adminEmail, currentRole }: Pr
               )}
             </p>
           </div>
-          <Link
-            href="/admin/requests"
-            className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl sm:rounded-2xl bg-blue-900 px-4 py-2 sm:py-2.5 sm:px-5 sm:py-3 text-xs sm:text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 sm:w-auto"
-          >
-            {t('admin.dashboard.openWorkQueue')}
-            <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-          </Link>
+          <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row">
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-slate-900 sm:w-auto sm:rounded-2xl sm:px-5 sm:py-3 sm:text-sm"
+            >
+              <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              {t('admin.dashboard.exportCsvButton')}
+            </button>
+
+            <Link
+              href="/admin/requests"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl sm:rounded-2xl bg-blue-900 px-4 py-2 sm:px-5 sm:py-3 text-xs sm:text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 sm:w-auto"
+            >
+              {t('admin.dashboard.openWorkQueue')}
+              <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            </Link>
+          </div>
         </div>
 
         {/* ── Stats ──────────────────────────────────────────────────────── */}
-        <div className="grid w-full grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+        <div className="grid w-full grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-5">
           <div className="min-w-0 rounded-xl sm:rounded-2xl border border-slate-200 bg-white p-3 sm:p-6 shadow-sm">
             <div className="mb-1.5 sm:mb-3 flex items-center gap-1.5 sm:gap-2">
               <Inbox className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-slate-400" />
@@ -492,6 +598,21 @@ export function DashboardClient({ initialRequests, adminEmail, currentRole }: Pr
               {dashboardStats.total}
             </div>
             <div className="mt-0.5 sm:mt-2 truncate text-[10px] sm:text-sm text-slate-500">{t('admin.dashboard.statTotalDesc')}</div>
+          </div>
+
+          <div className="min-w-0 rounded-xl sm:rounded-2xl border border-slate-200 bg-white p-3 sm:p-6 shadow-sm">
+            <div className="mb-1.5 sm:mb-3 flex items-center gap-1.5 sm:gap-2">
+              <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-cyan-600" />
+              <span className="truncate text-[9px] sm:text-xs font-semibold uppercase tracking-wider text-slate-500">
+                {t('admin.dashboard.statAvgTriageTimeLabel')}
+              </span>
+            </div>
+            <div className="truncate text-lg sm:text-4xl font-bold tracking-tight text-cyan-700">
+              {avgTriageTimeLabel}
+            </div>
+            <div className="mt-0.5 sm:mt-2 text-[10px] sm:text-sm text-slate-500">
+              {t('admin.dashboard.statAvgTriageTimeDesc')}
+            </div>
           </div>
         </div>
 
