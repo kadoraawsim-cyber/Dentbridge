@@ -55,12 +55,15 @@ async function getAuthorizedStudent() {
     return { supabase, user: null, response: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) }
   }
 
-  return { supabase, user, response: null as NextResponse | null }
+  return { supabase, user, response: undefined as NextResponse | undefined }
 }
 
 export async function GET() {
   const { supabase, user, response } = await getAuthorizedStudent()
-  if (response || !user) return response
+  if (response) return response
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
   const { data: plannerRows, error: plannerError } = await supabase
     .from('student_planner_events')
@@ -128,7 +131,10 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const { supabase, user, response } = await getAuthorizedStudent()
-  if (response || !user) return response
+  if (response) return response
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
   let body: {
     title?: string
