@@ -374,6 +374,18 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
       backToFacultyLogin: 'Fakülte girişine dön',
       backToHome: 'Ana sayfaya dön',
     },
+    recover: {
+      title: 'Kurtarma bağlantınızı doğrulayın',
+      description:
+        'Kimliğinizi doğrulamak ve şifre sıfırlama sayfasına devam etmek için aşağıdaki düğmeye tıklayın.',
+      continueButton: 'Şifre sıfırlamaya devam et',
+      verifying: 'Doğrulanıyor…',
+      expiredTitle: 'Bağlantı süresi dolmuş veya geçersiz',
+      expiredDescription:
+        'Bu şifre sıfırlama bağlantısının süresi dolmuş veya artık geçerli değil. Lütfen yeni bir tane isteyin.',
+      tryAgain: 'Yeni sıfırlama bağlantısı iste',
+      invalidLink: 'Bu şifre sıfırlama bağlantısında gerekli parametreler eksik. Lütfen yeni bir tane isteyin.',
+    },
     resetPassword: {
       title: 'Yeni bir şifre belirleyin',
       description: 'Şifre kurtarma işlemini tamamlamak için yeni şifrenizi aşağıya girin.',

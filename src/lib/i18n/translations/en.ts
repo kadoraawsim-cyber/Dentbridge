@@ -310,6 +310,16 @@ export type TranslationShape = {
       redirecting: string
       backToHome: string
     }
+    recover: {
+      title: string
+      description: string
+      continueButton: string
+      verifying: string
+      expiredTitle: string
+      expiredDescription: string
+      tryAgain: string
+      invalidLink: string
+    }
   }
 
   // ── Student portal ─────────────────────────────────────────────────────────
@@ -1342,6 +1352,18 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       backToStudentLogin: 'Back to student login',
       backToFacultyLogin: 'Back to faculty login',
       backToHome: 'Back to home',
+    },
+    recover: {
+      title: 'Verify your recovery link',
+      description:
+        'Click the button below to verify your identity and continue to the password reset page.',
+      continueButton: 'Continue to reset password',
+      verifying: 'Verifying…',
+      expiredTitle: 'Link expired or invalid',
+      expiredDescription:
+        'This password reset link has expired or is no longer valid. Please request a new one.',
+      tryAgain: 'Request a new reset link',
+      invalidLink: 'This password reset link is missing required parameters. Please request a new one.',
     },
     resetPassword: {
       title: 'Choose a new password',
