@@ -83,6 +83,7 @@ export type TranslationShape = {
     activePartnerStripMessage: string
     activePartnerStripButton: string
     activePartnerStripContactButton: string
+    activePartnerStripWebsiteButton: string
     activePartnerStripCallLabel: string
     activePartnerStripLogoAlt: string
     deptsTitle: string
@@ -1068,6 +1069,7 @@ export const en: TranslationShape = {
       'Now accepting patient requests through Istinye University Faculty of Dentistry in Istanbul.',
     activePartnerStripButton: 'View Location',
     activePartnerStripContactButton: 'Contact Hospital',
+    activePartnerStripWebsiteButton: 'Hospital Website',
     activePartnerStripCallLabel: 'Call: 444 66 23',
     activePartnerStripLogoAlt:
       'Istinye University Faculty of Dentistry logo',

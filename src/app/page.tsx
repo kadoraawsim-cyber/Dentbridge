@@ -69,7 +69,7 @@ const DEPARTMENTS = [
 ] as const
 
 export default function HomePage() {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const [openDepartment, setOpenDepartment] = React.useState<string | null>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
 
@@ -224,7 +224,7 @@ export default function HomePage() {
                 </div>
 
                 <div className="flex flex-col gap-2 sm:items-end">
-                  <div className="flex flex-col gap-2 sm:flex-row">
+                  <div className="flex flex-wrap gap-2">
                     <a
                       href="https://maps.app.goo.gl/9ff82yYpHHAzEuEz7?g_st=ic"
                       target="_blank"
@@ -241,6 +241,15 @@ export default function HomePage() {
                     >
                       <Phone className="h-4 w-4 shrink-0 text-teal-200" />
                       {t('landing.activePartnerStripContactButton')}
+                    </a>
+
+                    <a
+                      href={locale === 'tr' ? 'https://www.istinyedentalhospital.com/' : 'https://www.istinyedentalhospital.com/en'}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="inline-flex items-center justify-center gap-2 rounded-full border border-teal-300/35 bg-white/10 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-white/15"
+                    >
+                      {t('landing.activePartnerStripWebsiteButton')}
                     </a>
                   </div>
 

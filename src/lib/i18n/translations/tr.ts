@@ -83,6 +83,7 @@ export const tr: TranslationShape = {
       'Hasta başvuruları şu anda İstanbul’daki İstinye Üniversitesi Diş Hekimliği Fakültesi üzerinden kabul edilmektedir.',
     activePartnerStripButton: 'Konumu Gör',
     activePartnerStripContactButton: 'Hastaneyi Ara',
+    activePartnerStripWebsiteButton: 'Hastane Sitesi',
     activePartnerStripCallLabel: 'Ara: 444 66 23',
     activePartnerStripLogoAlt:
       'İstinye Üniversitesi Diş Hekimliği Fakültesi logosu',
