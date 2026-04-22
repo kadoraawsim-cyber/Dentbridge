@@ -204,53 +204,52 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="relative w-full max-w-xl rounded-2xl border border-white/15 bg-white/10 p-3 text-left shadow-[0_18px_40px_-28px_rgba(15,23,42,0.65)] backdrop-blur-md sm:p-3.5">
-              <a
-                href="tel:4446623"
-                aria-label={t('landing.activePartnerStripContactButton')}
-                className="absolute right-2.5 top-2.5 flex h-7 w-7 items-center justify-center rounded-full border border-teal-300/35 bg-white/10 text-teal-200 shadow-sm transition hover:bg-white/15"
-              >
-                <Phone className="h-3.5 w-3.5" />
-              </a>
-
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3.5">
-                <div className="mx-auto flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl shadow-sm sm:mx-0 sm:h-14 sm:w-14">
+            <div className="w-full max-w-xl rounded-2xl border border-white/15 bg-white/10 p-3 text-left shadow-[0_18px_40px_-28px_rgba(15,23,42,0.65)] backdrop-blur-md sm:p-3.5">
+              {/* Row 1: identity */}
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl shadow-sm sm:h-14 sm:w-14">
                   <img
                     src="/isu%202026%20logo.jpg"
                     alt={t('landing.activePartnerStripLogoAlt')}
                     className="h-full w-full object-cover"
                   />
                 </div>
-
-                <div className="min-w-0 flex-1 text-center sm:text-left">
+                <div className="min-w-0">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-teal-200/90">
                     {t('landing.activePartnerStripEyebrow')}
                   </p>
-                  <p className="mt-1 text-sm font-semibold leading-6 text-white sm:text-[15px]">
+                  <p className="mt-0.5 text-sm font-semibold leading-5 text-white sm:text-[15px]">
                     {t('landing.activePartnerStripTitle')}
                   </p>
                 </div>
+              </div>
 
-                <div className="flex flex-wrap gap-2 sm:justify-end">
-                  <a
-                    href="https://maps.app.goo.gl/9ff82yYpHHAzEuEz7?g_st=ic"
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="inline-flex items-center justify-center gap-2 rounded-full border border-teal-300/35 bg-teal-400/15 px-4 py-2 text-sm font-semibold text-teal-50 shadow-sm transition hover:bg-teal-400/25"
-                  >
-                    <MapPin className="h-4 w-4 shrink-0 text-teal-200" />
-                    {t('landing.activePartnerStripButton')}
-                  </a>
-
-                  <a
-                    href={locale === 'tr' ? 'https://www.istinyedentalhospital.com/' : 'https://www.istinyedentalhospital.com/en'}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="inline-flex items-center justify-center gap-2 rounded-full border border-teal-300/35 bg-white/10 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-white/15"
-                  >
-                    {t('landing.activePartnerStripWebsiteButton')}
-                  </a>
-                </div>
+              {/* Row 2: actions */}
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-2 sm:justify-end">
+                <a
+                  href="https://maps.app.goo.gl/9ff82yYpHHAzEuEz7?g_st=ic"
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-teal-300/35 bg-teal-400/15 px-4 py-2 text-sm font-semibold text-teal-50 shadow-sm transition hover:bg-teal-400/25"
+                >
+                  <MapPin className="h-4 w-4 shrink-0 text-teal-200" />
+                  {t('landing.activePartnerStripButton')}
+                </a>
+                <a
+                  href={locale === 'tr' ? 'https://www.istinyedentalhospital.com/' : 'https://www.istinyedentalhospital.com/en'}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-teal-300/35 bg-white/10 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-white/15"
+                >
+                  {t('landing.activePartnerStripWebsiteButton')}
+                </a>
+                <a
+                  href="tel:4446623"
+                  aria-label={t('landing.activePartnerStripContactButton')}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-teal-300/35 bg-white/10 text-teal-200 shadow-sm transition hover:bg-white/15"
+                >
+                  <Phone className="h-4 w-4" />
+                </a>
               </div>
             </div>
           </div>
