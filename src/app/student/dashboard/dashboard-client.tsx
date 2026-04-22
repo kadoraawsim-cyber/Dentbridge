@@ -7,7 +7,6 @@ import { supabase } from '@/lib/supabase'
 import {
   CheckCircle2,
   Stethoscope,
-  ArrowRight,
   BookOpen,
   ChevronRight,
   RefreshCw,
@@ -20,7 +19,6 @@ import {
   CalendarCheck,
   AlertCircle,
   Activity,
-  Copy,
   ChevronDown,
   CalendarDays,
 } from 'lucide-react'
@@ -117,7 +115,6 @@ export function DashboardClient({
 
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [actionErrors, setActionErrors] = useState<Record<string, string>>({})
-  const [copiedCaseId, setCopiedCaseId] = useState<string | null>(null)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [localStatuses, setLocalStatuses] = useState<Record<string, string>>(
     () => Object.fromEntries(activeCases.map((c) => [c.caseId, c.status]))
@@ -258,38 +255,6 @@ export function DashboardClient({
 
     const { data } = (await res.json()) as { data: { status: string } }
     setLocalStatuses((prev) => ({ ...prev, [caseId]: data.status }))
-  }
-
-  async function handleCopyPhone(caseId: string, phone: string) {
-    try {
-      await navigator.clipboard.writeText(phone)
-      setCopiedCaseId(caseId)
-      setTimeout(() => setCopiedCaseId(null), 1500)
-    } catch {
-      setActionErrors((prev) => ({
-        ...prev,
-        [caseId]: 'Failed to copy phone number',
-      }))
-    }
-  }
-
-  function getActiveCaseStatusLabel(status: string): string {
-    switch (status) {
-      case 'student_approved':
-        return t('student.dashboard.statusReadyToContact')
-      case 'contacted':
-        return t('student.dashboard.statusPatientContacted')
-      case 'appointment_scheduled':
-        return t('student.dashboard.statusApptConfirmed')
-      case 'in_treatment':
-        return t('student.dashboard.statusInTreatmentDesc')
-      case 'completed':
-        return t('student.dashboard.statusCompleted')
-      case 'cancelled':
-        return t('student.dashboard.statusCancelled')
-      default:
-        return status.replace(/_/g, ' ')
-    }
   }
 
   function getActiveCaseStatusLabelShort(status: string): string {

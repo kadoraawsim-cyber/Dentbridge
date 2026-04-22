@@ -616,7 +616,6 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
 
   function renderQuickActions(request: PatientRequest, compact = false) {
     const draft = getDraft(request)
-    const triageRow = isTriageStatus(request.status)
     const actionOptions = getQuickActionOptions(request)
     const feedback = feedbackById[request.id]
 
@@ -906,7 +905,6 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
                   <tbody className="divide-y divide-slate-100">
                     {filteredRequests.map((request) => {
                       const draft = getDraft(request)
-                      const effectiveDepartment = getEffectiveDepartment(request)
                       const triageRow = isTriageStatus(request.status)
 
                       return (

@@ -308,6 +308,7 @@ export default function PatientRequestPage() {
       medicalConditionDetails,
       painScore,
       phone,
+      preferredUniversity,
       symptomDuration,
       t,
       treatmentType,
