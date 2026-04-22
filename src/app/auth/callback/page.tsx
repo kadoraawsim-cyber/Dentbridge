@@ -18,18 +18,10 @@ export default function AuthCallbackPage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    let recoveryDetected = getAuthFlowType() === 'recovery'
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        recoveryDetected = true
-      }
-    })
-
     async function handleAuth() {
       const searchParams = new URLSearchParams(window.location.search)
       const hash = window.location.hash
+      const authFlowType = getAuthFlowType()
 
       const code = searchParams.get('code')
       if (code) {
@@ -53,7 +45,7 @@ export default function AuthCallbackPage() {
         }
       }
 
-      if (recoveryDetected) {
+      if (authFlowType === 'recovery') {
         router.replace('/auth/reset-password')
         return
       }
@@ -83,8 +75,6 @@ export default function AuthCallbackPage() {
     }
 
     void handleAuth()
-
-    return () => subscription.unsubscribe()
   }, [router, t])
 
   return (
