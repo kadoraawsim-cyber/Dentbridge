@@ -1,13 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useI18n } from '@/lib/i18n'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 
-export default function RecoverPage() {
+function RecoverContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { t } = useI18n()
@@ -92,5 +92,13 @@ export default function RecoverPage() {
         </div>
       </div>
     </main>
+  )
+}
+
+export default function RecoverPage() {
+  return (
+    <Suspense>
+      <RecoverContent />
+    </Suspense>
   )
 }
