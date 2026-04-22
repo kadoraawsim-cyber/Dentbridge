@@ -7,6 +7,7 @@ export const tr: TranslationShape = {
     studentPortal: 'Öğrenci Portalı',
     facultyLogin: 'Fakülte Girişi',
     facultyAdminLogin: 'Fakülte / Yönetici Girişi',
+    aiAssistant: 'Yapay Zeka Asistanı',
   },
 
   patientNav: {

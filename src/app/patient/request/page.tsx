@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { ArrowLeft, CheckCircle2, Info, UploadCloud } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
+import PublicPatientChatButton from '@/components/PublicPatientChatButton'
 
 // ── Option arrays — values are the English strings stored to the database.
 // Display labels are resolved through t() at render time.
@@ -711,7 +712,8 @@ export default function PatientRequestPage() {
             </Link>
           </nav>
 
-          <div className="flex shrink-0">
+          <div className="flex shrink-0 items-center gap-2">
+            <PublicPatientChatButton />
             <LanguageSwitcher />
           </div>
         </div>
@@ -728,11 +730,6 @@ export default function PatientRequestPage() {
 
         <div className="mb-6 sm:mb-8">
           <div className="relative max-w-3xl">
-            <div
-              id="bridgey-request-anchor"
-              className="absolute inset-0 overflow-visible pointer-events-none"
-              aria-hidden="true"
-            />
             <h1 className="text-2xl sm:text-4xl font-bold tracking-tight text-slate-900">
               {t('request.pageTitle')}
             </h1>

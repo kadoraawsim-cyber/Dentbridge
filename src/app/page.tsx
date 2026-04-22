@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { useI18n } from '@/lib/i18n'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
+import PublicPatientChatButton from '@/components/PublicPatientChatButton'
 import {
   ArrowRight,
   Baby,
@@ -107,11 +108,13 @@ export default function HomePage() {
             >
               {t('nav.facultyLogin')}
             </Link>
+            <PublicPatientChatButton />
             <LanguageSwitcher />
           </nav>
 
           <div className="flex items-center gap-2 md:hidden">
             <LanguageSwitcher />
+            <PublicPatientChatButton />
             <button
               type="button"
               aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
@@ -192,11 +195,6 @@ export default function HomePage() {
 
           <div className="mt-4 flex flex-col items-center justify-center gap-4 sm:mt-0 sm:gap-5">
             <div className="relative w-full max-w-xl">
-              <div
-                id="bridgey-home-anchor"
-                className="absolute inset-0 z-20 overflow-visible pointer-events-none"
-                aria-hidden="true"
-              />
               <div className="overflow-hidden rounded-2xl sm:rounded-3xl border border-white/15 bg-white/8 p-2 sm:p-2.5 shadow-2xl backdrop-blur sm:p-3">
                 <img
                   src="/hero-dental-clinic.png"

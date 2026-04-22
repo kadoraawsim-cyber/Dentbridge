@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { ArrowLeft, Search, Stethoscope } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
+import PublicPatientChatButton from '@/components/PublicPatientChatButton'
 
 type PatientRequest = {
   id: string
@@ -382,7 +383,10 @@ export default function PatientStatusPage() {
             </Link>
           </nav>
 
-          <LanguageSwitcher />
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher />
+            <PublicPatientChatButton />
+          </div>
         </div>
       </header>
 

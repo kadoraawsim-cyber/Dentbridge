@@ -12,6 +12,7 @@ export type TranslationShape = {
     studentPortal: string
     facultyLogin: string
     facultyAdminLogin: string
+    aiAssistant: string
   }
 
   // ── Patient-page header navigation ─────────────────────────────────────────
@@ -933,6 +934,7 @@ export const en: TranslationShape = {
     studentPortal: 'Student Portal',
     facultyLogin: 'Faculty Login',
     facultyAdminLogin: 'Faculty / Admin Login',
+    aiAssistant: 'AI Assistant',
   },
 
   patientNav: {

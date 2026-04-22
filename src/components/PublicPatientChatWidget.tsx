@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { Loader2, Minus, SendHorizontal } from 'lucide-react'
@@ -10,8 +9,7 @@ import { useI18n } from '@/lib/i18n'
 
 const MAX_CLIENT_MESSAGE_LENGTH = 800
 const BRIDGEY_AVATAR_SRC = '/new_avatar_logo-removebg-preview.png'
-const BRIDGEY_HOME_ANCHOR_ID = 'bridgey-home-anchor'
-const BRIDGEY_REQUEST_ANCHOR_ID = 'bridgey-request-anchor'
+const OPEN_PUBLIC_PATIENT_CHAT_EVENT = 'dentbridge:open-patient-chat'
 
 type ChatMessage = {
   id: string
@@ -30,18 +28,6 @@ function shouldShowPatientChat(pathname: string) {
 
 function createMessageId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-}
-
-function getClosedBridgeyAnchorId(pathname: string) {
-  if (pathname === '/') {
-    return BRIDGEY_HOME_ANCHOR_ID
-  }
-
-  if (pathname === '/patient/request') {
-    return BRIDGEY_REQUEST_ANCHOR_ID
-  }
-
-  return null
 }
 
 function BridgeyAvatar({
@@ -124,7 +110,6 @@ export default function PublicPatientChatWidget() {
   const [draft, setDraft] = useState('')
   const [isSending, setIsSending] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
-  const [closedLauncherAnchor, setClosedLauncherAnchor] = useState<HTMLElement | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
 
@@ -169,15 +154,13 @@ export default function PublicPatientChatWidget() {
   }, [messages, isSending, errorMessage, isOpen])
 
   useEffect(() => {
-    const anchorId = getClosedBridgeyAnchorId(pathname)
-
-    if (!anchorId) {
-      setClosedLauncherAnchor(null)
-      return
+    function handleOpen() {
+      setIsOpen(true)
     }
 
-    setClosedLauncherAnchor(document.getElementById(anchorId))
-  }, [pathname])
+    window.addEventListener(OPEN_PUBLIC_PATIENT_CHAT_EVENT, handleOpen)
+    return () => window.removeEventListener(OPEN_PUBLIC_PATIENT_CHAT_EVENT, handleOpen)
+  }, [])
 
   if (!shouldShowPatientChat(pathname)) {
     return null
@@ -193,25 +176,6 @@ export default function PublicPatientChatWidget() {
 
   const isDraftEmpty = draft.trim().length === 0
   const showStarters = messages.length <= 1
-  const isHomePage = pathname === '/'
-  const closedLauncher = closedLauncherAnchor
-    ? createPortal(
-        <button
-          type="button"
-          onClick={() => setIsOpen(true)}
-          aria-expanded={false}
-          aria-label={t('patientChat.fabOpen')}
-          className={`bridgey-fab-float pointer-events-auto absolute inline-flex items-center justify-center rounded-full bg-transparent transition hover:scale-[1.03] ${
-            isHomePage
-              ? 'top-3 right-3 sm:top-4 sm:right-4'
-              : 'top-1 right-0 sm:top-2'
-          }`}
-        >
-          <BridgeyAvatar sizeClass={isHomePage ? 'h-14 w-14 sm:h-20 sm:w-20' : 'h-10 w-10 sm:h-14 sm:w-14'} />
-        </button>,
-        closedLauncherAnchor
-      )
-    : null
 
   function resetConversation() {
     setMessages([])
@@ -461,24 +425,9 @@ export default function PublicPatientChatWidget() {
           </section>
         )}
       </div>
-      {!isOpen && closedLauncher}
       <style jsx>{`
-        .bridgey-fab-float {
-          animation: bridgey-float 6s ease-in-out infinite;
-        }
-
         .bridgey-panel-enter {
           animation: bridgey-enter 220ms ease-out;
-        }
-
-        @keyframes bridgey-float {
-          0%,
-          100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-4px);
-          }
         }
 
         @keyframes bridgey-enter {

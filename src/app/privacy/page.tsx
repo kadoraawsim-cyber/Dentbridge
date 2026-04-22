@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { ArrowLeft, ShieldCheck, Clock3 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
+import PublicPatientChatButton from '@/components/PublicPatientChatButton'
 
 export default function PrivacyPolicyPage() {
   const { locale } = useI18n()
@@ -89,8 +90,9 @@ export default function PrivacyPolicyPage() {
             </div>
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
             <LanguageSwitcher />
+            <PublicPatientChatButton />
             <Link
               href="/patient/request"
               className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
