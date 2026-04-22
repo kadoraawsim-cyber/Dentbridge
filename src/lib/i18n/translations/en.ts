@@ -270,6 +270,48 @@ export type TranslationShape = {
     errorFallback: string
   }
 
+  auth: {
+    callback: {
+      processing: string
+      invalidLink: string
+    }
+    forgotPassword: {
+      linkLabel: string
+      title: string
+      description: string
+      emailLabel: string
+      emailPlaceholder: string
+      submit: string
+      submitting: string
+      successTitle: string
+      successDescription: string
+      errorGeneric: string
+      backToStudentLogin: string
+      backToFacultyLogin: string
+      backToHome: string
+    }
+    resetPassword: {
+      title: string
+      description: string
+      checkingSession: string
+      passwordLabel: string
+      passwordPlaceholder: string
+      confirmPasswordLabel: string
+      confirmPasswordPlaceholder: string
+      submit: string
+      submitting: string
+      passwordTooShort: string
+      passwordMismatch: string
+      invalidLink: string
+      updateError: string
+      successStudent: string
+      successFaculty: string
+      successAdmin: string
+      redirecting: string
+      backToHome: string
+    }
+  }
+
   // ── Student portal ─────────────────────────────────────────────────────────
   student: {
     login: {
@@ -1277,6 +1319,50 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     close: 'Close',
     loadingReply: 'Preparing a reply…',
     errorFallback: 'Unable to send your message right now. Please try again.',
+  },
+
+  auth: {
+    callback: {
+      processing: 'Processing secure sign-in link…',
+      invalidLink: 'This link is invalid or has expired.',
+    },
+    forgotPassword: {
+      linkLabel: 'Forgot password?',
+      title: 'Reset your password',
+      description:
+        'Enter your email address and we will send a password reset link if an account is available for recovery.',
+      emailLabel: 'Email address',
+      emailPlaceholder: 'name@university.edu',
+      submit: 'Send reset link',
+      submitting: 'Sending…',
+      successTitle: 'Check your email',
+      successDescription:
+        'If an account is eligible for password recovery, a reset link has been sent to that email address.',
+      errorGeneric: 'Unable to send a reset link right now. Please try again.',
+      backToStudentLogin: 'Back to student login',
+      backToFacultyLogin: 'Back to faculty login',
+      backToHome: 'Back to home',
+    },
+    resetPassword: {
+      title: 'Choose a new password',
+      description: 'Enter your new password below to complete password recovery.',
+      checkingSession: 'Checking your recovery session…',
+      passwordLabel: 'New password',
+      passwordPlaceholder: 'At least 8 characters',
+      confirmPasswordLabel: 'Confirm new password',
+      confirmPasswordPlaceholder: 'Repeat your new password',
+      submit: 'Save new password',
+      submitting: 'Saving…',
+      passwordTooShort: 'Password must be at least 8 characters.',
+      passwordMismatch: 'Passwords do not match.',
+      invalidLink: 'This password reset link is invalid or has expired.',
+      updateError: 'Unable to update your password right now. Please try again.',
+      successStudent: 'Password updated successfully. Redirecting to student login…',
+      successFaculty: 'Password updated successfully. Redirecting to faculty login…',
+      successAdmin: 'Password updated successfully. Redirecting to admin login…',
+      redirecting: 'Redirecting…',
+      backToHome: 'Back to home',
+    },
   },
 
   student: {

@@ -352,6 +352,50 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
     errorFallback: 'Mesajınız şu anda gönderilemedi. Lütfen tekrar deneyin.',
   },
 
+  auth: {
+    callback: {
+      processing: 'Güvenli giriş bağlantısı işleniyor…',
+      invalidLink: 'Bu bağlantı geçersiz veya süresi dolmuş.',
+    },
+    forgotPassword: {
+      linkLabel: 'Şifremi unuttum',
+      title: 'Şifrenizi sıfırlayın',
+      description:
+        'E-posta adresinizi girin. Şifre kurtarmaya uygun bir hesap varsa bu adrese bir sıfırlama bağlantısı gönderilecektir.',
+      emailLabel: 'E-posta adresi',
+      emailPlaceholder: 'ad@universite.edu',
+      submit: 'Sıfırlama bağlantısı gönder',
+      submitting: 'Gönderiliyor…',
+      successTitle: 'E-postanızı kontrol edin',
+      successDescription:
+        'Eğer hesap şifre kurtarmaya uygunsa, bu e-posta adresine bir sıfırlama bağlantısı gönderildi.',
+      errorGeneric: 'Şu anda sıfırlama bağlantısı gönderilemiyor. Lütfen tekrar deneyin.',
+      backToStudentLogin: 'Öğrenci girişine dön',
+      backToFacultyLogin: 'Fakülte girişine dön',
+      backToHome: 'Ana sayfaya dön',
+    },
+    resetPassword: {
+      title: 'Yeni bir şifre belirleyin',
+      description: 'Şifre kurtarma işlemini tamamlamak için yeni şifrenizi aşağıya girin.',
+      checkingSession: 'Kurtarma oturumunuz kontrol ediliyor…',
+      passwordLabel: 'Yeni şifre',
+      passwordPlaceholder: 'En az 8 karakter',
+      confirmPasswordLabel: 'Yeni şifreyi onaylayın',
+      confirmPasswordPlaceholder: 'Yeni şifrenizi tekrar girin',
+      submit: 'Yeni şifreyi kaydet',
+      submitting: 'Kaydediliyor…',
+      passwordTooShort: 'Şifre en az 8 karakter olmalıdır.',
+      passwordMismatch: 'Şifreler eşleşmiyor.',
+      invalidLink: 'Bu şifre sıfırlama bağlantısı geçersiz veya süresi dolmuş.',
+      updateError: 'Şifreniz şu anda güncellenemiyor. Lütfen tekrar deneyin.',
+      successStudent: 'Şifre başarıyla güncellendi. Öğrenci girişine yönlendiriliyorsunuz…',
+      successFaculty: 'Şifre başarıyla güncellendi. Fakülte girişine yönlendiriliyorsunuz…',
+      successAdmin: 'Şifre başarıyla güncellendi. Yönetici girişine yönlendiriliyorsunuz…',
+      redirecting: 'Yönlendiriliyor…',
+      backToHome: 'Ana sayfaya dön',
+    },
+  },
+
   footer: {
     tagline: 'Fakülte Destekli Klinik Platform',
     description:
