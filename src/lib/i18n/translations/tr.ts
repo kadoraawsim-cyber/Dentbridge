@@ -369,6 +369,12 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
       successTitle: 'E-postanızı kontrol edin',
       successDescription:
         'Eğer hesap şifre kurtarmaya uygunsa, bu e-posta adresine bir sıfırlama bağlantısı gönderildi.',
+      safeLinksWarningTitle: 'Önemli',
+      safeLinksWarningLine1:
+        'Şifre sıfırlama bağlantısı açıldığında "bu bağlantı taranıyor / kontrol ediliyor" şeklinde bir sayfa görürseniz, bu normaldir ve e-posta sağlayıcınızın güvenlik kontrolünün bir parçasıdır.',
+      safeLinksWarningLine2: 'Yeni bir şifre sıfırlama isteği göndermenize gerek yoktur.',
+      safeLinksWarningLine3:
+        'Lütfen yaklaşık 2 ila 5 dakika bekleyin, ardından aynı e-postaya geri dönün ve aynı sıfırlama bağlantısına tekrar tıklayın. Güvenlik kontrolü tamamlandıktan sonra bağlantı normal şekilde çalışacak ve yeni şifrenizi belirleyebileceksiniz.',
       errorGeneric: 'Şu anda sıfırlama bağlantısı gönderilemiyor. Lütfen tekrar deneyin.',
       backToStudentLogin: 'Öğrenci girişine dön',
       backToFacultyLogin: 'Fakülte girişine dön',

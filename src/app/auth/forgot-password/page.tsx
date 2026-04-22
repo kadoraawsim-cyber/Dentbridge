@@ -57,13 +57,29 @@ export default function ForgotPasswordPage() {
           </p>
 
           {submitted ? (
-            <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4">
-              <p className="text-sm font-semibold text-emerald-800">
-                {t('auth.forgotPassword.successTitle')}
-              </p>
-              <p className="mt-1 text-sm leading-relaxed text-emerald-700">
-                {t('auth.forgotPassword.successDescription')}
-              </p>
+            <div className="mt-6 space-y-4">
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4">
+                <p className="text-sm font-semibold text-emerald-800">
+                  {t('auth.forgotPassword.successTitle')}
+                </p>
+                <p className="mt-1 text-sm leading-relaxed text-emerald-700">
+                  {t('auth.forgotPassword.successDescription')}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4">
+                <p className="text-sm font-semibold text-amber-800">
+                  {t('auth.forgotPassword.safeLinksWarningTitle')}
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-amber-700">
+                  {t('auth.forgotPassword.safeLinksWarningLine1')}
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-amber-700">
+                  {t('auth.forgotPassword.safeLinksWarningLine2')}
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-amber-700">
+                  {t('auth.forgotPassword.safeLinksWarningLine3')}
+                </p>
+              </div>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">

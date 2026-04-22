@@ -285,6 +285,10 @@ export type TranslationShape = {
       submitting: string
       successTitle: string
       successDescription: string
+      safeLinksWarningTitle: string
+      safeLinksWarningLine1: string
+      safeLinksWarningLine2: string
+      safeLinksWarningLine3: string
       errorGeneric: string
       backToStudentLogin: string
       backToFacultyLogin: string
@@ -1348,6 +1352,12 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       successTitle: 'Check your email',
       successDescription:
         'If an account is eligible for password recovery, a reset link has been sent to that email address.',
+      safeLinksWarningTitle: 'Important',
+      safeLinksWarningLine1:
+        "If the reset link opens a page saying the link is being scanned or checked, this is normal and part of your email provider's security check.",
+      safeLinksWarningLine2: 'You do not need to request another password reset.',
+      safeLinksWarningLine3:
+        'Please wait about 2 to 5 minutes, then go back to the same email and click the same reset link again. After the security check is complete, the link should work normally and you will be able to set a new password.',
       errorGeneric: 'Unable to send a reset link right now. Please try again.',
       backToStudentLogin: 'Back to student login',
       backToFacultyLogin: 'Back to faculty login',
