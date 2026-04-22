@@ -448,7 +448,6 @@ export type TranslationShape = {
       noRequestsDesc: string
       browseCasePool: string
       submittedLabel: string
-      cityLabel: string
       statusPending: string
       statusApproved: string
       statusRejected: string
@@ -1378,7 +1377,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       backToDashboard: 'Back to Dashboard',
       pageTitle: 'Case Pool',
       pageDesc: 'Faculty-approved cases open for student requests. Find cases that match your department rotation and training level.',
-      searchPlaceholder: 'Search treatment, city\u2026',
+      searchPlaceholder: 'Search treatment or department\u2026',
       filterAll: 'All Cases',
       filterMyRequests: 'My Requests',
       deptLabel: 'Dept:',
@@ -1457,7 +1456,6 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       noRequestsDesc: 'You have not requested any cases yet. Browse the case pool to submit your first request.',
       browseCasePool: 'Browse Case Pool',
       submittedLabel: 'Submitted:',
-      cityLabel: 'City:',
       statusPending: 'PENDING',
       statusApproved: 'APPROVED',
       statusRejected: 'REJECTED',

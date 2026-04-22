@@ -22,7 +22,6 @@ type PatientRequest = {
   full_name: string
   age: number | null
   phone: string
-  city: string | null
   preferred_language: string | null
   treatment_type: string
   complaint_text: string

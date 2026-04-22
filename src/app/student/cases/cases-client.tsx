@@ -123,7 +123,6 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
       result = result.filter(
         (c) =>
           c.treatment_type?.toLowerCase().includes(q) ||
-          c.city?.toLowerCase().includes(q) ||
           c.assigned_department?.toLowerCase().includes(q)
       )
     }

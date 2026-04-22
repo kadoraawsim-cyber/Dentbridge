@@ -161,12 +161,6 @@ export function RequestsClient({ myRequests, caseMap }: Props) {
             )}
           </div>
 
-          {caseInfo?.city && (
-            <p className="mt-3 text-sm text-slate-500">
-              {t('student.requests.cityLabel')} {caseInfo.city}
-            </p>
-          )}
-
           <p className="mt-2 text-sm text-slate-500">
             {t('student.requests.submittedLabel')} {formatDate(req.created_at)}
           </p>

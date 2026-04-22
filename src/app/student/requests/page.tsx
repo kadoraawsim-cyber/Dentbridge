@@ -14,7 +14,6 @@ export type CaseInfo = {
   treatment_type: string
   assigned_department: string | null
   urgency: string
-  city: string | null
   caseStatus: string | null
 }
 
@@ -43,7 +42,7 @@ export default async function StudentRequestsPage() {
   if (caseIds.length > 0) {
     const { data: caseRows } = await supabase
       .from('patient_requests')
-      .select('id, treatment_type, assigned_department, urgency, city, status')
+      .select('id, treatment_type, assigned_department, urgency, status')
       .in('id', caseIds)
 
     caseMap = Object.fromEntries(
@@ -53,7 +52,6 @@ export default async function StudentRequestsPage() {
           treatment_type: c.treatment_type,
           assigned_department: c.assigned_department,
           urgency: c.urgency,
-          city: c.city,
           caseStatus: c.status,
         },
       ])

@@ -12,7 +12,6 @@ type PatientRequest = {
   full_name: string
   age: number | null
   phone: string
-  city: string | null
   preferred_language: string | null
   treatment_type: string
   complaint_text: string
@@ -544,7 +543,6 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
         request.id?.toLowerCase().includes(query) ||
         request.phone?.toLowerCase().includes(query) ||
         request.treatment_type?.toLowerCase().includes(query) ||
-        request.city?.toLowerCase().includes(query) ||
         request.complaint_text?.toLowerCase().includes(query) ||
         effectiveDepartment.includes(query)
 
@@ -927,7 +925,6 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
                               </p>
                               <p className="mt-1 text-xs text-slate-500">
                                 {request.age ?? '\u2014'} yrs
-                                {request.city ? ` \u00b7 ${request.city}` : ''}
                                 {request.preferred_language &&
                                 request.preferred_language.toLowerCase() !== 'english'
                                   ? ` \u00b7 ${tLanguage(request.preferred_language)}`
@@ -1082,7 +1079,6 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
 
                       <p className="mt-1 text-sm text-slate-500">
                         {request.age ?? '\u2014'} yrs
-                        {request.city ? ` \u00b7 ${request.city}` : ''}
                         {request.preferred_language &&
                         request.preferred_language.toLowerCase() !== 'english'
                           ? ` \u00b7 ${tLanguage(request.preferred_language)}`
