@@ -393,6 +393,39 @@ export type TranslationShape = {
       btnMarkContacted: string
       btnMarkApptScheduled: string
       btnMarkInTreatment: string
+      appointmentComposerTitle: string
+      appointmentComposerDesc: string
+      appointmentDateLabel: string
+      appointmentDateRequired: string
+      appointmentTimeLabel: string
+      noteLabel: string
+      notePlaceholder: string
+      treatmentStartTitle: string
+      treatmentStartDesc: string
+      progressComposerTitle: string
+      progressComposerDesc: string
+      progressNoteLabel: string
+      progressNotePlaceholder: string
+      progressNoteRequired: string
+      whatWasDoneLabel: string
+      whatWasDonePlaceholder: string
+      nextStepLabel: string
+      nextStepPlaceholder: string
+      nextAppointmentDateLabel: string
+      nextAppointmentTimeLabel: string
+      saveAppointment: string
+      saveTreatmentStart: string
+      saveProgressNote: string
+      cancelForm: string
+      addProgressNote: string
+      progressTimelineTitle: string
+      progressTimelineEmpty: string
+      timelineAppointmentInfo: string
+      timelineWhatDone: string
+      timelineNextStep: string
+      timelineNextAppointment: string
+      timelineNoNoteFallbackAppointment: string
+      timelineNoNoteFallbackProgress: string
       updating: string
       treatmentInProgress: string
       caseClosed: string
@@ -833,6 +866,15 @@ export type TranslationShape = {
       historyClinicalNotesUpdated: string
       historyCaseCancelled: string
       historyReturnedToPool: string
+      treatmentTimelineTitle: string
+      treatmentTimelineEmpty: string
+      timelineAddedByLabel: string
+      timelineAppointmentInfo: string
+      timelineWhatDone: string
+      timelineNextStep: string
+      timelineNextAppointment: string
+      timelineNoNoteFallbackAppointment: string
+      timelineNoNoteFallbackProgress: string
       reviewRecordTitle: string
       reviewedByLabel: string
       lastReviewedLabel: string
@@ -1464,6 +1506,39 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       btnMarkContacted: 'Mark Patient Contacted',
       btnMarkApptScheduled: 'Mark Appointment Scheduled',
       btnMarkInTreatment: 'Mark In Treatment',
+      appointmentComposerTitle: 'Appointment details',
+      appointmentComposerDesc: 'Save the scheduled visit details before moving this case forward.',
+      appointmentDateLabel: 'Appointment date',
+      appointmentDateRequired: 'Appointment date is required.',
+      appointmentTimeLabel: 'Appointment time',
+      noteLabel: 'Optional note',
+      notePlaceholder: 'Add a short note for this appointment…',
+      treatmentStartTitle: 'Start treatment',
+      treatmentStartDesc: 'Record the first treatment update as you move this case into active treatment.',
+      progressComposerTitle: 'Add progress note',
+      progressComposerDesc: 'Keep the treatment record up to date with short, structured notes.',
+      progressNoteLabel: 'Progress note',
+      progressNotePlaceholder: 'Write a short treatment progress note…',
+      progressNoteRequired: 'Progress note is required.',
+      whatWasDoneLabel: 'What was done today',
+      whatWasDonePlaceholder: 'Optional summary of the treatment completed today',
+      nextStepLabel: 'Next planned step',
+      nextStepPlaceholder: 'Optional next step or follow-up plan',
+      nextAppointmentDateLabel: 'Next appointment date',
+      nextAppointmentTimeLabel: 'Next appointment time',
+      saveAppointment: 'Save Appointment',
+      saveTreatmentStart: 'Start Treatment',
+      saveProgressNote: 'Save Progress Note',
+      cancelForm: 'Cancel',
+      addProgressNote: 'Add Progress Note',
+      progressTimelineTitle: 'Treatment Notes / Progress Timeline',
+      progressTimelineEmpty: 'No progress notes yet.',
+      timelineAppointmentInfo: 'Appointment:',
+      timelineWhatDone: 'What was done:',
+      timelineNextStep: 'Next step:',
+      timelineNextAppointment: 'Next appointment:',
+      timelineNoNoteFallbackAppointment: 'Appointment scheduled.',
+      timelineNoNoteFallbackProgress: 'Progress update added.',
       updating: 'Updating\u2026',
       treatmentInProgress: 'Treatment in progress \u2014 faculty will close case',
       caseClosed: 'Case closed \u2014 treatment completed',
@@ -1912,6 +1987,15 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       historyClinicalNotesUpdated: 'Clinical notes updated',
       historyCaseCancelled: 'Case cancelled',
       historyReturnedToPool: 'Case returned to pool',
+      treatmentTimelineTitle: 'Treatment Progress Timeline',
+      treatmentTimelineEmpty: 'No treatment progress has been recorded yet.',
+      timelineAddedByLabel: 'Added by:',
+      timelineAppointmentInfo: 'Appointment:',
+      timelineWhatDone: 'What was done:',
+      timelineNextStep: 'Next step:',
+      timelineNextAppointment: 'Next appointment:',
+      timelineNoNoteFallbackAppointment: 'Appointment scheduled.',
+      timelineNoNoteFallbackProgress: 'Progress update added.',
       reviewRecordTitle: 'Faculty Review Record',
       reviewedByLabel: 'Reviewed by',
       lastReviewedLabel: 'Last reviewed',

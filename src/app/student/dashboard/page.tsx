@@ -48,6 +48,22 @@ export default async function StudentDashboardPage() {
     status: string
     full_name: string
     phone: string
+    progressEntries: {
+      id: string
+      case_id: string
+      student_id: string
+      student_name: string | null
+      status_at_time: string
+      appointment_date: string | null
+      appointment_time: string | null
+      note: string | null
+      what_was_done: string | null
+      next_step: string | null
+      next_appointment_date: string | null
+      next_appointment_time: string | null
+      needs_faculty_attention: boolean
+      created_at: string
+    }[]
   }[] = []
 
   if (approvedCaseIds.length > 0) {
@@ -56,6 +72,40 @@ export default async function StudentDashboardPage() {
       .select('id, treatment_type, assigned_department, status, full_name, phone')
       .in('id', approvedCaseIds)
 
+    const { data: progressData } = await supabase
+      .from('case_progress_entries')
+      .select(
+        'id, case_id, student_id, student_name, status_at_time, appointment_date, appointment_time, note, what_was_done, next_step, next_appointment_date, next_appointment_time, needs_faculty_attention, created_at'
+      )
+      .in('case_id', approvedCaseIds)
+      .order('created_at', { ascending: false })
+
+    const progressEntriesByCase = new Map<
+      string,
+      {
+        id: string
+        case_id: string
+        student_id: string
+        student_name: string | null
+        status_at_time: string
+        appointment_date: string | null
+        appointment_time: string | null
+        note: string | null
+        what_was_done: string | null
+        next_step: string | null
+        next_appointment_date: string | null
+        next_appointment_time: string | null
+        needs_faculty_attention: boolean
+        created_at: string
+      }[]
+    >()
+
+    for (const entry of progressData ?? []) {
+      const existing = progressEntriesByCase.get(entry.case_id) ?? []
+      existing.push(entry)
+      progressEntriesByCase.set(entry.case_id, existing)
+    }
+
     activeCases = (activeData ?? []).map((row) => ({
       caseId: row.id,
       treatment_type: row.treatment_type,
@@ -63,6 +113,7 @@ export default async function StudentDashboardPage() {
       status: row.status,
       full_name: row.full_name,
       phone: row.phone,
+      progressEntries: progressEntriesByCase.get(row.id) ?? [],
     }))
   }
 

@@ -38,6 +38,14 @@ export default async function AdminRequestDetailPage({
     .eq('case_id', id)
     .order('created_at', { ascending: false })
 
+  const { data: progressEntries } = await supabase
+    .from('case_progress_entries')
+    .select(
+      'id, case_id, student_id, student_name, status_at_time, appointment_date, appointment_time, note, what_was_done, next_step, next_appointment_date, next_appointment_time, needs_faculty_attention, created_at'
+    )
+    .eq('case_id', id)
+    .order('created_at', { ascending: false })
+
   const studentEmails = Array.from(
     new Set((studentRequests ?? []).map((request) => request.student_email).filter(Boolean))
   )
@@ -80,6 +88,7 @@ export default async function AdminRequestDetailPage({
       initialRequest={data}
       adminEmail={user.email ?? ''}
       initialStudentRequests={studentRequests ?? []}
+      initialProgressEntries={progressEntries ?? []}
       studentOpenCaseCounts={studentOpenCaseCounts}
     />
   )

@@ -39,10 +39,28 @@ type PatientRequest = {
   created_at: string | null
 }
 
+type CaseProgressEntry = {
+  id: string
+  case_id: string
+  student_id: string
+  student_name: string | null
+  status_at_time: string
+  appointment_date: string | null
+  appointment_time: string | null
+  note: string | null
+  what_was_done: string | null
+  next_step: string | null
+  next_appointment_date: string | null
+  next_appointment_time: string | null
+  needs_faculty_attention: boolean
+  created_at: string
+}
+
 interface Props {
   initialRequest: PatientRequest
   adminEmail: string
   initialStudentRequests: StudentCaseRequest[]
+  initialProgressEntries: CaseProgressEntry[]
   studentOpenCaseCounts: Record<string, number>
 }
 
@@ -207,6 +225,7 @@ export function CaseDetailClient({
   initialRequest,
   adminEmail,
   initialStudentRequests,
+  initialProgressEntries,
   studentOpenCaseCounts,
 }: Props) {
   const { t, locale } = useI18n()
@@ -226,6 +245,30 @@ export function CaseDetailClient({
     if (days === 0) return t('admin.detail.submittedToday')
     if (days === 1) return t('admin.detail.waitingOneDay')
     return `${t('admin.detail.waitingDaysPrefix')} ${days} ${t('admin.detail.waitingDaysSuffix')}`
+  }
+
+  function formatDateOnly(value: string | null): string {
+    if (!value) return '—'
+    return new Date(`${value}T00:00:00`).toLocaleDateString(dateLocale, {
+      dateStyle: 'medium',
+    })
+  }
+
+  function formatTimeOnly(value: string | null): string {
+    if (!value) return ''
+    return value.slice(0, 5)
+  }
+
+  function getProgressPrimaryText(entry: CaseProgressEntry): string {
+    if (entry.note?.trim()) {
+      return entry.note
+    }
+
+    if (entry.status_at_time === 'appointment_scheduled') {
+      return t('admin.detail.timelineNoNoteFallbackAppointment')
+    }
+
+    return t('admin.detail.timelineNoNoteFallbackProgress')
   }
 
   function tUrgency(v: string): string {
@@ -405,6 +448,13 @@ export function CaseDetailClient({
   const sortedActivityLog = useMemo(
     () => [...activityLog].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()),
     [activityLog]
+  )
+  const sortedProgressEntries = useMemo(
+    () =>
+      [...initialProgressEntries].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      ),
+    [initialProgressEntries]
   )
 
   const currentStatus = (request.status || '').toLowerCase()
@@ -1392,6 +1442,69 @@ export function CaseDetailClient({
                       </div>
                     )
                   })}
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h3 className="mb-4 text-sm font-bold text-slate-900">
+                {t('admin.detail.treatmentTimelineTitle')}
+              </h3>
+
+              {sortedProgressEntries.length === 0 ? (
+                <p className="text-sm text-slate-400">
+                  {t('admin.detail.treatmentTimelineEmpty')}
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {sortedProgressEntries.map((entry) => (
+                    <div
+                      key={entry.id}
+                      className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-sm font-medium text-slate-900">
+                          {formatReviewDate(entry.created_at)}
+                        </p>
+                        {entry.student_name && (
+                          <span className="text-xs text-slate-500">
+                            {t('admin.detail.timelineAddedByLabel')} {entry.student_name}
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-2 text-sm text-slate-700">
+                        {getProgressPrimaryText(entry)}
+                      </p>
+                      {entry.appointment_date && (
+                        <p className="mt-2 text-xs text-slate-500">
+                          {t('admin.detail.timelineAppointmentInfo')}{' '}
+                          {formatDateOnly(entry.appointment_date)}
+                          {entry.appointment_time
+                            ? ` · ${formatTimeOnly(entry.appointment_time)}`
+                            : ''}
+                        </p>
+                      )}
+                      {entry.what_was_done && (
+                        <p className="mt-1 text-xs text-slate-500">
+                          {t('admin.detail.timelineWhatDone')} {entry.what_was_done}
+                        </p>
+                      )}
+                      {entry.next_step && (
+                        <p className="mt-1 text-xs text-slate-500">
+                          {t('admin.detail.timelineNextStep')} {entry.next_step}
+                        </p>
+                      )}
+                      {entry.next_appointment_date && (
+                        <p className="mt-1 text-xs text-slate-500">
+                          {t('admin.detail.timelineNextAppointment')}{' '}
+                          {formatDateOnly(entry.next_appointment_date)}
+                          {entry.next_appointment_time
+                            ? ` · ${formatTimeOnly(entry.next_appointment_time)}`
+                            : ''}
+                        </p>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

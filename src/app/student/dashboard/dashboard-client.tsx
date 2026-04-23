@@ -48,6 +48,24 @@ type ActiveCase = {
   status: string
   full_name: string
   phone: string
+  progressEntries: ProgressEntry[]
+}
+
+type ProgressEntry = {
+  id: string
+  case_id: string
+  student_id: string
+  student_name: string | null
+  status_at_time: string
+  appointment_date: string | null
+  appointment_time: string | null
+  note: string | null
+  what_was_done: string | null
+  next_step: string | null
+  next_appointment_date: string | null
+  next_appointment_time: string | null
+  needs_faculty_attention: boolean
+  created_at: string
 }
 
 interface Props {
@@ -57,6 +75,28 @@ interface Props {
   studentEmail: string
   studentFullName: string
   studentPhone: string
+}
+
+type ProgressComposerMode = 'appointment' | 'treatment_start' | 'progress_note'
+
+type ProgressFormValues = {
+  appointmentDate: string
+  appointmentTime: string
+  note: string
+  whatWasDone: string
+  nextStep: string
+  nextAppointmentDate: string
+  nextAppointmentTime: string
+}
+
+const EMPTY_PROGRESS_FORM: ProgressFormValues = {
+  appointmentDate: '',
+  appointmentTime: '',
+  note: '',
+  whatWasDone: '',
+  nextStep: '',
+  nextAppointmentDate: '',
+  nextAppointmentTime: '',
 }
 
 function getUrgencyBadgeClass(urgency: string) {
@@ -102,6 +142,10 @@ function getStepIndex(status: string): number {
   return order.indexOf(status)
 }
 
+function buildProgressEntriesMap(activeCases: ActiveCase[]) {
+  return Object.fromEntries(activeCases.map((c) => [c.caseId, c.progressEntries]))
+}
+
 export function DashboardClient({
   poolCases,
   myRequests,
@@ -119,6 +163,15 @@ export function DashboardClient({
   const [localStatuses, setLocalStatuses] = useState<Record<string, string>>(
     () => Object.fromEntries(activeCases.map((c) => [c.caseId, c.status]))
   )
+  const [progressEntriesByCase, setProgressEntriesByCase] = useState<Record<string, ProgressEntry[]>>(
+    () => buildProgressEntriesMap(activeCases)
+  )
+  const [openTimelines, setOpenTimelines] = useState<Record<string, boolean>>({})
+  const [openComposer, setOpenComposer] = useState<{
+    caseId: string
+    mode: ProgressComposerMode
+  } | null>(null)
+  const [progressForm, setProgressForm] = useState<ProgressFormValues>(EMPTY_PROGRESS_FORM)
   const profileMenuRef = useRef<HTMLDivElement | null>(null)
 
   const ui =
@@ -257,6 +310,124 @@ export function DashboardClient({
     setLocalStatuses((prev) => ({ ...prev, [caseId]: data.status }))
   }
 
+  function resetProgressComposer() {
+    setOpenComposer(null)
+    setProgressForm(EMPTY_PROGRESS_FORM)
+  }
+
+  function toggleTimeline(caseId: string) {
+    setOpenTimelines((prev) => ({ ...prev, [caseId]: !prev[caseId] }))
+  }
+
+  function openProgressComposer(caseId: string, mode: ProgressComposerMode) {
+    setActionErrors((prev) => {
+      const next = { ...prev }
+      delete next[caseId]
+      return next
+    })
+    setProgressForm(EMPTY_PROGRESS_FORM)
+    setOpenComposer({ caseId, mode })
+    setOpenTimelines((prev) => ({ ...prev, [caseId]: true }))
+  }
+
+  async function handleProgressSubmit(caseId: string) {
+    if (!openComposer || openComposer.caseId !== caseId) {
+      return
+    }
+
+    const mode = openComposer.mode
+    const note = progressForm.note.trim()
+
+    if (mode === 'appointment' && !progressForm.appointmentDate) {
+      setActionErrors((prev) => ({
+        ...prev,
+        [caseId]: t('student.dashboard.appointmentDateRequired'),
+      }))
+      return
+    }
+
+    if ((mode === 'treatment_start' || mode === 'progress_note') && !note) {
+      setActionErrors((prev) => ({
+        ...prev,
+        [caseId]: t('student.dashboard.progressNoteRequired'),
+      }))
+      return
+    }
+
+    setActionLoading(caseId)
+    setActionErrors((prev) => {
+      const next = { ...prev }
+      delete next[caseId]
+      return next
+    })
+
+    const requestInit =
+      mode === 'progress_note'
+        ? {
+            url: `/api/student/cases/${caseId}/progress`,
+            method: 'POST',
+            body: {
+              note,
+              what_was_done: progressForm.whatWasDone.trim() || undefined,
+              next_step: progressForm.nextStep.trim() || undefined,
+              next_appointment_date: progressForm.nextAppointmentDate || undefined,
+              next_appointment_time: progressForm.nextAppointmentTime || undefined,
+            },
+          }
+        : {
+            url: `/api/student/cases/${caseId}/status`,
+            method: 'PATCH',
+            body: {
+              action:
+                mode === 'appointment'
+                  ? 'mark_appointment_scheduled'
+                  : 'mark_in_treatment',
+              appointment_date: progressForm.appointmentDate || undefined,
+              appointment_time: progressForm.appointmentTime || undefined,
+              note: note || undefined,
+              what_was_done: progressForm.whatWasDone.trim() || undefined,
+              next_step: progressForm.nextStep.trim() || undefined,
+              next_appointment_date: progressForm.nextAppointmentDate || undefined,
+              next_appointment_time: progressForm.nextAppointmentTime || undefined,
+            },
+          }
+
+    const res = await fetch(requestInit.url, {
+      method: requestInit.method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestInit.body),
+    })
+
+    setActionLoading(null)
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: 'Request failed' }))
+      setActionErrors((prev) => ({
+        ...prev,
+        [caseId]: (body as { error?: string }).error ?? 'Failed to save progress',
+      }))
+      return
+    }
+
+    const payload = (await res.json()) as {
+      data?: { status?: string; progressEntry?: ProgressEntry }
+    }
+
+    if (payload.data?.status) {
+      setLocalStatuses((prev) => ({ ...prev, [caseId]: payload.data?.status ?? prev[caseId] }))
+    }
+
+    if (payload.data?.progressEntry) {
+      setProgressEntriesByCase((prev) => ({
+        ...prev,
+        [caseId]: [payload.data!.progressEntry!, ...(prev[caseId] ?? [])],
+      }))
+    }
+
+    setOpenTimelines((prev) => ({ ...prev, [caseId]: true }))
+    resetProgressComposer()
+  }
+
   function getActiveCaseStatusLabelShort(status: string): string {
     switch (status) {
       case 'student_approved':
@@ -274,6 +445,37 @@ export function DashboardClient({
       default:
         return status.replace(/_/g, ' ')
     }
+  }
+
+  function formatTimelineDateTime(iso: string): string {
+    return new Date(iso).toLocaleString(locale === 'tr' ? 'tr-TR' : 'en-GB', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    })
+  }
+
+  function formatOptionalDate(value: string | null): string {
+    if (!value) return ''
+    return new Date(`${value}T00:00:00`).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-GB', {
+      dateStyle: 'medium',
+    })
+  }
+
+  function formatOptionalTime(value: string | null): string {
+    if (!value) return ''
+    return value.slice(0, 5)
+  }
+
+  function getTimelinePrimaryText(entry: ProgressEntry): string {
+    if (entry.note?.trim()) {
+      return entry.note
+    }
+
+    if (entry.status_at_time === 'appointment_scheduled') {
+      return t('student.dashboard.timelineNoNoteFallbackAppointment')
+    }
+
+    return t('student.dashboard.timelineNoNoteFallbackProgress')
   }
 
   const recentCases = useMemo(() => poolCases.slice(0, 5), [poolCases])
@@ -303,6 +505,7 @@ export function DashboardClient({
   const liveActiveCases = activeCases.map((c) => ({
     ...c,
     liveStatus: localStatuses[c.caseId] ?? c.status,
+    progressEntries: progressEntriesByCase[c.caseId] ?? [],
   }))
 
   const trulyActiveCases = liveActiveCases.filter(
@@ -616,6 +819,9 @@ export function DashboardClient({
                 const error = actionErrors[c.caseId]
                 const isClosed = liveStatus === 'completed' || liveStatus === 'cancelled'
                 const stepIdx = getStepIndex(liveStatus)
+                const caseEntries = c.progressEntries
+                const timelineOpen = openTimelines[c.caseId] ?? false
+                const isComposerOpen = openComposer?.caseId === c.caseId
 
                 return (
                   <div
@@ -692,6 +898,227 @@ export function DashboardClient({
                         </div>
                       </div>
 
+                      {(caseEntries.length > 0 || liveStatus === 'in_treatment') && (
+                        <div className="mt-3 rounded-lg sm:rounded-xl border border-slate-200 bg-slate-50">
+                          <button
+                            type="button"
+                            onClick={() => toggleTimeline(c.caseId)}
+                            className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left sm:px-4"
+                          >
+                            <div>
+                              <p className="text-xs font-semibold text-slate-900">
+                                {t('student.dashboard.progressTimelineTitle')}
+                              </p>
+                              <p className="mt-0.5 text-[11px] text-slate-500">
+                                {caseEntries.length > 0
+                                  ? `${caseEntries.length}`
+                                  : t('student.dashboard.progressTimelineEmpty')}
+                              </p>
+                            </div>
+                            <ChevronDown
+                              className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${
+                                timelineOpen ? 'rotate-180' : ''
+                              }`}
+                            />
+                          </button>
+
+                          {timelineOpen && (
+                            <div className="border-t border-slate-200 px-3 py-3 sm:px-4">
+                              {liveStatus === 'in_treatment' && (
+                                <div className="mb-3 flex justify-end">
+                                  <button
+                                    type="button"
+                                    onClick={() => openProgressComposer(c.caseId, 'progress_note')}
+                                    disabled={isLoading}
+                                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+                                  >
+                                    <BookOpen className="h-3.5 w-3.5 shrink-0" />
+                                    {t('student.dashboard.addProgressNote')}
+                                  </button>
+                                </div>
+                              )}
+
+                              {isComposerOpen && openComposer?.mode === 'progress_note' && (
+                                <div className="mb-3 rounded-lg border border-slate-200 bg-white p-3">
+                                  <p className="text-sm font-semibold text-slate-900">
+                                    {t('student.dashboard.progressComposerTitle')}
+                                  </p>
+                                  <p className="mt-1 text-xs text-slate-500">
+                                    {t('student.dashboard.progressComposerDesc')}
+                                  </p>
+                                  <div className="mt-3 space-y-3">
+                                    <div>
+                                      <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                        {t('student.dashboard.progressNoteLabel')} *
+                                      </label>
+                                      <textarea
+                                        value={progressForm.note}
+                                        onChange={(event) =>
+                                          setProgressForm((prev) => ({
+                                            ...prev,
+                                            note: event.target.value,
+                                          }))
+                                        }
+                                        rows={3}
+                                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-400"
+                                        placeholder={t('student.dashboard.progressNotePlaceholder')}
+                                      />
+                                    </div>
+                                    <div className="grid gap-3 sm:grid-cols-2">
+                                      <div>
+                                        <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                          {t('student.dashboard.whatWasDoneLabel')}
+                                        </label>
+                                        <textarea
+                                          value={progressForm.whatWasDone}
+                                          onChange={(event) =>
+                                            setProgressForm((prev) => ({
+                                              ...prev,
+                                              whatWasDone: event.target.value,
+                                            }))
+                                          }
+                                          rows={2}
+                                          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-400"
+                                          placeholder={t('student.dashboard.whatWasDonePlaceholder')}
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                          {t('student.dashboard.nextStepLabel')}
+                                        </label>
+                                        <textarea
+                                          value={progressForm.nextStep}
+                                          onChange={(event) =>
+                                            setProgressForm((prev) => ({
+                                              ...prev,
+                                              nextStep: event.target.value,
+                                            }))
+                                          }
+                                          rows={2}
+                                          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-400"
+                                          placeholder={t('student.dashboard.nextStepPlaceholder')}
+                                        />
+                                      </div>
+                                    </div>
+                                    <div className="grid gap-3 sm:grid-cols-2">
+                                      <div>
+                                        <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                          {t('student.dashboard.nextAppointmentDateLabel')}
+                                        </label>
+                                        <input
+                                          type="date"
+                                          value={progressForm.nextAppointmentDate}
+                                          onChange={(event) =>
+                                            setProgressForm((prev) => ({
+                                              ...prev,
+                                              nextAppointmentDate: event.target.value,
+                                            }))
+                                          }
+                                          className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-slate-400"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                          {t('student.dashboard.nextAppointmentTimeLabel')}
+                                        </label>
+                                        <input
+                                          type="time"
+                                          value={progressForm.nextAppointmentTime}
+                                          onChange={(event) =>
+                                            setProgressForm((prev) => ({
+                                              ...prev,
+                                              nextAppointmentTime: event.target.value,
+                                            }))
+                                          }
+                                          className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-slate-400"
+                                        />
+                                      </div>
+                                    </div>
+                                    <div className="flex flex-col gap-2 sm:flex-row">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleProgressSubmit(c.caseId)}
+                                        disabled={isLoading}
+                                        className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+                                      >
+                                        {isLoading
+                                          ? t('student.dashboard.updating')
+                                          : t('student.dashboard.saveProgressNote')}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={resetProgressComposer}
+                                        disabled={isLoading}
+                                        className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+                                      >
+                                        {t('student.dashboard.cancelForm')}
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {caseEntries.length === 0 ? (
+                                <p className="text-xs text-slate-500">
+                                  {t('student.dashboard.progressTimelineEmpty')}
+                                </p>
+                              ) : (
+                                <div className="space-y-3">
+                                  {caseEntries.map((entry) => (
+                                    <div
+                                      key={entry.id}
+                                      className="rounded-lg border border-slate-200 bg-white px-3 py-3"
+                                    >
+                                      <div className="flex flex-wrap items-center justify-between gap-2">
+                                        <p className="text-xs font-semibold text-slate-900">
+                                          {formatTimelineDateTime(entry.created_at)}
+                                        </p>
+                                        {entry.student_name && (
+                                          <span className="text-[11px] text-slate-500">
+                                            {entry.student_name}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <p className="mt-2 text-sm text-slate-700">
+                                        {getTimelinePrimaryText(entry)}
+                                      </p>
+                                      {entry.appointment_date && (
+                                        <p className="mt-2 text-xs text-slate-500">
+                                          {t('student.dashboard.timelineAppointmentInfo')}{' '}
+                                          {formatOptionalDate(entry.appointment_date)}
+                                          {entry.appointment_time
+                                            ? ` • ${formatOptionalTime(entry.appointment_time)}`
+                                            : ''}
+                                        </p>
+                                      )}
+                                      {entry.what_was_done && (
+                                        <p className="mt-1 text-xs text-slate-500">
+                                          {t('student.dashboard.timelineWhatDone')} {entry.what_was_done}
+                                        </p>
+                                      )}
+                                      {entry.next_step && (
+                                        <p className="mt-1 text-xs text-slate-500">
+                                          {t('student.dashboard.timelineNextStep')} {entry.next_step}
+                                        </p>
+                                      )}
+                                      {entry.next_appointment_date && (
+                                        <p className="mt-1 text-xs text-slate-500">
+                                          {t('student.dashboard.timelineNextAppointment')}{' '}
+                                          {formatOptionalDate(entry.next_appointment_date)}
+                                          {entry.next_appointment_time
+                                            ? ` • ${formatOptionalTime(entry.next_appointment_time)}`
+                                            : ''}
+                                        </p>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {!isClosed && (
                         <div className="mt-3">
                           {error && (
@@ -720,35 +1147,227 @@ export function DashboardClient({
                           {liveStatus === 'contacted' && (
                             <button
                               type="button"
-                              onClick={() =>
-                                handleLifecycleAction(c.caseId, 'mark_appointment_scheduled')
-                              }
+                              onClick={() => openProgressComposer(c.caseId, 'appointment')}
                               disabled={isLoading}
                               className="flex w-full items-center justify-center gap-1.5 rounded-lg sm:rounded-xl bg-indigo-600 px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60"
                             >
-                              {isLoading ? (
-                                <span className="h-3 w-3 sm:h-4 sm:w-4 shrink-0 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                              ) : (
-                                <CalendarCheck className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
-                              )}
+                              <CalendarCheck className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
                               <span className="truncate">{t('student.dashboard.btnMarkApptScheduled')}</span>
                             </button>
+                          )}
+
+                          {isComposerOpen && openComposer?.mode === 'appointment' && (
+                            <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                              <p className="text-sm font-semibold text-slate-900">
+                                {t('student.dashboard.appointmentComposerTitle')}
+                              </p>
+                              <p className="mt-1 text-xs text-slate-500">
+                                {t('student.dashboard.appointmentComposerDesc')}
+                              </p>
+                              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                                <div>
+                                  <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                    {t('student.dashboard.appointmentDateLabel')} *
+                                  </label>
+                                  <input
+                                    type="date"
+                                    value={progressForm.appointmentDate}
+                                    onChange={(event) =>
+                                      setProgressForm((prev) => ({
+                                        ...prev,
+                                        appointmentDate: event.target.value,
+                                      }))
+                                    }
+                                    className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-slate-400"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                    {t('student.dashboard.appointmentTimeLabel')}
+                                  </label>
+                                  <input
+                                    type="time"
+                                    value={progressForm.appointmentTime}
+                                    onChange={(event) =>
+                                      setProgressForm((prev) => ({
+                                        ...prev,
+                                        appointmentTime: event.target.value,
+                                      }))
+                                    }
+                                    className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-slate-400"
+                                  />
+                                </div>
+                              </div>
+                              <div className="mt-3">
+                                <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                  {t('student.dashboard.noteLabel')}
+                                </label>
+                                <textarea
+                                  value={progressForm.note}
+                                  onChange={(event) =>
+                                    setProgressForm((prev) => ({
+                                      ...prev,
+                                      note: event.target.value,
+                                    }))
+                                  }
+                                  rows={3}
+                                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-400"
+                                  placeholder={t('student.dashboard.notePlaceholder')}
+                                />
+                              </div>
+                              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                                <button
+                                  type="button"
+                                  onClick={() => handleProgressSubmit(c.caseId)}
+                                  disabled={isLoading}
+                                  className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60"
+                                >
+                                  {isLoading
+                                    ? t('student.dashboard.updating')
+                                    : t('student.dashboard.saveAppointment')}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={resetProgressComposer}
+                                  disabled={isLoading}
+                                  className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+                                >
+                                  {t('student.dashboard.cancelForm')}
+                                </button>
+                              </div>
+                            </div>
                           )}
 
                           {liveStatus === 'appointment_scheduled' && (
                             <button
                               type="button"
-                              onClick={() => handleLifecycleAction(c.caseId, 'mark_in_treatment')}
+                              onClick={() => openProgressComposer(c.caseId, 'treatment_start')}
                               disabled={isLoading}
                               className="flex w-full items-center justify-center gap-1.5 rounded-lg sm:rounded-xl bg-purple-600 px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-semibold text-white transition hover:bg-purple-700 disabled:opacity-60"
                             >
-                              {isLoading ? (
-                                <span className="h-3 w-3 sm:h-4 sm:w-4 shrink-0 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                              ) : (
-                                <Stethoscope className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
-                              )}
+                              <Stethoscope className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
                               <span className="truncate">{t('student.dashboard.btnMarkInTreatment')}</span>
                             </button>
+                          )}
+
+                          {isComposerOpen && openComposer?.mode === 'treatment_start' && (
+                            <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                              <p className="text-sm font-semibold text-slate-900">
+                                {t('student.dashboard.treatmentStartTitle')}
+                              </p>
+                              <p className="mt-1 text-xs text-slate-500">
+                                {t('student.dashboard.treatmentStartDesc')}
+                              </p>
+                              <div className="mt-3 space-y-3">
+                                <div>
+                                  <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                    {t('student.dashboard.progressNoteLabel')} *
+                                  </label>
+                                  <textarea
+                                    value={progressForm.note}
+                                    onChange={(event) =>
+                                      setProgressForm((prev) => ({
+                                        ...prev,
+                                        note: event.target.value,
+                                      }))
+                                    }
+                                    rows={3}
+                                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-400"
+                                    placeholder={t('student.dashboard.progressNotePlaceholder')}
+                                  />
+                                </div>
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                  <div>
+                                    <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                      {t('student.dashboard.whatWasDoneLabel')}
+                                    </label>
+                                    <textarea
+                                      value={progressForm.whatWasDone}
+                                      onChange={(event) =>
+                                        setProgressForm((prev) => ({
+                                          ...prev,
+                                          whatWasDone: event.target.value,
+                                        }))
+                                      }
+                                      rows={2}
+                                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-400"
+                                      placeholder={t('student.dashboard.whatWasDonePlaceholder')}
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                      {t('student.dashboard.nextStepLabel')}
+                                    </label>
+                                    <textarea
+                                      value={progressForm.nextStep}
+                                      onChange={(event) =>
+                                        setProgressForm((prev) => ({
+                                          ...prev,
+                                          nextStep: event.target.value,
+                                        }))
+                                      }
+                                      rows={2}
+                                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-400"
+                                      placeholder={t('student.dashboard.nextStepPlaceholder')}
+                                    />
+                                  </div>
+                                </div>
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                  <div>
+                                    <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                      {t('student.dashboard.nextAppointmentDateLabel')}
+                                    </label>
+                                    <input
+                                      type="date"
+                                      value={progressForm.nextAppointmentDate}
+                                      onChange={(event) =>
+                                        setProgressForm((prev) => ({
+                                          ...prev,
+                                          nextAppointmentDate: event.target.value,
+                                        }))
+                                      }
+                                      className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-slate-400"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                      {t('student.dashboard.nextAppointmentTimeLabel')}
+                                    </label>
+                                    <input
+                                      type="time"
+                                      value={progressForm.nextAppointmentTime}
+                                      onChange={(event) =>
+                                        setProgressForm((prev) => ({
+                                          ...prev,
+                                          nextAppointmentTime: event.target.value,
+                                        }))
+                                      }
+                                      className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-slate-400"
+                                    />
+                                  </div>
+                                </div>
+                                <div className="flex flex-col gap-2 sm:flex-row">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleProgressSubmit(c.caseId)}
+                                    disabled={isLoading}
+                                    className="inline-flex items-center justify-center rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-purple-700 disabled:opacity-60"
+                                  >
+                                    {isLoading
+                                      ? t('student.dashboard.updating')
+                                      : t('student.dashboard.saveTreatmentStart')}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={resetProgressComposer}
+                                    disabled={isLoading}
+                                    className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+                                  >
+                                    {t('student.dashboard.cancelForm')}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
                           )}
 
                           {liveStatus === 'in_treatment' && (

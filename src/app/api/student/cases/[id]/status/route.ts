@@ -19,6 +19,46 @@ const ACTION_TO_STATUS: Record<StudentAction, string> = {
   mark_in_treatment: 'in_treatment',
 }
 
+const CASE_APPOINTMENT_SOURCE_KIND = 'case_appointment'
+const DEFAULT_APPOINTMENT_TIME = '09:00:00'
+const CLINIC_TIMEZONE_OFFSET = '+03:00'
+
+const EXPECTED_CURRENT_STATUS: Record<StudentAction, string> = {
+  mark_contacted: 'student_approved',
+  mark_appointment_scheduled: 'contacted',
+  mark_in_treatment: 'appointment_scheduled',
+}
+
+function isValidDate(value: string | undefined) {
+  return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value))
+}
+
+function isValidTime(value: string | undefined) {
+  return Boolean(value && /^\d{2}:\d{2}(:\d{2})?$/.test(value))
+}
+
+function normalizeAppointmentTime(value: string | undefined) {
+  if (!value) {
+    return DEFAULT_APPOINTMENT_TIME
+  }
+
+  return value.length === 5 ? `${value}:00` : value
+}
+
+function buildPlannerEventDate(appointmentDate: string, appointmentTime: string | undefined) {
+  // Case appointments are scheduled in the clinic's local timezone.
+  return new Date(
+    `${appointmentDate}T${normalizeAppointmentTime(appointmentTime)}${CLINIC_TIMEZONE_OFFSET}`
+  ).toISOString()
+}
+
+function buildPlannerEventTitle(patientName: string | null) {
+  const cleanPatientName = patientName?.trim()
+  return cleanPatientName
+    ? `Scheduled appointment - ${cleanPatientName}`
+    : 'Scheduled appointment'
+}
+
 /**
  * PATCH /api/student/cases/[id]/status
  *
@@ -57,14 +97,63 @@ export async function PATCH(
 
   // ── 2. Parse action ──────────────────────────────────────────────────────────
   let action: StudentAction
+  let appointmentDate: string | undefined
+  let appointmentTime: string | undefined
+  let note: string | undefined
+  let whatWasDone: string | undefined
+  let nextStep: string | undefined
+  let nextAppointmentDate: string | undefined
+  let nextAppointmentTime: string | undefined
   try {
-    const body = (await request.json()) as { action?: string }
+    const body = (await request.json()) as {
+      action?: string
+      appointment_date?: string
+      appointment_time?: string
+      note?: string
+      what_was_done?: string
+      next_step?: string
+      next_appointment_date?: string
+      next_appointment_time?: string
+    }
     if (!body.action || !VALID_ACTIONS.includes(body.action as StudentAction)) {
       return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
     }
     action = body.action as StudentAction
+    appointmentDate = typeof body.appointment_date === 'string' ? body.appointment_date : undefined
+    appointmentTime = typeof body.appointment_time === 'string' ? body.appointment_time : undefined
+    note = typeof body.note === 'string' ? body.note.trim() : undefined
+    whatWasDone = typeof body.what_was_done === 'string' ? body.what_was_done.trim() : undefined
+    nextStep = typeof body.next_step === 'string' ? body.next_step.trim() : undefined
+    nextAppointmentDate =
+      typeof body.next_appointment_date === 'string' ? body.next_appointment_date : undefined
+    nextAppointmentTime =
+      typeof body.next_appointment_time === 'string' ? body.next_appointment_time : undefined
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+  }
+
+  if (action === 'mark_appointment_scheduled') {
+    if (!isValidDate(appointmentDate)) {
+      return NextResponse.json({ error: 'Appointment date is required.' }, { status: 400 })
+    }
+
+    if (appointmentTime && !isValidTime(appointmentTime)) {
+      return NextResponse.json({ error: 'Appointment time is invalid.' }, { status: 400 })
+    }
+  }
+
+  if (action === 'mark_in_treatment') {
+    if (!note) {
+      return NextResponse.json({ error: 'Progress note is required.' }, { status: 400 })
+    }
+
+    if (nextAppointmentDate && !isValidDate(nextAppointmentDate)) {
+      return NextResponse.json({ error: 'Next appointment date is invalid.' }, { status: 400 })
+    }
+
+    if (nextAppointmentTime && !isValidTime(nextAppointmentTime)) {
+      return NextResponse.json({ error: 'Next appointment time is invalid.' }, { status: 400 })
+    }
   }
 
   // ── 3. Verify the student has an approved request for this case ──────────────
@@ -88,7 +177,110 @@ export async function PATCH(
   }
 
   // ── 4. Advance the case status ───────────────────────────────────────────────
+  const { data: currentCase, error: currentCaseError } = await supabase
+    .from('patient_requests')
+    .select('status, full_name')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (currentCaseError) {
+    return NextResponse.json({ error: currentCaseError.message }, { status: 500 })
+  }
+
+  if (!currentCase) {
+    return NextResponse.json({ error: 'Case not found.' }, { status: 404 })
+  }
+
+  if (currentCase.status !== EXPECTED_CURRENT_STATUS[action]) {
+    return NextResponse.json(
+      { error: 'This case is no longer in the expected stage for this action.' },
+      { status: 409 }
+    )
+  }
+
   const newStatus = ACTION_TO_STATUS[action]
+  let progressEntry:
+    | {
+        id: string
+        case_id: string
+        student_id: string
+        student_name: string | null
+        status_at_time: string
+        appointment_date: string | null
+        appointment_time: string | null
+        note: string | null
+        what_was_done: string | null
+        next_step: string | null
+        next_appointment_date: string | null
+        next_appointment_time: string | null
+        needs_faculty_attention: boolean
+        created_at: string
+      }
+    | null = null
+  let plannerEventUpserted = false
+
+  if (action === 'mark_appointment_scheduled' || action === 'mark_in_treatment') {
+    const { data: studentProfile } = await supabase
+      .from('student_profiles')
+      .select('full_name')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    const { data: insertedEntry, error: progressInsertError } = await supabase
+      .from('case_progress_entries')
+      .insert({
+        case_id: id,
+        student_id: user.id,
+        student_name: studentProfile?.full_name?.trim() || null,
+        status_at_time: newStatus,
+        appointment_date: action === 'mark_appointment_scheduled' ? appointmentDate ?? null : null,
+        appointment_time: action === 'mark_appointment_scheduled' ? appointmentTime ?? null : null,
+        note: note || null,
+        what_was_done: action === 'mark_in_treatment' ? whatWasDone || null : null,
+        next_step: action === 'mark_in_treatment' ? nextStep || null : null,
+        next_appointment_date: action === 'mark_in_treatment' ? nextAppointmentDate ?? null : null,
+        next_appointment_time: action === 'mark_in_treatment' ? nextAppointmentTime ?? null : null,
+      })
+      .select(
+        'id, case_id, student_id, student_name, status_at_time, appointment_date, appointment_time, note, what_was_done, next_step, next_appointment_date, next_appointment_time, needs_faculty_attention, created_at'
+      )
+      .single()
+
+    if (progressInsertError) {
+      return NextResponse.json({ error: progressInsertError.message }, { status: 500 })
+    }
+
+    progressEntry = insertedEntry
+  }
+
+  if (action === 'mark_appointment_scheduled' && appointmentDate) {
+    const { error: plannerUpsertError } = await supabase
+      .from('student_planner_events')
+      .upsert(
+        {
+          student_id: user.id,
+          title: buildPlannerEventTitle(currentCase.full_name ?? null),
+          description: null,
+          event_date: buildPlannerEventDate(appointmentDate, appointmentTime),
+          patient_id: id,
+          language: null,
+          source_kind: CASE_APPOINTMENT_SOURCE_KIND,
+          source_case_id: id,
+        },
+        {
+          onConflict: 'student_id,source_kind,source_case_id',
+        }
+      )
+
+    if (plannerUpsertError) {
+      if (progressEntry) {
+        await supabase.from('case_progress_entries').delete().eq('id', progressEntry.id)
+      }
+      return NextResponse.json({ error: plannerUpsertError.message }, { status: 500 })
+    }
+
+    plannerEventUpserted = true
+  }
 
   const { error: updateError } = await supabase
     .from('patient_requests')
@@ -100,8 +292,19 @@ export async function PATCH(
     .eq('id', id)
 
   if (updateError) {
+    if (progressEntry) {
+      await supabase.from('case_progress_entries').delete().eq('id', progressEntry.id)
+    }
+    if (plannerEventUpserted) {
+      await supabase
+        .from('student_planner_events')
+        .delete()
+        .eq('student_id', user.id)
+        .eq('source_kind', CASE_APPOINTMENT_SOURCE_KIND)
+        .eq('source_case_id', id)
+    }
     return NextResponse.json({ error: updateError.message }, { status: 500 })
   }
 
-  return NextResponse.json({ success: true, data: { status: newStatus } })
+  return NextResponse.json({ success: true, data: { status: newStatus, progressEntry } })
 }
