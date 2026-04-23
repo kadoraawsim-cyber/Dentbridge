@@ -108,6 +108,15 @@ body {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
+.dentbridge-benefits-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.dentbridge-benefits-scroll::-webkit-scrollbar {
+  display: none;
+}
+
 .dentbridge-mobile-menu {
   animation: dentbridge-menu-enter 180ms ease-out;
 }

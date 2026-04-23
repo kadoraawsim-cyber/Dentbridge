@@ -194,17 +194,18 @@ export default function HomePage() {
         )}
       </header>
 
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#1e3480] via-[#1c2f6b] to-[#0f1e4a] px-4 py-8 sm:px-6 sm:py-16 lg:px-8 lg:py-24">
+      <section className="relative overflow-hidden bg-[linear-gradient(135deg,#071638_0%,#10245a_34%,#17336f_58%,#07142f_100%)] px-4 py-8 sm:px-6 sm:py-16 lg:px-8 lg:py-24">
         {/* Decorative background layers */}
         <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-          <div className="absolute -left-40 -top-40 h-96 w-96 rounded-full bg-blue-400/10 blur-3xl" />
-          <div className="absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-teal-400/10 blur-3xl" />
-          <div className="absolute left-1/2 top-1/3 h-64 w-64 -translate-x-1/2 rounded-full bg-indigo-500/8 blur-2xl" />
+          <div className="absolute -left-44 -top-44 h-[30rem] w-[30rem] rounded-full bg-cyan-300/10 blur-3xl" />
+          <div className="absolute -bottom-32 -right-28 h-[28rem] w-[28rem] rounded-full bg-teal-300/12 blur-3xl" />
+          <div className="absolute left-1/2 top-1/4 h-[22rem] w-[22rem] -translate-x-1/2 rounded-full bg-blue-200/8 blur-3xl" />
           <div
-            className="absolute inset-0 opacity-[0.025]"
+            className="absolute inset-0 opacity-[0.035]"
             style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '28px 28px' }}
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0a1533]/50" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_22%,rgba(255,255,255,0.12),transparent_24%),radial-gradient(circle_at_78%_18%,rgba(45,212,191,0.12),transparent_28%),linear-gradient(110deg,rgba(255,255,255,0.06)_0%,transparent_22%,transparent_68%,rgba(125,211,252,0.05)_100%)]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/[0.04] via-transparent to-[#030a1f]/70" />
         </div>
 
         <div className="relative mx-auto grid max-w-7xl items-center gap-6 sm:gap-12 lg:grid-cols-2">
@@ -304,7 +305,7 @@ export default function HomePage() {
 
       <section className="border-b border-teal-900/10 bg-gradient-to-r from-teal-800 via-teal-700 to-cyan-800 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] sm:py-4">
         {/* Swipeable on mobile, wrapped on desktop */}
-        <div className="dentbridge-stagger-group mx-auto flex max-w-7xl overflow-x-auto whitespace-nowrap px-4 pb-2 text-xs font-medium text-white sm:flex-wrap sm:items-center sm:justify-center sm:gap-x-8 sm:pb-0 sm:text-sm lg:px-8 gap-4">
+        <div className="dentbridge-benefits-scroll dentbridge-stagger-group mx-auto flex max-w-7xl overflow-x-auto whitespace-nowrap px-4 pb-2 text-xs font-medium text-white sm:flex-wrap sm:items-center sm:justify-center sm:gap-x-8 sm:pb-0 sm:text-sm lg:px-8 gap-4">
           {benefits.map((benefit) => {
             const Icon = benefit.icon
             return (
