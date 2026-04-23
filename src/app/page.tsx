@@ -305,11 +305,11 @@ export default function HomePage() {
 
       <section className="border-b border-teal-900/10 bg-gradient-to-r from-teal-800 via-teal-700 to-cyan-800 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] sm:py-4">
         {/* Swipeable on mobile, wrapped on desktop */}
-        <div className="dentbridge-benefits-scroll dentbridge-stagger-group mx-auto flex max-w-7xl overflow-x-auto whitespace-nowrap px-4 pb-2 text-xs font-medium text-white sm:flex-wrap sm:items-center sm:justify-center sm:gap-x-8 sm:pb-0 sm:text-sm lg:px-8 gap-4">
+        <div className="dentbridge-benefits-scroll dentbridge-reveal dentbridge-stagger-group mx-auto flex max-w-7xl overflow-x-auto whitespace-nowrap px-4 pb-2 text-xs font-medium text-white sm:flex-wrap sm:items-center sm:justify-center sm:gap-x-8 sm:pb-0 sm:text-sm lg:px-8 gap-4">
           {benefits.map((benefit) => {
             const Icon = benefit.icon
             return (
-              <div key={benefit.key} className="dentbridge-reveal flex shrink-0 items-center gap-1.5 rounded-full bg-white/[0.04] px-1.5 py-1 ring-1 ring-white/[0.06] sm:gap-2 sm:bg-transparent sm:px-0 sm:py-0 sm:ring-0">
+              <div key={benefit.key} className="flex shrink-0 items-center gap-1.5 rounded-full bg-white/[0.04] px-1.5 py-1 ring-1 ring-white/[0.06] sm:gap-2 sm:bg-transparent sm:px-0 sm:py-0 sm:ring-0">
                 <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-teal-100" />
                 <span>{t(benefit.key)}</span>
               </div>
