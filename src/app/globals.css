@@ -111,6 +111,9 @@ body {
 .dentbridge-benefits-scroll {
   -ms-overflow-style: none;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
 }
 
 .dentbridge-benefits-scroll::-webkit-scrollbar {
