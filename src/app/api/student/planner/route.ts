@@ -10,6 +10,7 @@ const ACTIVE_CASE_STATUSES = [
 ]
 
 const END_MARKER_REGEX = /\n?\[\[planner_end:([^\]]+)\]\]\s*$/
+const CASE_APPOINTMENT_SOURCE_KIND = 'case_appointment'
 
 function stripEndMarker(value: string | null) {
   if (!value) {
@@ -67,7 +68,9 @@ export async function GET() {
 
   const { data: plannerRows, error: plannerError } = await supabase
     .from('student_planner_events')
-    .select('id, title, description, event_date, patient_id, language, created_at')
+    .select(
+      'id, title, description, event_date, patient_id, language, created_at, source_kind, source_case_id'
+    )
     .eq('student_id', user.id)
     .order('event_date', { ascending: true })
 
@@ -86,6 +89,14 @@ export async function GET() {
   }
 
   const approvedCaseIds = (approvedRequests ?? []).map((row) => row.case_id)
+  const linkedCaseIds = Array.from(
+    new Set(
+      (plannerRows ?? [])
+        .filter((row) => row.source_kind === CASE_APPOINTMENT_SOURCE_KIND && row.source_case_id)
+        .map((row) => row.source_case_id as string)
+    )
+  )
+
   let activePatients: Array<{
     id: string
     full_name: string
@@ -109,10 +120,45 @@ export async function GET() {
     activePatients = patientRows ?? []
   }
 
+  const latestLinkedAppointmentsByCase = new Map<
+    string,
+    {
+      appointment_date: string | null
+      appointment_time: string | null
+    }
+  >()
+
+  if (linkedCaseIds.length > 0) {
+    const { data: linkedAppointmentRows, error: linkedAppointmentsError } = await supabase
+      .from('case_progress_entries')
+      .select('case_id, appointment_date, appointment_time, created_at')
+      .in('case_id', linkedCaseIds)
+      .not('appointment_date', 'is', null)
+      .order('created_at', { ascending: false })
+
+    if (linkedAppointmentsError) {
+      return NextResponse.json({ error: linkedAppointmentsError.message }, { status: 500 })
+    }
+
+    for (const row of linkedAppointmentRows ?? []) {
+      if (!latestLinkedAppointmentsByCase.has(row.case_id)) {
+        latestLinkedAppointmentsByCase.set(row.case_id, {
+          appointment_date: row.appointment_date,
+          appointment_time: row.appointment_time,
+        })
+      }
+    }
+  }
+
   return NextResponse.json({
     data: {
       events: (plannerRows ?? []).map((row) => {
         const { description, endAt } = stripEndMarker(row.description)
+        const linkedAppointment =
+          row.source_kind === CASE_APPOINTMENT_SOURCE_KIND && row.source_case_id
+            ? latestLinkedAppointmentsByCase.get(row.source_case_id)
+            : undefined
+
         return {
           id: row.id,
           title: row.title,
@@ -122,6 +168,10 @@ export async function GET() {
           patient_id: row.patient_id,
           language: row.language,
           created_at: row.created_at,
+          source_kind: row.source_kind,
+          source_case_id: row.source_case_id,
+          linked_appointment_date: linkedAppointment?.appointment_date ?? null,
+          linked_appointment_time: linkedAppointment?.appointment_time ?? null,
         }
       }),
       activePatients,
@@ -217,7 +267,9 @@ export async function POST(request: NextRequest) {
       patient_id: patientId,
       language,
     })
-    .select('id, title, description, event_date, patient_id, language, created_at')
+    .select(
+      'id, title, description, event_date, patient_id, language, created_at, source_kind, source_case_id'
+    )
     .single()
 
   if (insertError) {
@@ -236,6 +288,10 @@ export async function POST(request: NextRequest) {
       patient_id: insertedRow.patient_id,
       language: insertedRow.language,
       created_at: insertedRow.created_at,
+      source_kind: insertedRow.source_kind,
+      source_case_id: insertedRow.source_case_id,
+      linked_appointment_date: null,
+      linked_appointment_time: null,
     },
   })
 }

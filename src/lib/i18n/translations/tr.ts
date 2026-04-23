@@ -763,6 +763,7 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
       deleteError: 'Planlayıcı etkinliği şu anda silinemedi.',
       deleteSuccess: 'Planlayıcı etkinliği silindi.',
       noActivePatients: 'Şu anda bağlanabilecek aktif hasta yok.',
+      managedFromCaseCard: 'Vaka kartından yönetilir',
     },
   },
 

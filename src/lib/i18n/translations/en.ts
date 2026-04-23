@@ -607,6 +607,7 @@ export type TranslationShape = {
       deleteError: string
       deleteSuccess: string
       noActivePatients: string
+      managedFromCaseCard: string
     }
   }
 
@@ -1722,6 +1723,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       deleteError: 'Unable to delete the planner event right now.',
       deleteSuccess: 'Planner event deleted.',
       noActivePatients: 'No active patients available to link right now.',
+      managedFromCaseCard: 'Managed from case card',
     },
   },
 

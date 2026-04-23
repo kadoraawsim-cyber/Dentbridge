@@ -10,6 +10,7 @@ const ACTIVE_CASE_STATUSES = [
 ]
 
 const END_MARKER_REGEX = /\n?\[\[planner_end:([^\]]+)\]\]\s*$/
+const CASE_APPOINTMENT_SOURCE_KIND = 'case_appointment'
 
 function encodeDescription(description: string | null, endAt: string | null) {
   const cleanDescription = (description || '').replace(END_MARKER_REGEX, '').trim()
@@ -137,6 +138,25 @@ export async function PATCH(
   const patientValidationError = await validatePatientLink(supabase, user.id, patientId)
   if (patientValidationError) return patientValidationError
 
+  const { data: existingEvent, error: existingEventError } = await supabase
+    .from('student_planner_events')
+    .select('id, source_kind')
+    .eq('id', id)
+    .eq('student_id', user.id)
+    .maybeSingle()
+
+  if (existingEventError) {
+    return NextResponse.json({ error: existingEventError.message }, { status: 500 })
+  }
+
+  if (!existingEvent) {
+    return NextResponse.json({ error: 'Planner event not found.' }, { status: 404 })
+  }
+
+  if (existingEvent.source_kind === CASE_APPOINTMENT_SOURCE_KIND) {
+    return NextResponse.json({ error: 'Linked case appointments are managed from the case card.' }, { status: 409 })
+  }
+
   const { data: updatedRow, error: updateError } = await supabase
     .from('student_planner_events')
     .update({
@@ -147,7 +167,9 @@ export async function PATCH(
     })
     .eq('id', id)
     .eq('student_id', user.id)
-    .select('id, title, description, event_date, patient_id, language, created_at')
+    .select(
+      'id, title, description, event_date, patient_id, language, created_at, source_kind, source_case_id'
+    )
     .maybeSingle()
 
   if (updateError) {
@@ -171,6 +193,10 @@ export async function PATCH(
       patient_id: updatedRow.patient_id,
       language: updatedRow.language,
       created_at: updatedRow.created_at,
+      source_kind: updatedRow.source_kind,
+      source_case_id: updatedRow.source_case_id,
+      linked_appointment_date: null,
+      linked_appointment_time: null,
     },
   })
 }
@@ -184,6 +210,25 @@ export async function DELETE(
   if (response) return response
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const { data: existingEvent, error: existingEventError } = await supabase
+    .from('student_planner_events')
+    .select('id, source_kind')
+    .eq('id', id)
+    .eq('student_id', user.id)
+    .maybeSingle()
+
+  if (existingEventError) {
+    return NextResponse.json({ error: existingEventError.message }, { status: 500 })
+  }
+
+  if (!existingEvent) {
+    return NextResponse.json({ error: 'Planner event not found.' }, { status: 404 })
+  }
+
+  if (existingEvent.source_kind === CASE_APPOINTMENT_SOURCE_KIND) {
+    return NextResponse.json({ error: 'Linked case appointments are managed from the case card.' }, { status: 409 })
   }
 
   const { data: deletedRow, error: deleteError } = await supabase

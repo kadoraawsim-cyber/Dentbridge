@@ -30,6 +30,10 @@ type PlannerEvent = {
   patient_id: string | null
   language: string | null
   created_at: string
+  source_kind: string | null
+  source_case_id: string | null
+  linked_appointment_date: string | null
+  linked_appointment_time: string | null
 }
 
 type ActivePatient = {
@@ -59,6 +63,10 @@ type PlannerFormState = {
   endAt: string
   patientId: string
 }
+
+const CASE_APPOINTMENT_SOURCE_KIND = 'case_appointment'
+const DEFAULT_LINKED_APPOINTMENT_TIME = '09:00'
+const CLINIC_TIMEZONE_OFFSET = '+03:00'
 
 function startOfDay(date: Date) {
   const next = new Date(date)
@@ -108,7 +116,41 @@ function formatDateLabel(date: Date, locale: string, options: Intl.DateTimeForma
   return new Intl.DateTimeFormat(locale, options).format(date)
 }
 
+function isLinkedCaseAppointment(event: PlannerEvent) {
+  return event.source_kind === CASE_APPOINTMENT_SOURCE_KIND
+}
+
+function normalizeLinkedAppointmentTime(value: string | null) {
+  if (!value) {
+    return DEFAULT_LINKED_APPOINTMENT_TIME
+  }
+
+  return value.slice(0, 5)
+}
+
+function getEventComparableTime(event: PlannerEvent) {
+  if (isLinkedCaseAppointment(event) && event.linked_appointment_date) {
+    return new Date(
+      `${event.linked_appointment_date}T${normalizeLinkedAppointmentTime(event.linked_appointment_time)}:00${CLINIC_TIMEZONE_OFFSET}`
+    ).getTime()
+  }
+
+  return new Date(event.start_at).getTime()
+}
+
+function getEventDateKey(event: PlannerEvent) {
+  if (isLinkedCaseAppointment(event) && event.linked_appointment_date) {
+    return event.linked_appointment_date
+  }
+
+  return toDateKey(new Date(event.start_at))
+}
+
 function formatTimeRange(event: PlannerEvent, locale: string, t: (key: string) => string) {
+  if (isLinkedCaseAppointment(event) && event.linked_appointment_date) {
+    return `${t('student.planner.eventStarts')}: ${normalizeLinkedAppointmentTime(event.linked_appointment_time)}`
+  }
+
   const start = new Date(event.start_at)
   const end = event.end_at ? new Date(event.end_at) : null
   const formatter = new Intl.DateTimeFormat(locale, {
@@ -121,6 +163,26 @@ function formatTimeRange(event: PlannerEvent, locale: string, t: (key: string) =
   }
 
   return `${formatter.format(start)} - ${formatter.format(end)}`
+}
+
+function formatUpcomingDateTimeLabel(
+  event: PlannerEvent,
+  locale: string
+) {
+  if (isLinkedCaseAppointment(event) && event.linked_appointment_date) {
+    const displayDate = new Date(`${event.linked_appointment_date}T00:00:00`)
+    return `${formatDateLabel(displayDate, locale, {
+      day: 'numeric',
+      month: 'short',
+    })}, ${normalizeLinkedAppointmentTime(event.linked_appointment_time)}`
+  }
+
+  return formatDateLabel(new Date(event.start_at), locale, {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 function getInitials(fullName: string, email: string) {
@@ -137,8 +199,7 @@ function getInitials(fullName: string, email: string) {
 
 function sortPlannerEvents(items: PlannerEvent[]) {
   return [...items].sort(
-    (left, right) =>
-      new Date(left.start_at).getTime() - new Date(right.start_at).getTime()
+    (left, right) => getEventComparableTime(left) - getEventComparableTime(right)
   )
 }
 
@@ -236,16 +297,13 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
     const grouped: Record<string, PlannerEvent[]> = {}
 
     for (const event of events) {
-      const key = toDateKey(new Date(event.start_at))
+      const key = getEventDateKey(event)
       if (!grouped[key]) grouped[key] = []
       grouped[key].push(event)
     }
 
     for (const key of Object.keys(grouped)) {
-      grouped[key].sort(
-        (left, right) =>
-          new Date(left.start_at).getTime() - new Date(right.start_at).getTime()
-      )
+      grouped[key].sort((left, right) => getEventComparableTime(left) - getEventComparableTime(right))
     }
 
     return grouped
@@ -257,11 +315,8 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
   const upcomingEvents = useMemo(() => {
     const now = Date.now()
     return [...events]
-      .filter((event) => new Date(event.start_at).getTime() >= now - 24 * 60 * 60 * 1000)
-      .sort(
-        (left, right) =>
-          new Date(left.start_at).getTime() - new Date(right.start_at).getTime()
-      )
+      .filter((event) => getEventComparableTime(event) >= now - 24 * 60 * 60 * 1000)
+      .sort((left, right) => getEventComparableTime(left) - getEventComparableTime(right))
       .slice(0, 6)
   }, [events])
 
@@ -280,6 +335,10 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
   }
 
   function openEditModal(event: PlannerEvent) {
+    if (isLinkedCaseAppointment(event)) {
+      return
+    }
+
     setEditingEventId(event.id)
     setForm({
       title: event.title,
@@ -404,6 +463,20 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
 
   function renderEventPill(event: PlannerEvent) {
     const tone = getEventTone(event)
+
+    if (isLinkedCaseAppointment(event)) {
+      return (
+        <div
+          key={event.id}
+          className={`w-full rounded-lg border px-2.5 py-2 text-left ${tone.card}`}
+        >
+          <p className="truncate text-xs font-semibold text-slate-900">{event.title}</p>
+          <p className="mt-1 text-[11px] text-slate-500">{formatTimeRange(event, dateLocale, t)}</p>
+          <p className="mt-1 text-[11px] text-slate-500">{t('student.planner.managedFromCaseCard')}</p>
+        </div>
+      )
+    }
+
     return (
       <button
         key={event.id}
@@ -586,31 +659,58 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
             </p>
           ) : (
             selectedDateEvents.map((event) => (
-              <button
-                key={event.id}
-                type="button"
-                onClick={() => openEditModal(event)}
-                className={`w-full rounded-2xl border px-4 py-4 text-left transition ${getEventTone(event).card}`}
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-base font-semibold text-slate-900">{event.title}</p>
-                    <p className="mt-1 text-sm text-slate-500">
-                      {formatTimeRange(event, dateLocale, t)}
-                    </p>
+              isLinkedCaseAppointment(event) ? (
+                <div
+                  key={event.id}
+                  className={`w-full rounded-2xl border px-4 py-4 text-left ${getEventTone(event).card}`}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-base font-semibold text-slate-900">{event.title}</p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {formatTimeRange(event, dateLocale, t)}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                      {event.patient_id
+                        ? `${t('student.planner.linkedPatient')}: ${patientMap[event.patient_id] ?? event.patient_id}`
+                        : t('student.planner.noLinkedPatient')}
+                    </span>
                   </div>
-                  <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600">
-                    {event.patient_id
-                      ? `${t('student.planner.linkedPatient')}: ${patientMap[event.patient_id] ?? event.patient_id}`
-                      : t('student.planner.noLinkedPatient')}
-                  </span>
+                  <p className="mt-3 text-xs text-slate-500">{t('student.planner.managedFromCaseCard')}</p>
+                  {event.description && (
+                    <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-slate-600">
+                      {event.description}
+                    </p>
+                  )}
                 </div>
-                {event.description && (
-                  <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-slate-600">
-                    {event.description}
-                  </p>
-                )}
-              </button>
+              ) : (
+                <button
+                  key={event.id}
+                  type="button"
+                  onClick={() => openEditModal(event)}
+                  className={`w-full rounded-2xl border px-4 py-4 text-left transition ${getEventTone(event).card}`}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-base font-semibold text-slate-900">{event.title}</p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {formatTimeRange(event, dateLocale, t)}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                      {event.patient_id
+                        ? `${t('student.planner.linkedPatient')}: ${patientMap[event.patient_id] ?? event.patient_id}`
+                        : t('student.planner.noLinkedPatient')}
+                    </span>
+                  </div>
+                  {event.description && (
+                    <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-slate-600">
+                      {event.description}
+                    </p>
+                  )}
+                </button>
+              )
             ))
           )}
         </div>
@@ -829,6 +929,9 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
                               ? `${t('student.planner.linkedPatient')}: ${patientMap[event.patient_id] ?? event.patient_id}`
                               : t('student.planner.noLinkedPatient')}
                           </p>
+                          {isLinkedCaseAppointment(event) && (
+                            <p className="mt-2 text-xs text-slate-500">{t('student.planner.managedFromCaseCard')}</p>
+                          )}
                         </div>
                       ))
                     )}
@@ -847,22 +950,30 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
                       <p className="text-sm text-slate-400">{t('student.planner.noEventsForDay')}</p>
                     ) : (
                       upcomingEvents.map((event) => (
-                        <button
-                          key={event.id}
-                          type="button"
-                          onClick={() => openEditModal(event)}
-                          className={`w-full rounded-xl border px-4 py-3 text-left transition ${getEventTone(event).card}`}
-                        >
-                          <p className="text-sm font-semibold text-slate-900">{event.title}</p>
-                          <p className="mt-1 text-xs text-slate-500">
-                            {formatDateLabel(new Date(event.start_at), dateLocale, {
-                              day: 'numeric',
-                              month: 'short',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </p>
-                        </button>
+                        isLinkedCaseAppointment(event) ? (
+                          <div
+                            key={event.id}
+                            className={`w-full rounded-xl border px-4 py-3 text-left ${getEventTone(event).card}`}
+                          >
+                            <p className="text-sm font-semibold text-slate-900">{event.title}</p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              {formatUpcomingDateTimeLabel(event, dateLocale)}
+                            </p>
+                            <p className="mt-2 text-xs text-slate-500">{t('student.planner.managedFromCaseCard')}</p>
+                          </div>
+                        ) : (
+                          <button
+                            key={event.id}
+                            type="button"
+                            onClick={() => openEditModal(event)}
+                            className={`w-full rounded-xl border px-4 py-3 text-left transition ${getEventTone(event).card}`}
+                          >
+                            <p className="text-sm font-semibold text-slate-900">{event.title}</p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              {formatUpcomingDateTimeLabel(event, dateLocale)}
+                            </p>
+                          </button>
+                        )
                       ))
                     )}
                   </div>
