@@ -24,3 +24,163 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.dentbridge-reveal {
+  opacity: 1;
+  transform: none;
+}
+
+.dentbridge-motion-ready .dentbridge-reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 680ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 680ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.dentbridge-motion-ready .dentbridge-reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.dentbridge-motion-ready .dentbridge-stagger-group > .dentbridge-reveal:nth-child(2) {
+  transition-delay: 70ms;
+}
+
+.dentbridge-motion-ready .dentbridge-stagger-group > .dentbridge-reveal:nth-child(3) {
+  transition-delay: 140ms;
+}
+
+.dentbridge-motion-ready .dentbridge-stagger-group > .dentbridge-reveal:nth-child(4) {
+  transition-delay: 210ms;
+}
+
+.dentbridge-motion-ready .dentbridge-stagger-group > .dentbridge-reveal:nth-child(5) {
+  transition-delay: 280ms;
+}
+
+.dentbridge-motion-ready .dentbridge-stagger-group > .dentbridge-reveal:nth-child(6) {
+  transition-delay: 350ms;
+}
+
+.dentbridge-motion-ready .dentbridge-stagger-group > .dentbridge-reveal:nth-child(7) {
+  transition-delay: 420ms;
+}
+
+.dentbridge-motion-ready .dentbridge-stagger-group > .dentbridge-reveal:nth-child(8) {
+  transition-delay: 490ms;
+}
+
+.dentbridge-card {
+  transition:
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    transform 220ms ease,
+    background-color 220ms ease;
+}
+
+.dentbridge-soft-control,
+.dentbridge-primary-cta,
+.dentbridge-secondary-cta,
+.dentbridge-glass-button,
+.dentbridge-link-lift {
+  transition:
+    border-color 220ms ease,
+    background-color 220ms ease,
+    box-shadow 220ms ease,
+    color 220ms ease,
+    transform 220ms ease;
+}
+
+.dentbridge-image-frame {
+  position: relative;
+  isolation: isolate;
+}
+
+.dentbridge-image-frame::after {
+  position: absolute;
+  inset: 0.5rem;
+  z-index: 1;
+  pointer-events: none;
+  content: "";
+  border-radius: 1rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.dentbridge-mobile-menu {
+  animation: dentbridge-menu-enter 180ms ease-out;
+}
+
+.dentbridge-accordion-panel {
+  animation: dentbridge-panel-enter 220ms ease-out;
+}
+
+@keyframes dentbridge-menu-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dentbridge-panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dentbridge-card:hover {
+    border-color: rgba(20, 184, 166, 0.32);
+    box-shadow: 0 24px 60px -38px rgba(15, 23, 42, 0.45);
+    transform: translateY(-2px);
+  }
+
+  .dentbridge-soft-control:hover,
+  .dentbridge-glass-button:hover,
+  .dentbridge-link-lift:hover {
+    transform: translateY(-1px);
+  }
+
+  .dentbridge-primary-cta:hover,
+  .dentbridge-secondary-cta:hover {
+    transform: translateY(-2px);
+  }
+
+  .dentbridge-primary-cta:hover svg {
+    transform: translateX(2px);
+  }
+}
+
+.dentbridge-primary-cta svg {
+  transition: transform 220ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dentbridge-reveal,
+  .dentbridge-motion-ready .dentbridge-reveal,
+  .dentbridge-mobile-menu,
+  .dentbridge-accordion-panel,
+  .dentbridge-card,
+  .dentbridge-soft-control,
+  .dentbridge-primary-cta,
+  .dentbridge-secondary-cta,
+  .dentbridge-glass-button,
+  .dentbridge-link-lift,
+  .dentbridge-primary-cta svg {
+    animation: none;
+    transition: none;
+    transform: none;
+  }
+}
