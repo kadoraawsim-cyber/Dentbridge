@@ -456,6 +456,13 @@ export type TranslationShape = {
       completedTreatmentsDesc: string
       treatmentCompleted: string
       treatmentsCompleted: string
+      rescheduleAppointmentBtn: string
+      rescheduleComposerTitle: string
+      rescheduleComposerDesc: string
+      rescheduleReasonLabel: string
+      rescheduleReasonPlaceholder: string
+      saveReschedule: string
+      timelineRescheduled: string
     }
     cases: {
       backToDashboard: string
@@ -1570,6 +1577,13 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       completedTreatmentsDesc: 'Cases you have fully completed',
       treatmentCompleted: 'treatment completed',
       treatmentsCompleted: 'treatments completed',
+      rescheduleAppointmentBtn: 'Reschedule Appointment',
+      rescheduleComposerTitle: 'Reschedule Appointment',
+      rescheduleComposerDesc: 'Update the appointment date and time. A new record will be added to the timeline.',
+      rescheduleReasonLabel: 'Reason (optional)',
+      rescheduleReasonPlaceholder: 'e.g. Patient requested a different date…',
+      saveReschedule: 'Save Reschedule',
+      timelineRescheduled: 'Appointment rescheduled.',
     },
     cases: {
       backToDashboard: 'Back to Dashboard',

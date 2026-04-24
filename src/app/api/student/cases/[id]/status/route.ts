@@ -2,18 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
-type StudentAction =
-  | 'mark_contacted'
-  | 'mark_appointment_scheduled'
-  | 'mark_in_treatment'
+type LifecycleAction = 'mark_contacted' | 'mark_appointment_scheduled' | 'mark_in_treatment'
+type StudentAction = LifecycleAction | 'reschedule_appointment'
 
 const VALID_ACTIONS: StudentAction[] = [
   'mark_contacted',
   'mark_appointment_scheduled',
   'mark_in_treatment',
+  'reschedule_appointment',
 ]
 
-const ACTION_TO_STATUS: Record<StudentAction, string> = {
+const ACTION_TO_STATUS: Record<LifecycleAction, string> = {
   mark_contacted: 'contacted',
   mark_appointment_scheduled: 'appointment_scheduled',
   mark_in_treatment: 'in_treatment',
@@ -23,7 +22,7 @@ const CASE_APPOINTMENT_SOURCE_KIND = 'case_appointment'
 const DEFAULT_APPOINTMENT_TIME = '09:00:00'
 const CLINIC_TIMEZONE_OFFSET = '+03:00'
 
-const EXPECTED_CURRENT_STATUS: Record<StudentAction, string> = {
+const EXPECTED_CURRENT_STATUS: Record<LifecycleAction, string> = {
   mark_contacted: 'student_approved',
   mark_appointment_scheduled: 'contacted',
   mark_in_treatment: 'appointment_scheduled',
@@ -132,7 +131,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
 
-  if (action === 'mark_appointment_scheduled') {
+  if (action === 'mark_appointment_scheduled' || action === 'reschedule_appointment') {
     if (!isValidDate(appointmentDate)) {
       return NextResponse.json({ error: 'Appointment date is required.' }, { status: 400 })
     }
@@ -176,7 +175,76 @@ export async function PATCH(
     )
   }
 
-  // ── 4. Advance the case status ───────────────────────────────────────────────
+  // ── 4a. Reschedule appointment (does not advance case status) ────────────────
+  if (action === 'reschedule_appointment') {
+    const { data: rescheduleCase, error: rescheduleCaseError } = await supabase
+      .from('patient_requests')
+      .select('status')
+      .eq('id', id)
+      .maybeSingle()
+
+    if (rescheduleCaseError) {
+      return NextResponse.json({ error: rescheduleCaseError.message }, { status: 500 })
+    }
+
+    if (!rescheduleCase) {
+      return NextResponse.json({ error: 'Case not found.' }, { status: 404 })
+    }
+
+    if (!['appointment_scheduled', 'in_treatment'].includes(rescheduleCase.status)) {
+      return NextResponse.json(
+        { error: 'Rescheduling is only available for scheduled or active cases.' },
+        { status: 409 }
+      )
+    }
+
+    const { data: studentProfile } = await supabase
+      .from('student_profiles')
+      .select('full_name')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    const { data: rescheduleEntry, error: rescheduleInsertError } = await supabase
+      .from('case_progress_entries')
+      .insert({
+        case_id: id,
+        student_id: user.id,
+        student_name: studentProfile?.full_name?.trim() || null,
+        status_at_time: 'rescheduled',
+        appointment_date: appointmentDate ?? null,
+        appointment_time: appointmentTime ?? null,
+        note: note || null,
+        what_was_done: null,
+        next_step: null,
+        next_appointment_date: null,
+        next_appointment_time: null,
+      })
+      .select(
+        'id, case_id, student_id, student_name, status_at_time, appointment_date, appointment_time, note, what_was_done, next_step, next_appointment_date, next_appointment_time, needs_faculty_attention, created_at'
+      )
+      .single()
+
+    if (rescheduleInsertError) {
+      return NextResponse.json({ error: rescheduleInsertError.message }, { status: 500 })
+    }
+
+    const { error: plannerUpdateError } = await supabase
+      .from('student_planner_events')
+      .update({ event_date: buildPlannerEventDate(appointmentDate!, appointmentTime) })
+      .eq('student_id', user.id)
+      .eq('source_kind', CASE_APPOINTMENT_SOURCE_KIND)
+      .eq('source_case_id', id)
+
+    if (plannerUpdateError) {
+      await supabase.from('case_progress_entries').delete().eq('id', rescheduleEntry.id)
+      return NextResponse.json({ error: plannerUpdateError.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true, data: { progressEntry: rescheduleEntry } })
+  }
+
+  // ── 4b. Advance the case status ───────────────────────────────────────────────
+  // TypeScript narrows `action` to LifecycleAction after the reschedule early-return above.
   const { data: currentCase, error: currentCaseError } = await supabase
     .from('patient_requests')
     .select('status, full_name')
