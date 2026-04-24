@@ -921,6 +921,16 @@ export type TranslationShape = {
       rejectBtn: string
       undoRejection: string
       uploadedFileFallback: string
+      fullSubmissionTitle: string
+      fullNameLabel: string
+      genderLabel: string
+      treatmentTypeLabel: string
+      painScoreLabel: string
+      symptomDurationLabel: string
+      medicalConditionLabel: string
+      contactMethodLabel: string
+      bestContactTimeLabel: string
+      notProvided: string
     }
     // ── DB-backed display values shown in the admin portal ──────────────────
     db: {
@@ -2050,6 +2060,16 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       rejectBtn: 'Reject',
       undoRejection: 'Undo Rejection',
       uploadedFileFallback: 'Uploaded file',
+      fullSubmissionTitle: 'Full Patient Submission',
+      fullNameLabel: 'Full Name',
+      genderLabel: 'Gender',
+      treatmentTypeLabel: 'Treatment Category',
+      painScoreLabel: 'Pain Score',
+      symptomDurationLabel: 'Problem Duration',
+      medicalConditionLabel: 'Medical Condition',
+      contactMethodLabel: 'Preferred Contact Method',
+      bestContactTimeLabel: 'Best Time to Contact',
+      notProvided: 'Not provided',
     },
     db: {
       statusSubmitted: 'Submitted',

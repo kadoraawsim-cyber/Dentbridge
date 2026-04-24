@@ -21,12 +21,18 @@ type PatientRequest = {
   id: string
   full_name: string
   age: number | null
+  gender: string | null
   phone: string
   preferred_language: string | null
   treatment_type: string
   complaint_text: string
   urgency: string
   preferred_days: string | null
+  pain_score: number | null
+  symptom_duration: string | null
+  contact_method: string | null
+  best_contact_time: string | null
+  medical_condition: string | null
   consent: boolean
   status: string
   attachment_path: string | null
@@ -336,6 +342,75 @@ export function CaseDetailClient({
       case 'weekday afternoons':   return t('admin.db.daysWeekdayAfternoons')
       case 'as soon as possible':  return t('admin.db.daysAsSoonAsPossible')
       default:                     return days || '—'
+    }
+  }
+
+  function tGender(gender: string | null): string {
+    switch ((gender || '').toLowerCase()) {
+      case 'male':   return t('request.genderMale')
+      case 'female': return t('request.genderFemale')
+      default:       return gender || t('admin.detail.notProvided')
+    }
+  }
+
+  function tTreatmentType(type: string): string {
+    switch (type) {
+      case 'Initial Examination / Consultation': return t('admin.db.treatmentInitialExam')
+      case 'Dental Cleaning':                    return t('admin.db.treatmentCleaning')
+      case 'Fillings':                           return t('admin.db.treatmentFillings')
+      case 'Tooth Extraction':                   return t('admin.db.treatmentExtraction')
+      case 'Root Canal Treatment':               return t('admin.db.treatmentRootCanal')
+      case 'Gum Treatment':                      return t('admin.db.treatmentGum')
+      case 'Prosthetics / Crowns':               return t('admin.db.treatmentProsthetics')
+      case 'Orthodontics':                       return t('admin.db.treatmentOrthodontics')
+      case 'Pediatric Dentistry':                return t('admin.db.treatmentPediatric')
+      case 'Esthetic Dentistry':                 return t('admin.db.treatmentEsthetic')
+      case "I'm not sure":                       return t('request.treatments.notSure')
+      case 'Other':                              return t('admin.db.treatmentOther')
+      default:                                   return type || '—'
+    }
+  }
+
+  function tDuration(duration: string | null): string {
+    switch ((duration || '').toLowerCase()) {
+      case 'today':                           return t('request.durationToday')
+      case 'a few days':                      return t('request.durationFewDays')
+      case '1-2 weeks':                       return t('request.durationOneToTwoWeeks')
+      case 'more than a month':               return t('request.durationMoreThanMonth')
+      case 'routine / no specific start date':return t('request.durationRoutineNoSpecificStart')
+      default:                                return duration || t('admin.detail.notProvided')
+    }
+  }
+
+  function tMedicalCondition(condition: string | null): string {
+    if (!condition) return t('admin.detail.notProvided')
+    const lower = condition.toLowerCase()
+    if (lower === 'none')             return t('request.medicalNone')
+    if (lower === 'diabetes')         return t('request.medicalDiabetes')
+    if (lower === 'pregnancy')        return t('request.medicalPregnancy')
+    if (lower === 'blood thinner use')return t('request.medicalBloodThinner')
+    if (lower === 'allergy')          return t('request.medicalAllergy')
+    if (lower.startsWith('other:'))   return `${t('request.medicalOther')}: ${condition.slice(7).trim()}`
+    if (lower === 'other')            return t('request.medicalOther')
+    return condition
+  }
+
+  function tContactMethod(method: string | null): string {
+    switch ((method || '').toLowerCase()) {
+      case 'whatsapp':   return t('request.contactMethodWhatsapp')
+      case 'phone call': return t('request.contactMethodPhone')
+      case 'sms':        return t('request.contactMethodSms')
+      default:           return method || t('admin.detail.notProvided')
+    }
+  }
+
+  function tContactTime(time: string | null): string {
+    switch ((time || '').toLowerCase()) {
+      case 'morning':   return t('request.contactTimeMorning')
+      case 'afternoon': return t('request.contactTimeAfternoon')
+      case 'evening':   return t('request.contactTimeEvening')
+      case 'anytime':   return t('request.contactTimeAnytime')
+      default:          return time || t('admin.detail.notProvided')
     }
   }
 
@@ -1067,6 +1142,62 @@ export function CaseDetailClient({
                   <p className="rounded-lg border border-slate-100 bg-slate-50 p-3 font-medium text-slate-900">
                     {request.complaint_text}
                   </p>
+                </div>
+              </div>
+
+              {/* Full Patient Submission */}
+              <div className="mb-8 border-t border-slate-100 pt-6">
+                <h3 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">
+                  {t('admin.detail.fullSubmissionTitle')}
+                </h3>
+                <div className="grid grid-cols-2 gap-x-8 gap-y-5">
+                  <div>
+                    <p className="mb-1 text-xs text-slate-500">{t('admin.detail.fullNameLabel')}</p>
+                    <p className="font-medium text-slate-900">{request.full_name}</p>
+                  </div>
+
+                  <div>
+                    <p className="mb-1 text-xs text-slate-500">{t('admin.detail.genderLabel')}</p>
+                    <p className="font-medium text-slate-900">{tGender(request.gender)}</p>
+                  </div>
+
+                  <div>
+                    <p className="mb-1 text-xs text-slate-500">{t('admin.detail.treatmentTypeLabel')}</p>
+                    <p className="font-medium text-slate-900">{tTreatmentType(request.treatment_type)}</p>
+                  </div>
+
+                  <div>
+                    <p className="mb-1 text-xs text-slate-500">{t('admin.detail.painScoreLabel')}</p>
+                    <p className="font-medium text-slate-900">
+                      {request.pain_score !== null && request.pain_score !== undefined
+                        ? String(request.pain_score)
+                        : t('admin.detail.notProvided')}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="mb-1 text-xs text-slate-500">{t('admin.detail.symptomDurationLabel')}</p>
+                    <p className="font-medium text-slate-900">{tDuration(request.symptom_duration)}</p>
+                  </div>
+
+                  <div>
+                    <p className="mb-1 text-xs text-slate-500">{t('admin.detail.medicalConditionLabel')}</p>
+                    <p className="font-medium text-slate-900">{tMedicalCondition(request.medical_condition)}</p>
+                  </div>
+
+                  <div>
+                    <p className="mb-1 text-xs text-slate-500">{t('admin.detail.contactMethodLabel')}</p>
+                    <p className={`font-medium ${request.contact_method ? 'text-slate-900' : 'text-slate-400'}`}>
+                      {tContactMethod(request.contact_method)}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="mb-1 text-xs text-slate-500">{t('admin.detail.bestContactTimeLabel')}</p>
+                    <p className={`font-medium ${request.best_contact_time ? 'text-slate-900' : 'text-slate-400'}`}>
+                      {tContactTime(request.best_contact_time)}
+                    </p>
+                  </div>
                 </div>
               </div>
 

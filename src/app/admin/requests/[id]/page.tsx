@@ -24,7 +24,7 @@ export default async function AdminRequestDetailPage({
   const { data, error } = await supabase
     .from('patient_requests')
     .select(
-      'id, full_name, age, phone, preferred_language, treatment_type, complaint_text, urgency, preferred_days, consent, status, attachment_path, attachment_name, assigned_department, target_student_level, clinical_notes, reviewed_by, reviewed_at, created_at'
+      'id, full_name, age, gender, phone, preferred_language, treatment_type, complaint_text, urgency, preferred_days, pain_score, symptom_duration, contact_method, best_contact_time, medical_condition, consent, status, attachment_path, attachment_name, assigned_department, target_student_level, clinical_notes, reviewed_by, reviewed_at, created_at'
     )
     .eq('id', id)
     .single()
