@@ -105,7 +105,7 @@ export default function StudentsPageClient() {
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
-                href="#access"
+                href="#how-it-works"
                 className="dentbridge-primary-cta inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-slate-950 shadow-[0_18px_36px_-24px_rgba(255,255,255,0.8)] transition hover:bg-slate-100"
               >
                 {t('studentsPage.accessCta')}
@@ -175,7 +175,7 @@ export default function StudentsPageClient() {
         </div>
       </section>
 
-      <section className="border-y border-slate-200 bg-white px-4 py-12 sm:px-6 sm:py-20 lg:px-8">
+      <section id="how-it-works" className="scroll-mt-20 border-y border-slate-200 bg-white px-4 py-12 sm:px-6 sm:py-20 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="max-w-3xl">
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-700">
