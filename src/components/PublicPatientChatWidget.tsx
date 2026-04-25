@@ -20,6 +20,7 @@ type ChatMessage = {
 function shouldShowPatientChat(pathname: string) {
   return (
     pathname === '/' ||
+    pathname === '/patients' ||
     pathname === '/faq' ||
     pathname === '/privacy' ||
     pathname.startsWith('/patient/')
@@ -79,9 +80,9 @@ function getPatientChatPageContext(
     },
   }
 
-  if (pathname === '/') {
-    return byPage.home
-  }
+if (pathname === '/' || pathname === '/patients') {
+  return byPage.home
+}
 
   if (pathname === '/patient/request') {
     return byPage['patient-request']
