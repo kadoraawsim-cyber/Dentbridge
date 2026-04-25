@@ -1118,6 +1118,24 @@ export type TranslationShape = {
     accessBody2: string
     accessBody3: string
   }
+
+  // ── PWA install guidance ────────────────────────────────────────────────────
+  pwa: {
+    bannerTitle: string
+    bannerSubtitle: string
+    installButton: string
+    howToInstall: string
+    dismiss: string
+    iosStepsTitle: string
+    iosStep1: string
+    iosStep2: string
+    iosStep3: string
+    iosStep4: string
+    androidStepsTitle: string
+    androidStep1: string
+    androidStep2: string
+    androidStep3: string
+  }
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -2394,5 +2412,22 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       'Once activated, you’ll be able to manage your cases from your student dashboard.',
     accessBody3:
       'Use the student portal only after your faculty access has been activated.',
+  },
+
+  pwa: {
+    bannerTitle: 'Install DentBridge on your phone',
+    bannerSubtitle: 'Add DentBridge to your Home Screen for faster access, just like an app.',
+    installButton: 'Install App',
+    howToInstall: 'How to install',
+    dismiss: 'Dismiss',
+    iosStepsTitle: 'iPhone / Safari',
+    iosStep1: 'Open DentBridge in Safari',
+    iosStep2: 'Tap the Share button (square with arrow)',
+    iosStep3: 'Choose "Add to Home Screen"',
+    iosStep4: 'Tap Add',
+    androidStepsTitle: 'Android / Chrome',
+    androidStep1: 'Open DentBridge in Chrome',
+    androidStep2: 'Tap "Install" or the three-dot menu',
+    androidStep3: 'Choose "Add to Home Screen" or "Install App"',
   },
 }

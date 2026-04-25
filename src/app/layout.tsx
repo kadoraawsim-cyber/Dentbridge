@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -15,15 +15,33 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#0d1f54",
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://dentbridgetr.com"),
   title: "DentBridge — Faculty-Supported Clinical Platform",
   description:
     "DentBridge connects patients with affordable university dental care provided by senior students under faculty supervision.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    title: "DentBridge",
+    statusBarStyle: "black-translucent",
+  },
   icons: {
-    icon: "/dentbridge-icon.png",
-    shortcut: "/dentbridge-icon.png",
-    apple: "/dentbridge-icon.png",
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+    shortcut: "/icons/icon-192.png",
   },
 };
 

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import InstallBanner from '@/components/InstallBanner'
 import { supabase } from '@/lib/supabase'
 import {
   CheckCircle2,
@@ -647,6 +648,8 @@ export function DashboardClient({
           </div>
         </div>
       </header>
+
+      <InstallBanner />
 
       <section className="mx-auto w-full max-w-7xl px-3 py-4 sm:px-6 sm:py-8 lg:px-8">
         <div className="mb-4 sm:mb-8 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
