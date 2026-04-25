@@ -2,6 +2,7 @@
 
 import React, { useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import { useI18n } from '@/lib/i18n'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
@@ -100,9 +101,12 @@ export default function HomePage() {
       <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 shadow-[0_10px_30px_-26px_rgba(15,23,42,0.5)] backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 sm:py-4 lg:px-8">
           <Link href="/" className="dentbridge-link-lift flex min-w-0 items-center gap-2 sm:gap-3">
-            <img
-              src="/dentbridge-icon.png"
+            <Image
+              src="/dentbridge-icon.webp"
               alt="DentBridge icon"
+              width={40}
+              height={40}
+              priority
               className="h-8 w-8 shrink-0 object-contain sm:h-10 sm:w-10"
             />
             <div className="min-w-0">

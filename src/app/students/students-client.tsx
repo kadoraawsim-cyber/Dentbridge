@@ -63,10 +63,10 @@ export default function StudentsPageClient() {
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
           <Link href="/" className="dentbridge-link-lift flex min-w-0 items-center gap-3">
             <Image
-              src="/dentbridge-icon.png"
+              src="/dentbridge-icon.webp"
               alt="DentBridge icon"
-              width={36}
-              height={36}
+              width={40}
+              height={40}
               className="h-9 w-9 shrink-0 object-contain"
             />
             <div className="min-w-0">
@@ -123,11 +123,12 @@ export default function StudentsPageClient() {
 
           <div className="overflow-hidden rounded-3xl border border-[#C8A96A]/[0.22] bg-white/[0.08] p-3 shadow-[0_32px_80px_-40px_rgba(0,0,0,0.85),0_0_80px_-30px_rgba(200,169,106,0.15)] backdrop-blur">
             <Image
-              src="/students-photo.jpg"
+              src="/students-photo.webp"
               alt="Dental students working in a supervised clinical environment"
-              width={960}
-              height={640}
+              width={1280}
+              height={717}
               priority
+              sizes="(min-width: 1024px) 48vw, (min-width: 640px) 80vw, 100vw"
               className="h-[250px] w-full rounded-2xl object-cover sm:h-[360px] lg:h-[440px]"
             />
             <div className="mt-3 grid gap-3 sm:grid-cols-3">

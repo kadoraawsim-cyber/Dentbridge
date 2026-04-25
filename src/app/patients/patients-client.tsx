@@ -2,6 +2,7 @@
 
 import React, { useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import { useI18n } from '@/lib/i18n'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
@@ -127,9 +128,11 @@ export default function PatientsPageClient() {
       <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 shadow-[0_10px_30px_-26px_rgba(15,23,42,0.5)] backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 sm:py-4 lg:px-8">
           <Link href="/" className="dentbridge-link-lift flex min-w-0 items-center gap-2 sm:gap-3">
-            <img
-              src="/dentbridge-icon.png"
+            <Image
+              src="/dentbridge-icon.webp"
               alt="DentBridge icon"
+              width={40}
+              height={40}
               className="h-8 w-8 sm:h-10 sm:w-10 shrink-0 object-contain"
             />
             <div className="min-w-0">
@@ -194,9 +197,13 @@ export default function PatientsPageClient() {
           <div className="dentbridge-reveal mt-4 flex flex-col items-center justify-center gap-4 sm:mt-0 sm:gap-5">
             <div className="relative w-full max-w-xl">
               <div className="dentbridge-image-frame overflow-hidden rounded-2xl border border-white/15 bg-white/8 p-2 shadow-2xl backdrop-blur sm:rounded-3xl sm:p-3">
-                <img
-                  src="/hero-dental-clinic.png"
+                <Image
+                  src="/hero-dental-clinic.webp"
                   alt="University dental care"
+                  width={1280}
+                  height={853}
+                  priority
+                  sizes="(min-width: 1024px) 45vw, (min-width: 640px) 80vw, 100vw"
                   className="h-[180px] w-full rounded-xl object-cover sm:h-[300px] sm:rounded-2xl lg:h-[420px]"
                 />
               </div>
@@ -205,9 +212,11 @@ export default function PatientsPageClient() {
             <div className="w-full max-w-xl rounded-2xl border border-white/15 bg-white/10 p-3 text-left shadow-[0_22px_54px_-30px_rgba(15,23,42,0.75)] backdrop-blur-md sm:p-3.5">
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/15 shadow-sm sm:h-14 sm:w-14">
-                  <img
+                  <Image
                     src="/isu%202026%20logo.jpg"
                     alt={t('landing.activePartnerStripLogoAlt')}
+                    width={56}
+                    height={56}
                     className="h-full w-full object-cover"
                   />
                 </div>
@@ -338,9 +347,12 @@ export default function PatientsPageClient() {
 
               <div className="mt-2 sm:mt-0">
                 <div className="dentbridge-card overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_20px_50px_-32px_rgba(13,148,136,0.45)] sm:rounded-3xl">
-                  <img
-                    src="/images/why-choose-clinic.jpg"
+                  <Image
+                    src="/images/why-choose-clinic.webp"
                     alt="University-supervised dental clinic"
+                    width={960}
+                    height={524}
+                    sizes="(min-width: 1024px) 45vw, 100vw"
                     className="h-[180px] w-full object-cover sm:h-[320px]"
                   />
                   <div className="border-t border-slate-100 bg-white/95 px-4 py-3">
@@ -456,9 +468,11 @@ export default function PatientsPageClient() {
         <div className="mx-auto grid max-w-7xl gap-8 sm:gap-10 px-4 sm:px-6 md:grid-cols-2 lg:grid-cols-3 lg:px-8">
           <div className="dentbridge-reveal">
             <div className="mb-3 sm:mb-4 flex items-center gap-2.5 sm:gap-3">
-              <img
-                src="/dentbridge-icon.png"
+              <Image
+                src="/dentbridge-icon.webp"
                 alt="DentBridge icon"
+                width={40}
+                height={40}
                 className="h-8 w-8 sm:h-10 sm:w-10 shrink-0 object-contain"
               />
               <div>
