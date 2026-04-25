@@ -12,23 +12,25 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* DentBridge is a light-only app — no dark-mode background switch so the
+   body never turns black and creates a gap below content on dark-mode phones. */
 
 html {
   scroll-behavior: smooth;
+  /* 100dvh updates as the mobile browser chrome appears/disappears, unlike
+     the static 100vh. Ensures html always fills the real visible screen. */
+  min-height: 100dvh;
+  background: #ffffff;
 }
 
 body {
-  background: var(--background);
+  min-height: 100dvh;
+  background: #ffffff;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
-  /* Bottom safe area so content never hides behind the iPhone home indicator */
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  /* Bottom safe area: pad at least as much as the home indicator (34 px on
+     Face ID iPhones) but never less than 16 px so content has breathing room. */
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px);
 }
 
 /*
