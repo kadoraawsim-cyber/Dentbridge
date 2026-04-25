@@ -501,7 +501,7 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
     headerTagline: 'Diş Hekimliği Öğrencileri İçin',
     backHome: 'Kitle seçimine geri dön',
     eyebrow: 'Diş hekimliği öğrencileri için',
-    heroTitle: 'Gerçek Klinik Vakalar Alın — ve Onları Profesyonel Gibi Yönetin',
+    heroTitle: 'Gerçek Klinik Vakalar Alın.\nOnları Profesyonel Gibi Yönetin.',
     heroSubtitle:
       'DentBridge, hastaları tam akademik denetim altında diş hekimliği öğrencileriyle buluşturur — aynı zamanda tüm klinik sürecinizi tek bir yerden yönetmeniz için akıllı bir sistem sunar.',
     accessCta: 'Erişim nasıl çalışır',

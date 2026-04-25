@@ -90,14 +90,15 @@ export default function StudentsPageClient() {
       <section className="relative overflow-hidden bg-[linear-gradient(135deg,#071638_0%,#10245a_42%,#0f766e_100%)] px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
         <div className="absolute inset-0 bg-[linear-gradient(110deg,rgba(255,255,255,0.08)_0%,transparent_24%,transparent_72%,rgba(125,211,252,0.08)_100%)]" aria-hidden="true" />
         <div className="absolute inset-0 opacity-[0.04] [background-image:radial-gradient(circle,white_1px,transparent_1px)] [background-size:28px_28px]" aria-hidden="true" />
+        <div className="absolute -bottom-24 -right-24 h-96 w-96 rounded-full bg-[#C8A96A] opacity-[0.07] blur-[100px]" aria-hidden="true" />
 
         <div className="relative mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="text-center sm:text-left">
-            <span className="inline-flex items-center gap-2 rounded-full border border-teal-200/35 bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-teal-50 shadow-sm backdrop-blur">
-              <GraduationCap className="h-4 w-4" />
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#C8A96A]/40 bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-teal-50 shadow-sm backdrop-blur">
+              <GraduationCap className="h-4 w-4 text-[#C8A96A]" />
               {t('studentsPage.eyebrow')}
             </span>
-            <h1 className="mt-6 max-w-3xl text-4xl font-bold leading-[1.06] text-white sm:text-5xl lg:text-6xl">
+            <h1 className="mt-6 max-w-3xl whitespace-pre-line text-4xl font-extrabold leading-[1.05] tracking-tight text-white sm:text-5xl lg:text-6xl">
               {t('studentsPage.heroTitle')}
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-base leading-8 text-slate-200 sm:mx-0 sm:text-lg">
@@ -120,9 +121,9 @@ export default function StudentsPageClient() {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-3xl border border-white/15 bg-white/10 p-3 shadow-2xl backdrop-blur">
+          <div className="overflow-hidden rounded-3xl border border-[#C8A96A]/[0.22] bg-white/[0.08] p-3 shadow-[0_32px_80px_-40px_rgba(0,0,0,0.85),0_0_80px_-30px_rgba(200,169,106,0.15)] backdrop-blur">
             <Image
-              src="/hero-dental-clinic.png"
+              src="/students-photo.jpg"
               alt="Dental students working in a supervised clinical environment"
               width={960}
               height={640}
@@ -133,8 +134,8 @@ export default function StudentsPageClient() {
               {valueItems.slice(0, 3).map((item) => {
                 const Icon = item.icon
                 return (
-                  <div key={item.key} className="rounded-2xl border border-white/15 bg-white/10 p-3 text-white">
-                    <Icon className="h-5 w-5 text-teal-100" />
+                  <div key={item.key} className="rounded-2xl border border-[#C8A96A]/25 bg-white/10 p-3 text-white">
+                    <Icon className="h-5 w-5 text-[#C8A96A]" />
                     <p className="mt-2 text-xs font-semibold leading-5">{t(`studentsPage.heroStats.${item.key}`)}</p>
                   </div>
                 )
@@ -162,7 +163,7 @@ export default function StudentsPageClient() {
               const Icon = item.icon
               return (
                 <article key={item.key} className="dentbridge-card rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 text-teal-700 ring-1 ring-teal-100">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#C8A96A]/10 text-[#C8A96A] ring-1 ring-[#C8A96A]/25">
                     <Icon className="h-5 w-5" />
                   </div>
                   <p className="mt-4 text-sm font-semibold leading-6 text-slate-900">
@@ -192,10 +193,10 @@ export default function StudentsPageClient() {
               return (
                 <article key={step.key} className="dentbridge-card rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm lg:min-h-48">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-950 text-xs font-bold text-white">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-950 text-xs font-bold text-white ring-2 ring-[#C8A96A]/30">
                       {index + 1}
                     </span>
-                    <Icon className="h-5 w-5 text-teal-700" />
+                    <Icon className="h-5 w-5 text-[#C8A96A]" />
                   </div>
                   <p className="mt-4 text-sm font-semibold leading-6 text-slate-900">
                     {t(`studentsPage.workflow.${step.key}`)}
@@ -211,7 +212,7 @@ export default function StudentsPageClient() {
         <div className="mx-auto max-w-7xl">
           <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-end">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-200">
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#C8A96A]">
                 {t('studentsPage.platformEyebrow')}
               </p>
               <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
@@ -221,7 +222,7 @@ export default function StudentsPageClient() {
                 {t('studentsPage.platformIntro')}
               </p>
             </div>
-            <div className="rounded-3xl border border-white/10 bg-white/[0.06] p-5 shadow-[0_24px_70px_-44px_rgba(45,212,191,0.75)]">
+            <div className="rounded-3xl border border-[#C8A96A]/20 bg-white/[0.06] p-5 shadow-[0_24px_70px_-44px_rgba(200,169,106,0.45)]">
               <p className="text-xl font-bold text-white">{t('studentsPage.smartSystemTitle')}</p>
               <p className="mt-3 text-sm leading-7 text-slate-300">{t('studentsPage.smartSystemBody')}</p>
             </div>
@@ -232,7 +233,7 @@ export default function StudentsPageClient() {
               const Icon = feature.icon
               return (
                 <article key={feature.key} className="dentbridge-card rounded-2xl border border-white/10 bg-white/[0.06] p-5 shadow-sm">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-300/10 text-teal-100 ring-1 ring-teal-200/20">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#C8A96A]/10 text-[#C8A96A] ring-1 ring-[#C8A96A]/25">
                     <Icon className="h-5 w-5" />
                   </div>
                   <h3 className="mt-4 text-base font-bold text-white">

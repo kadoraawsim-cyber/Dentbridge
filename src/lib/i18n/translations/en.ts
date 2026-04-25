@@ -2288,7 +2288,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     headerTagline: 'For Dental Students',
     backHome: 'Back to audience selection',
     eyebrow: 'For dental students',
-    heroTitle: 'Get Real Clinical Cases — and Manage Them Like a Professional',
+    heroTitle: 'Get Real Clinical Cases.\nManage Them Like a Professional.',
     heroSubtitle:
       'DentBridge connects patients with dental students under full academic supervision — while giving you a smart system to manage your entire clinical workflow in one place.',
     accessCta: 'How access works',
