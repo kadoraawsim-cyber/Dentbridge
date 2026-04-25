@@ -5,6 +5,7 @@ export const tr: TranslationShape = {
     requestTreatment: 'Tedavi Talep Et',
     checkStatus: 'Tedavi Durumunu Sorgula',
     studentPortal: 'Öğrenci Portalı',
+    forStudents: 'Öğrenciler İçin',
     facultyLogin: 'Fakülte Girişi',
     facultyAdminLogin: 'Fakülte / Yönetici Girişi',
     aiAssistant: 'Yapay Zeka Asistanı',
@@ -23,10 +24,9 @@ export const tr: TranslationShape = {
   },
 
   hero: {
-    badge: 'Fakülte Denetiminde Bakıma Erişim',
-    title: 'Uygun Fiyatlı Denetimli Diş Bakımı',
-    description:
-      'DentBridge, hastaların uygun fiyatlı diş bakımına erişmesini, fakülte tarafından incelenen ve onları denetim altındaki kıdemli diş hekimliği öğrencileriyle eşleştiren bir süreç üzerinden destekler.',
+    badge: 'Fakülte Destekli Klinik Platform',
+    title: 'DentBridge hastaları ve diş hekimliği öğrencilerini buluşturur',
+    description: 'Başlamak için yolunuzu seçin',
   },
 
   benefits: {
@@ -44,6 +44,20 @@ export const tr: TranslationShape = {
   },
 
   landing: {
+    audienceEyebrow: 'Yolunuzu seçin',
+    audienceTitle: 'DentBridge hastalar ve diş hekimliği öğrencileri için tasarlandı.',
+    audiencePatientTitle: 'Hastalar İçin',
+    audiencePatientText:
+      "Diş tedavisine mi ihtiyacınız var? DentBridge’in başvurunuzu denetimli, üniversite temelli bir süreçte nasıl yönlendirdiğini öğrenin.",
+    audiencePatientButton: 'Hastayım',
+    audienceStudentTitle: 'Diş Hekimliği Öğrencileri İçin',
+    audienceStudentText:
+      'Klinik vaka mı arıyorsunuz? DentBridge’in vakaları, gereklilikleri ve klinik iş akışınızı yönetmenize nasıl yardımcı olduğunu keşfedin.',
+    audienceStudentButton: 'Öğrenciyim',
+    patientHeroBadge: 'Fakülte Denetiminde Bakıma Erişim',
+    patientHeroTitle: 'Uygun Fiyatlı Denetimli Diş Bakımı',
+    patientHeroDescription:
+      'DentBridge, hastaların uygun fiyatlı diş bakımına erişmesini, fakülte tarafından incelenen ve onları denetim altındaki kıdemli diş hekimliği öğrencileriyle eşleştiren bir süreç üzerinden destekler.',
     howItWorksTitle: 'Nasıl Çalışır?',
     howItWorksDesc:
       'Talebinizi gönderin, fakültemizin vakanızı incelemesine izin verin ve yapılandırılmış, denetimli bir süreçle doğru bölüm ve öğrenciyle eşleşin.',
@@ -425,6 +439,7 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
     requestTreatment: 'Tedavi Talep Et',
     checkStatus: 'Talep Durumunu Kontrol Et',
     privacyPolicy: 'Gizlilik Politikası',
+    forStudents: 'Öğrenciler İçin',
     studentPortal: 'Öğrenci Portalı',
     facultyPortal: 'Fakülte Portalı',
     casePool: 'Vaka Havuzu',
@@ -480,6 +495,119 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
       whatKindsOfCasesAnswer:
         'Muayene, diş taşı temizliği, dolgu, diş çekimi, kanal tedavisi, diş eti tedavisi, protetik ihtiyaçlar, ortodontik sorunlar, pedodonti ve estetik diş hekimliği gibi yaygın diş hekimliği ihtiyaçları için talep oluşturabilirsiniz.',
     },
+  },
+
+  studentsPage: {
+    headerTagline: 'Diş Hekimliği Öğrencileri İçin',
+    backHome: 'Kitle seçimine geri dön',
+    eyebrow: 'Diş hekimliği öğrencileri için',
+    heroTitle: 'Gerçek Klinik Vakalar Alın — ve Onları Profesyonel Gibi Yönetin',
+    heroSubtitle:
+      'DentBridge, hastaları tam akademik denetim altında diş hekimliği öğrencileriyle buluşturur — aynı zamanda tüm klinik sürecinizi tek bir yerden yönetmeniz için akıllı bir sistem sunar.',
+    accessCta: 'Erişim nasıl çalışır',
+    dashboardCta: 'Öğrenci paneline git',
+    heroStats: {
+      cases: 'İlgili klinik vakalar',
+      chaos: 'Daha az manuel takip',
+      control: 'Denetimli iş akışı',
+    },
+    whyEyebrow: 'Bu neden önemli?',
+    whyTitle: 'Klinik yıllarınız karmaşık olmak zorunda değil.',
+    whyIntro:
+      'Hasta bulmaya çalışmak, uygun vaka aramak ve her şeyi manuel olarak takip etmek yerine — DentBridge size her adımda destek olan düzenli bir sistem sunar.',
+    whyBody:
+      'Sonuç; vakalar, onaylar, randevular, notlar ve klinik gereklilikler arasında daha sakin, daha profesyonel ve daha düzenli bir klinik deneyimdir.',
+    valueItems: {
+      cases: 'İlgili klinik vakalara erişim',
+      chaos: 'Daha az karmaşa, daha az manuel takip',
+      control: 'Tedavileriniz üzerinde tam kontrol',
+      experience: 'Daha düzenli ve profesyonel bir klinik deneyim',
+    },
+    workflowEyebrow: 'Nasıl çalışır?',
+    workflowTitle: 'Başvurudan tedaviye kadar denetimli bir vaka akışı.',
+    workflow: {
+      patientSubmits: 'Hasta platform üzerinden başvuru gönderir',
+      facultyReviews: 'Fakülte vakayı inceler ve onaylar',
+      categorized: 'Vaka ilgili bölüme göre sınıflandırılır',
+      studentRequests: 'Öğrenci vakayı almak için talep gönderir',
+      assignmentApproved: 'Fakülte atamayı onaylar',
+      assigned: 'Vaka öğrenciye atanır',
+      beginTreatment:
+        'Öğrenci hastayla iletişime geçer ve tedaviye denetim altında başlar',
+    },
+    platformEyebrow: 'Platform içinde',
+    platformTitle: 'DentBridge içinde sizi neler bekliyor?',
+    platformIntro:
+      'DentBridge sadece size vaka getirmez — vakalarla ilgili tüm süreci yönetmenize yardımcı olur.',
+    smartSystemTitle: 'Klinik Hayatınızı Düzenleyen Akıllı Bir Sistem',
+    smartSystemBody:
+      'Vaka değişiminden kayıtlara, notlara, randevulara, klinik gerekliliklere ve fakülte güncellemelerine kadar klinik yılların tüm hareketli parçalarını tek düzenli yerde toplar.',
+    features: {
+      exchange: {
+        title: 'Case Exchange',
+        body:
+          'Vakaları diğer öğrencilerle düzenli ve onaylı bir sistem içinde değiştirme imkânı sunar; klinik gerekliliklerinizdeki ilerlemenizi kaybetmeden.',
+      },
+      planner: {
+        title: 'Akıllı Planner',
+        body:
+          'Randevularınızı yönetin, tedavilerinizi takip edin ve hiçbir adımı kaçırmadan planlı kalın.',
+      },
+      requirements: {
+        title: 'Otomatik Güncellenen Klinik Gereklilikler',
+        body:
+          'Gerçekten tamamladığınız vakalara göre klinik gerekliliklerinizi anlık olarak takip edin.',
+      },
+      messaging: {
+        title: 'Gelişmiş Bildirim Sistemi',
+        body:
+          'Fakülteden ve platformdan gelen güncellemeleri doğrudan telefonunuza, anlık olarak alın.',
+      },
+      records: {
+        title: 'Düzenli Hasta Kayıtları',
+        body:
+          'Üzerinde çalıştığınız her vaka temiz ve düzenli bir formatta kaydedilir; tüm önemli bilgilere hızlı erişim sağlar.',
+      },
+      notes: {
+        title: 'Her Hasta İçin Notlar',
+        body:
+          'Tedavi ilerlemesini, aşamaları ve klinik notları kaydedin; tüm vaka boyunca düzenli kalın.',
+      },
+      images: {
+        title: 'Görüntülere ve Radyografilere Kolay Erişim',
+        body:
+          'Hasta görüntülerini ve radyografileri dosya aramadan, hızlı ve erişilebilir şekilde görüntüleyin.',
+      },
+      protocols: {
+        title: 'Bölüm Bazlı Protokoller',
+        body:
+          'Çalıştığınız bölüme göre yapılandırılmış klinik protokollere ve yönergelere erişin.',
+      },
+      aiAssistant: {
+        title: 'Yakında: AI Klinik Asistan',
+        body:
+          'Yaptığınız tedaviye ve vakaya göre size ipuçları ve yönlendirme sağlayacak akıllı bir asistan.',
+      },
+    },
+    differenceEyebrow: 'DentBridge neden farklı?',
+    differenceTitle: 'Bu sadece hasta bulmakla ilgili değil.',
+    differenceBody1:
+      'DentBridge, ilk vakanızdan son tedavinize kadar tüm klinik deneyiminizi yönetmek için tasarlanmış bir sistemdir.',
+    differenceBody2:
+      'Vakalar, onaylar, planlama, notlar, kayıtlar ve ilerleme birbirine bağlı kalır; böylece klinik yıllarınız dağınık değil, yapılandırılmış ilerler.',
+    availabilityEyebrow: 'Kimler için kullanılabilir?',
+    availabilityTitle: 'Şu anda İstinye Üniversitesi’nde kullanılabilir.',
+    availabilityBody1:
+      'Şu anda İstinye Üniversitesi Diş Hekimliği Fakültesi 4. ve 5. sınıf öğrencileri için kullanılabilir.',
+    availabilityBody2: 'Yakında Türkiye genelinde daha fazla üniversiteye açılacaktır.',
+    accessEyebrow: 'Erişim',
+    accessTitle: 'Klinik süreciniz fakülte aracılığıyla başlar.',
+    accessBody1:
+      'Uygun İstinye Üniversitesi öğrencilerinin erişimi doğrudan fakülte tarafından aktive edilecektir — ayrıca bireysel kayıt gerekmez.',
+    accessBody2:
+      'Erişiminiz aktive edildiğinde vakalarınızı öğrenci panelinizden yönetebileceksiniz.',
+    accessBody3:
+      'Öğrenci portalını yalnızca fakülte erişiminiz aktive edildikten sonra kullanın.',
   },
 
   student: {

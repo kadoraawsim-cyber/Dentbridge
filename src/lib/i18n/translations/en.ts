@@ -10,6 +10,7 @@ export type TranslationShape = {
     requestTreatment: string
     checkStatus: string
     studentPortal: string
+    forStudents: string
     facultyLogin: string
     facultyAdminLogin: string
     aiAssistant: string
@@ -53,6 +54,17 @@ export type TranslationShape = {
 
   // ── Landing – How It Works ──────────────────────────────────────────────────
   landing: {
+    audienceEyebrow: string
+    audienceTitle: string
+    audiencePatientTitle: string
+    audiencePatientText: string
+    audiencePatientButton: string
+    audienceStudentTitle: string
+    audienceStudentText: string
+    audienceStudentButton: string
+    patientHeroBadge: string
+    patientHeroTitle: string
+    patientHeroDescription: string
     howItWorksTitle: string
     howItWorksDesc: string
     step1Title: string
@@ -996,6 +1008,7 @@ export type TranslationShape = {
     requestTreatment: string
     checkStatus: string
     privacyPolicy: string
+    forStudents: string
     studentPortal: string
     facultyPortal: string
     casePool: string
@@ -1040,6 +1053,71 @@ export type TranslationShape = {
       whatKindsOfCasesAnswer: string
     }
   }
+
+  studentsPage: {
+    headerTagline: string
+    backHome: string
+    eyebrow: string
+    heroTitle: string
+    heroSubtitle: string
+    accessCta: string
+    dashboardCta: string
+    heroStats: {
+      cases: string
+      chaos: string
+      control: string
+    }
+    whyEyebrow: string
+    whyTitle: string
+    whyIntro: string
+    whyBody: string
+    valueItems: {
+      cases: string
+      chaos: string
+      control: string
+      experience: string
+    }
+    workflowEyebrow: string
+    workflowTitle: string
+    workflow: {
+      patientSubmits: string
+      facultyReviews: string
+      categorized: string
+      studentRequests: string
+      assignmentApproved: string
+      assigned: string
+      beginTreatment: string
+    }
+    platformEyebrow: string
+    platformTitle: string
+    platformIntro: string
+    smartSystemTitle: string
+    smartSystemBody: string
+    features: {
+      exchange: { title: string; body: string }
+      planner: { title: string; body: string }
+      requirements: { title: string; body: string }
+      messaging: { title: string; body: string }
+      records: { title: string; body: string }
+      notes: { title: string; body: string }
+      images: { title: string; body: string }
+      protocols: { title: string; body: string }
+      aiAssistant: { title: string; body: string }
+    }
+    differenceEyebrow: string
+    differenceTitle: string
+    differenceBody1: string
+    differenceBody2: string
+    availabilityEyebrow: string
+    availabilityTitle: string
+    availabilityBody1: string
+    availabilityBody2: string
+    accessEyebrow: string
+    accessTitle: string
+    accessBody1: string
+    accessBody2: string
+    accessBody3: string
+  }
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -1049,6 +1127,7 @@ export const en: TranslationShape = {
     requestTreatment: 'Request Treatment',
     checkStatus: 'Check Treatment Status',
     studentPortal: 'Student Portal',
+    forStudents: 'For Students',
     facultyLogin: 'Faculty Login',
     facultyAdminLogin: 'Faculty / Admin Login',
     aiAssistant: 'AI Assistant',
@@ -1067,10 +1146,9 @@ export const en: TranslationShape = {
   },
 
   hero: {
-    badge: 'Faculty-Supervised Access to Care',
-    title: 'Affordable Supervised Dental Care',
-    description:
-      'DentBridge helps patients access affordable dental care through a faculty-reviewed process that matches them with senior dental students under supervision.',
+    badge: 'Faculty-Supported Clinical Platform',
+    title: 'DentBridge connects patients and dental students',
+    description: 'Choose your path to get started',
   },
 
   benefits: {
@@ -1088,6 +1166,20 @@ export const en: TranslationShape = {
   },
 
   landing: {
+    audienceEyebrow: 'Choose your path',
+    audienceTitle: 'DentBridge is built for patients and dental students.',
+    audiencePatientTitle: 'For Patients',
+    audiencePatientText:
+      'Need dental treatment? Learn how DentBridge guides your request through a supervised university-based process.',
+    audiencePatientButton: 'I’m a Patient',
+    audienceStudentTitle: 'For Dental Students',
+    audienceStudentText:
+      'Looking for clinical cases? Discover how DentBridge helps you manage cases, requirements, and your clinical workflow.',
+    audienceStudentButton: 'I’m a Student',
+    patientHeroBadge: 'Faculty-Supervised Access to Care',
+    patientHeroTitle: 'Affordable Supervised Dental Care',
+    patientHeroDescription:
+      'DentBridge helps patients access affordable dental care through a faculty-reviewed process that matches them with senior dental students under supervision.',
     howItWorksTitle: 'How It Works',
     howItWorksDesc:
       'Submit your request, let our faculty review your case, and get matched to the right department and student through a structured supervised process.',
@@ -2134,6 +2226,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     requestTreatment: 'Request Treatment',
     checkStatus: 'Check Request Status',
     privacyPolicy: 'Privacy Policy',
+    forStudents: 'For Students',
     studentPortal: 'Student Portal',
     facultyPortal: 'Faculty Portal',
     casePool: 'Case Pool',
@@ -2189,5 +2282,117 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       whatKindsOfCasesAnswer:
         'You can submit requests for common dental concerns such as consultation, cleaning, fillings, tooth extraction, root canal treatment, gum treatment, prosthetic needs, orthodontic concerns, pediatric dentistry, and esthetic dentistry.',
     },
+  },
+
+  studentsPage: {
+    headerTagline: 'For Dental Students',
+    backHome: 'Back to audience selection',
+    eyebrow: 'For dental students',
+    heroTitle: 'Get Real Clinical Cases — and Manage Them Like a Professional',
+    heroSubtitle:
+      'DentBridge connects patients with dental students under full academic supervision — while giving you a smart system to manage your entire clinical workflow in one place.',
+    accessCta: 'How access works',
+    dashboardCta: 'Go to student dashboard',
+    heroStats: {
+      cases: 'Relevant clinical cases',
+      chaos: 'Less manual follow-up',
+      control: 'Supervised workflow',
+    },
+    whyEyebrow: 'Why this matters',
+    whyTitle: 'Your clinical years shouldn’t feel chaotic.',
+    whyIntro:
+      'Instead of chasing patients, struggling to find cases, and managing everything manually — DentBridge gives you a structured system that supports you at every step.',
+    whyBody:
+      'The result is a calmer, more professional clinical experience built around the way dental students actually move through cases, approvals, appointments, notes, and requirements.',
+    valueItems: {
+      cases: 'Access to relevant clinical cases',
+      chaos: 'Less chaos, less manual work',
+      control: 'Full control over your treatments',
+      experience: 'A more organized, professional clinical experience',
+    },
+    workflowEyebrow: 'How it works',
+    workflowTitle: 'A supervised case path from request to treatment.',
+    workflow: {
+      patientSubmits: 'A patient submits a request through the platform',
+      facultyReviews: 'Faculty reviews and approves the case',
+      categorized: 'The case is categorized by department',
+      studentRequests: 'You request to take the case',
+      assignmentApproved: 'Faculty approves the assignment',
+      assigned: 'The case is assigned to you',
+      beginTreatment: 'You contact the patient and begin treatment under supervision',
+    },
+    platformEyebrow: 'Inside the platform',
+    platformTitle: 'What you get inside DentBridge',
+    platformIntro:
+      'DentBridge doesn’t just bring you cases — it helps you manage everything around them.',
+    smartSystemTitle: 'A Smart System That Organizes Your Clinical Life',
+    smartSystemBody:
+      'From case exchange to records, notes, appointments, requirements, and faculty updates, the platform keeps the moving parts of clinical years in one structured place.',
+    features: {
+      exchange: {
+        title: 'Case Exchange',
+        body:
+          'Easily exchange cases with other students in a structured and approved system without losing progress on your requirements.',
+      },
+      planner: {
+        title: 'Smart Planner',
+        body:
+          'Manage appointments, track treatments, and stay on schedule so nothing falls through the cracks.',
+      },
+      requirements: {
+        title: 'Clinical Requirements — Automatically Updated',
+        body:
+          'Track your clinical requirements in real time based on the cases you actually complete.',
+      },
+      messaging: {
+        title: 'Advanced Messaging System',
+        body:
+          'Receive updates from the faculty and the platform directly to your phone — in real time.',
+      },
+      records: {
+        title: 'Organized Patient Records',
+        body:
+          'Every case you work on is saved in a clean, structured format with quick access to all relevant information.',
+      },
+      notes: {
+        title: 'Notes for Every Patient',
+        body:
+          'Track progress, log treatment steps, and stay organized throughout the entire case.',
+      },
+      images: {
+        title: 'Easy Access to Images & Radiographs',
+        body:
+          'View patient images and radiographs in a clear, fast, and accessible way without losing or searching for files.',
+      },
+      protocols: {
+        title: 'Department-Based Protocols',
+        body:
+          'Access structured clinical protocols and guidelines based on the department you’re working in.',
+      },
+      aiAssistant: {
+        title: 'Coming Soon: AI Clinical Assistant',
+        body:
+          'A smart assistant that supports you during treatments with tips and guidance tailored to your case.',
+      },
+    },
+    differenceEyebrow: 'Why DentBridge is different',
+    differenceTitle: 'This isn’t just about finding patients.',
+    differenceBody1:
+      'It’s a system designed to manage your entire clinical experience — from your first case to your final treatment.',
+    differenceBody2:
+      'Cases, approvals, planning, notes, records, and progress all stay connected so your clinical years feel structured instead of scattered.',
+    availabilityEyebrow: 'Who is this available for?',
+    availabilityTitle: 'Currently available at Istinye University.',
+    availabilityBody1:
+      'Currently available for 4th and 5th year dental students at Istinye University Faculty of Dentistry.',
+    availabilityBody2: 'Coming soon to more universities across Turkey.',
+    accessEyebrow: 'Access',
+    accessTitle: 'Your clinical workflow starts through the faculty.',
+    accessBody1:
+      'Eligible Istinye University students will receive access directly through the faculty — no separate registration required.',
+    accessBody2:
+      'Once activated, you’ll be able to manage your cases from your student dashboard.',
+    accessBody3:
+      'Use the student portal only after your faculty access has been activated.',
   },
 }
