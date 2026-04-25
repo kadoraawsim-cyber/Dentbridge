@@ -1,6 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import {
@@ -25,7 +24,6 @@ import {
 } from 'lucide-react'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import { useI18n } from '@/lib/i18n'
-import { supabase } from '@/lib/supabase'
 
 const valueItems = [
   { key: 'cases', icon: ClipboardCheck },
@@ -58,42 +56,6 @@ const platformFeatures = [
 
 export default function StudentsPageClient() {
   const { t } = useI18n()
-  const [availableCaseCount, setAvailableCaseCount] = useState<number | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-
-    async function fetchCount() {
-      const { count } = await supabase
-        .from('patient_requests')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'matched')
-      if (!cancelled && typeof count === 'number') {
-        setAvailableCaseCount(count)
-      }
-    }
-
-    fetchCount()
-
-    const channel = supabase
-      .channel('public-student-case-count')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'patient_requests', filter: 'status=eq.matched' },
-        fetchCount,
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'patient_requests' },
-        fetchCount,
-      )
-      .subscribe()
-
-    return () => {
-      cancelled = true
-      supabase.removeChannel(channel)
-    }
-  }, [])
 
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-white text-slate-950">
@@ -175,9 +137,6 @@ export default function StudentsPageClient() {
                 return (
                   <div key={item.key} className="rounded-2xl border border-[#C8A96A]/25 bg-white/10 p-3 text-white">
                     <Icon className="h-5 w-5 text-[#C8A96A]" />
-                    {item.key === 'cases' && availableCaseCount !== null && (
-                      <p className="mt-1.5 text-xl font-bold tabular-nums leading-none">{availableCaseCount}</p>
-                    )}
                     <p className="mt-2 text-xs font-semibold leading-5">{t(`studentsPage.heroStats.${item.key}`)}</p>
                   </div>
                 )
