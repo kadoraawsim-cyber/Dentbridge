@@ -11,6 +11,7 @@ const ACTIVE_CASE_STATUSES = [
 
 const END_MARKER_REGEX = /\n?\[\[planner_end:([^\]]+)\]\]\s*$/
 const CASE_APPOINTMENT_SOURCE_KIND = 'case_appointment'
+const LOCAL_DATE_TIME_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/
 
 function stripEndMarker(value: string | null) {
   if (!value) {
@@ -38,6 +39,23 @@ function encodeDescription(description: string | null, endAt: string | null) {
   }
 
   return `${cleanDescription}\n\n[[planner_end:${endAt}]]`
+}
+
+function normalizeLocalDateTime(value: string | null | undefined) {
+  if (!value) {
+    return null
+  }
+
+  const cleanValue = value.trim()
+  if (!LOCAL_DATE_TIME_REGEX.test(cleanValue)) {
+    return null
+  }
+
+  return cleanValue.length === 16 ? `${cleanValue}:00` : cleanValue
+}
+
+function parseLocalDateTime(value: string) {
+  return new Date(value)
 }
 
 async function getAuthorizedStudent() {
@@ -203,8 +221,10 @@ export async function POST(request: NextRequest) {
 
   const title = (body.title || '').trim()
   const description = (body.description || '').trim() || null
-  const startAt = body.start_at ? new Date(body.start_at) : null
-  const endAt = body.end_at ? new Date(body.end_at) : null
+  const startAtValue = normalizeLocalDateTime(body.start_at)
+  const endAtValue = normalizeLocalDateTime(body.end_at)
+  const startAt = startAtValue ? parseLocalDateTime(startAtValue) : null
+  const endAt = endAtValue ? parseLocalDateTime(endAtValue) : null
   const patientId = body.patient_id || null
   const language = body.language === 'tr' || body.language === 'en' ? body.language : null
 
@@ -212,11 +232,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Event title is required.' }, { status: 400 })
   }
 
-  if (!startAt || Number.isNaN(startAt.getTime())) {
+  if (!startAtValue || !startAt || Number.isNaN(startAt.getTime())) {
     return NextResponse.json({ error: 'A valid start date is required.' }, { status: 400 })
   }
 
-  if (endAt && Number.isNaN(endAt.getTime())) {
+  if (body.end_at && (!endAtValue || !endAt || Number.isNaN(endAt.getTime()))) {
     return NextResponse.json({ error: 'A valid end date is required.' }, { status: 400 })
   }
 
@@ -262,8 +282,8 @@ export async function POST(request: NextRequest) {
     .insert({
       student_id: user.id,
       title,
-      description: encodeDescription(description, endAt ? endAt.toISOString() : null),
-      event_date: startAt.toISOString(),
+      description: encodeDescription(description, endAtValue),
+      event_date: startAtValue,
       patient_id: patientId,
       language,
     })
@@ -283,8 +303,8 @@ export async function POST(request: NextRequest) {
       id: insertedRow.id,
       title: insertedRow.title,
       description: cleanDescription,
-      start_at: insertedRow.event_date,
-      end_at: parsedEndAt,
+      start_at: startAtValue,
+      end_at: parsedEndAt ?? endAtValue,
       patient_id: insertedRow.patient_id,
       language: insertedRow.language,
       created_at: insertedRow.created_at,

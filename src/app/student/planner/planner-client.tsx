@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -99,6 +99,22 @@ function toDateTimeInputValue(date: Date) {
   return local.toISOString().slice(0, 16)
 }
 
+function normalizeDateTimeInputValue(value: string) {
+  return value.length === 16 ? `${value}:00` : value
+}
+
+function parseLocalDateTime(value: string) {
+  return new Date(value.replace(' ', 'T'))
+}
+
+function getPrivateEventStart(event: PlannerEvent) {
+  return parseLocalDateTime(event.start_at)
+}
+
+function getPrivateEventEnd(event: PlannerEvent) {
+  return event.end_at ? parseLocalDateTime(event.end_at) : null
+}
+
 function buildDefaultRange(baseDate: Date) {
   const start = new Date(baseDate)
   start.setHours(9, 0, 0, 0)
@@ -135,7 +151,7 @@ function getEventComparableTime(event: PlannerEvent) {
     ).getTime()
   }
 
-  return new Date(event.start_at).getTime()
+  return getPrivateEventStart(event).getTime()
 }
 
 function getEventDateKey(event: PlannerEvent) {
@@ -143,7 +159,7 @@ function getEventDateKey(event: PlannerEvent) {
     return event.linked_appointment_date
   }
 
-  return toDateKey(new Date(event.start_at))
+  return toDateKey(getPrivateEventStart(event))
 }
 
 function formatTimeRange(event: PlannerEvent, locale: string, t: (key: string) => string) {
@@ -151,8 +167,8 @@ function formatTimeRange(event: PlannerEvent, locale: string, t: (key: string) =
     return `${t('student.planner.eventStarts')}: ${normalizeLinkedAppointmentTime(event.linked_appointment_time)}`
   }
 
-  const start = new Date(event.start_at)
-  const end = event.end_at ? new Date(event.end_at) : null
+  const start = getPrivateEventStart(event)
+  const end = getPrivateEventEnd(event)
   const formatter = new Intl.DateTimeFormat(locale, {
     hour: '2-digit',
     minute: '2-digit',
@@ -163,6 +179,25 @@ function formatTimeRange(event: PlannerEvent, locale: string, t: (key: string) =
   }
 
   return `${formatter.format(start)} - ${formatter.format(end)}`
+}
+
+function formatCompactTimeRange(event: PlannerEvent, locale: string) {
+  if (isLinkedCaseAppointment(event) && event.linked_appointment_date) {
+    return normalizeLinkedAppointmentTime(event.linked_appointment_time)
+  }
+
+  const start = getPrivateEventStart(event)
+  const end = getPrivateEventEnd(event)
+  const formatter = new Intl.DateTimeFormat(locale, {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+
+  if (!end) {
+    return formatter.format(start)
+  }
+
+  return `${formatter.format(start)}-${formatter.format(end)}`
 }
 
 function formatUpcomingDateTimeLabel(
@@ -177,7 +212,7 @@ function formatUpcomingDateTimeLabel(
     })}, ${normalizeLinkedAppointmentTime(event.linked_appointment_time)}`
   }
 
-  return formatDateLabel(new Date(event.start_at), locale, {
+  return formatDateLabel(getPrivateEventStart(event), locale, {
     day: 'numeric',
     month: 'short',
     hour: '2-digit',
@@ -259,7 +294,7 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
     router.replace('/student/login')
   }
 
-  async function loadPlannerData() {
+  const loadPlannerData = useCallback(async () => {
     setLoading(true)
     setLoadError('')
 
@@ -276,11 +311,15 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
     setEvents(body.data.events)
     setActivePatients(body.data.activePatients)
     setLoading(false)
-  }
+  }, [t])
 
   useEffect(() => {
-    void loadPlannerData()
-  }, [])
+    const timeoutId = window.setTimeout(() => {
+      void loadPlannerData()
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [loadPlannerData])
 
   const patientMap = useMemo(
     () =>
@@ -313,7 +352,7 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
   const selectedDateEvents = eventsByDate[selectedDateKey] ?? []
 
   const upcomingEvents = useMemo(() => {
-    const now = Date.now()
+    const now = new Date().getTime()
     return [...events]
       .filter((event) => getEventComparableTime(event) >= now - 24 * 60 * 60 * 1000)
       .sort((left, right) => getEventComparableTime(left) - getEventComparableTime(right))
@@ -339,14 +378,15 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
       return
     }
 
+    const eventStart = getPrivateEventStart(event)
+    const eventEnd = getPrivateEventEnd(event)
+
     setEditingEventId(event.id)
     setForm({
       title: event.title,
       description: event.description || '',
-      startAt: toDateTimeInputValue(new Date(event.start_at)),
-      endAt: event.end_at
-        ? toDateTimeInputValue(new Date(event.end_at))
-        : toDateTimeInputValue(new Date(event.start_at)),
+      startAt: toDateTimeInputValue(eventStart),
+      endAt: eventEnd ? toDateTimeInputValue(eventEnd) : toDateTimeInputValue(eventStart),
       patientId: event.patient_id || '',
     })
     setSaveError('')
@@ -359,8 +399,8 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
       return
     }
 
-    const startAt = new Date(form.startAt)
-    const endAt = form.endAt ? new Date(form.endAt) : null
+    const startAt = parseLocalDateTime(form.startAt)
+    const endAt = form.endAt ? parseLocalDateTime(form.endAt) : null
 
     if (Number.isNaN(startAt.getTime())) {
       setSaveError(t('student.planner.saveError'))
@@ -383,8 +423,8 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
       body: JSON.stringify({
         title: form.title.trim(),
         description: form.description.trim(),
-        start_at: startAt.toISOString(),
-        end_at: endAt ? endAt.toISOString() : null,
+        start_at: normalizeDateTimeInputValue(form.startAt),
+        end_at: form.endAt ? normalizeDateTimeInputValue(form.endAt) : null,
         patient_id: form.patientId || null,
         language: locale,
       }),
@@ -410,8 +450,8 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
         ? sortPlannerEvents(prev.map((event) => (event.id === body.data.id ? body.data : event)))
         : sortPlannerEvents([...prev, body.data])
     )
-    setSelectedDate(startOfDay(new Date(body.data.start_at)))
-    setCurrentDate(startOfDay(new Date(body.data.start_at)))
+    setSelectedDate(startOfDay(getPrivateEventStart(body.data)))
+    setCurrentDate(startOfDay(getPrivateEventStart(body.data)))
     setShowModal(false)
     setEditingEventId(null)
     setSaveSuccess(
@@ -495,6 +535,44 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
     )
   }
 
+  function renderMonthEventChip(event: PlannerEvent) {
+    const tone = getEventTone(event)
+    const chipClass = `block min-w-0 max-w-full overflow-hidden rounded-md border px-1.5 py-1 text-left transition sm:rounded-lg sm:px-2 sm:py-1.5 ${tone.card}`
+    const content = (
+      <>
+        <p className="block min-w-0 truncate whitespace-nowrap text-[10px] font-semibold leading-tight text-slate-900 sm:text-xs">
+          {event.title}
+        </p>
+        <p className="mt-0.5 hidden min-w-0 truncate whitespace-nowrap text-[9px] font-medium leading-tight text-slate-500 min-[420px]:block sm:text-[11px]">
+          {formatCompactTimeRange(event, dateLocale)}
+        </p>
+      </>
+    )
+
+    if (isLinkedCaseAppointment(event)) {
+      return (
+        <div key={event.id} className={chipClass} title={`${event.title} · ${formatCompactTimeRange(event, dateLocale)}`}>
+          {content}
+        </div>
+      )
+    }
+
+    return (
+      <button
+        key={event.id}
+        type="button"
+        onClick={(clickEvent) => {
+          clickEvent.stopPropagation()
+          openEditModal(event)
+        }}
+        className={chipClass}
+        title={`${event.title} · ${formatCompactTimeRange(event, dateLocale)}`}
+      >
+        {content}
+      </button>
+    )
+  }
+
   function renderMonthView() {
     const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
     const gridStart = startOfWeek(monthStart)
@@ -507,7 +585,7 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
           {Array.from({ length: 7 }, (_, index) => addDays(weekdayBase, index)).map((day) => (
             <div
               key={toDateKey(day)}
-              className="px-3 py-3 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500"
+              className="px-1 py-2 text-center text-[10px] font-semibold uppercase tracking-wide text-slate-500 sm:px-3 sm:py-3 sm:text-[11px]"
             >
               {formatDateLabel(day, dateLocale, { weekday: 'short' })}
             </div>
@@ -534,13 +612,13 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
                 }}
                 role="button"
                 tabIndex={0}
-                className={`min-h-[130px] border-r border-b border-slate-100 px-3 py-3 text-left transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-200 ${
+                className={`min-h-[96px] min-w-0 border-r border-b border-slate-100 px-1 py-2 text-left transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-200 sm:min-h-[130px] sm:px-3 sm:py-3 ${
                   isSelected ? 'bg-teal-50/70' : 'bg-white'
                 }`}
               >
-                <div className="flex items-center justify-between">
+                <div className="flex min-w-0 items-center justify-between gap-1">
                   <span
-                    className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-sm font-semibold ${
+                    className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold sm:h-7 sm:w-7 sm:text-sm ${
                       isToday
                         ? 'bg-slate-900 text-white'
                         : isCurrentMonth
@@ -551,13 +629,13 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
                     {day.getDate()}
                   </span>
                   {dayEvents.length > 0 && (
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
+                    <span className="shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold text-slate-500 sm:px-2 sm:text-[10px]">
                       {dayEvents.length}
                     </span>
                   )}
                 </div>
-                <div className="mt-3 space-y-2">
-                  {dayEvents.slice(0, 3).map(renderEventPill)}
+                <div className="mt-2 min-w-0 space-y-1 sm:mt-3 sm:space-y-2">
+                  {dayEvents.slice(0, 3).map(renderMonthEventChip)}
                 </div>
               </div>
             )
