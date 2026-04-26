@@ -29,12 +29,6 @@ body {
   overscroll-behavior-y: none;
 }
 
-@supports (min-height: 100dvh) {
-  body {
-    min-height: 100dvh;
-  }
-}
-
 /*
   In iOS standalone (PWA) mode with viewport-fit=cover and
   apple-mobile-web-app-status-bar-style: black-translucent, the status bar
@@ -205,6 +199,65 @@ header.sticky {
 
 .dentbridge-primary-cta svg {
   transition: transform 220ms ease;
+}
+
+@media (hover: none), (pointer: coarse) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .min-h-screen {
+    min-height: 100svh;
+  }
+
+  .dentbridge-motion-ready .dentbridge-reveal,
+  .dentbridge-motion-ready .dentbridge-reveal-visible {
+    opacity: 1;
+    transform: none;
+    transition: none;
+    will-change: auto;
+  }
+
+  .dentbridge-motion-ready .dentbridge-stagger-group > .dentbridge-reveal {
+    transition-delay: 0ms;
+  }
+
+  .dentbridge-card,
+  .dentbridge-soft-control,
+  .dentbridge-primary-cta,
+  .dentbridge-secondary-cta,
+  .dentbridge-glass-button,
+  .dentbridge-link-lift,
+  .dentbridge-primary-cta svg {
+    transition-duration: 120ms;
+    will-change: auto;
+  }
+
+  .dentbridge-mobile-menu,
+  .dentbridge-accordion-panel {
+    animation-duration: 120ms;
+  }
+
+  .blur-3xl {
+    filter: blur(32px);
+  }
+
+  .blur-2xl {
+    filter: blur(24px);
+  }
+
+  .dentbridge-card.backdrop-blur-xl,
+  .dentbridge-mobile-menu.backdrop-blur-xl,
+  header.sticky.backdrop-blur-xl {
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+
+  .dentbridge-card.backdrop-blur-md,
+  .dentbridge-card.backdrop-blur-sm {
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

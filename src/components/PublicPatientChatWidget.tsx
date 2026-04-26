@@ -262,7 +262,7 @@ export default function PublicPatientChatWidget() {
       <div className="fixed bottom-20 right-4 z-50 flex flex-col items-end gap-3 md:bottom-16 md:right-6">
         {isOpen && (
           <section
-            className="bridgey-panel-enter pointer-events-auto flex h-[min(62dvh,32rem)] max-h-[calc(100dvh-10rem)] flex-col overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_28px_80px_-32px_rgba(15,23,42,0.45)] ring-1 ring-slate-950/5 backdrop-blur sm:h-[min(70dvh,38rem)] sm:max-h-[calc(100dvh-8rem)]"
+            className="bridgey-panel-enter pointer-events-auto flex h-[min(62svh,32rem)] max-h-[calc(100svh-10rem)] flex-col overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_28px_80px_-32px_rgba(15,23,42,0.45)] ring-1 ring-slate-950/5 backdrop-blur sm:h-[min(70dvh,38rem)] sm:max-h-[calc(100dvh-8rem)]"
             style={{
               width: 'min(24rem, calc(100vw - 32px))',
             }}

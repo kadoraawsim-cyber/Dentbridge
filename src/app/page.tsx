@@ -154,7 +154,7 @@ export default function HomePage() {
       </header>
 
       {/* ── Hero ───────────────────────────────────────────────────────────── */}
-      <section className="relative min-h-[calc(100vh-73px)] overflow-hidden bg-[linear-gradient(140deg,#050f2b_0%,#0d1f54_35%,#0a5c55_72%,#062a26_100%)] px-4 py-14 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
+      <section className="relative min-h-[calc(100svh-73px)] overflow-hidden bg-[linear-gradient(140deg,#050f2b_0%,#0d1f54_35%,#0a5c55_72%,#062a26_100%)] px-4 py-14 sm:px-6 sm:py-20 md:min-h-[calc(100vh-73px)] lg:px-8 lg:py-24">
 
         {/* Background layers */}
         <div className="pointer-events-none absolute inset-0" aria-hidden="true">
