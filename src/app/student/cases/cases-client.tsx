@@ -443,6 +443,7 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
               const isPending      = myRequest?.status === 'pending'
               const isRejected     = myRequest?.status === 'rejected'
               const isRevoked      = myRequest?.status === 'revoked'
+              const facultyGuidance = c.clinical_notes?.trim()
 
               return (
                 <article
@@ -551,6 +552,17 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
                         {tAttachmentSummary(c)}
                       </p>
                     </div>
+
+                    {facultyGuidance && (
+                      <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50/70 p-4">
+                        <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-blue-700">
+                          {t('student.cases.facultyGuidance')}
+                        </p>
+                        <p className="max-h-28 overflow-y-auto whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-700">
+                          {facultyGuidance}
+                        </p>
+                      </div>
+                    )}
 
                     {/* Contact — approved only */}
                     {isApproved && contact && (

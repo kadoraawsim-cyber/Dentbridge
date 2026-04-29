@@ -504,6 +504,7 @@ export type TranslationShape = {
       mainComplaint: string
       medicalNote: string
       attachments: string
+      facultyGuidance: string
       noComplaint: string
       noMedicalNote: string
       noAttachments: string
@@ -1733,6 +1734,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       mainComplaint: 'Main complaint',
       medicalNote: 'Medical note',
       attachments: 'Attachments',
+      facultyGuidance: 'Faculty Guidance',
       noComplaint: 'No complaint provided',
       noMedicalNote: 'None',
       noAttachments: 'No attachments',
