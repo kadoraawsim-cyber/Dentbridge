@@ -216,6 +216,28 @@ function normalizePhoneNumber(value: string) {
   return value.replace(/[\s().-]/g, '')
 }
 
+const ALLOWED_ATTACHMENT_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'pdf'])
+
+function createSafeStorageSlug(value: string) {
+  const slug = value
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/ı/g, 'i')
+    .replace(/[^a-z0-9._-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '')
+
+  return slug || 'patient'
+}
+
+function getAllowedAttachmentExtension(fileName: string) {
+  const extension = fileName.split('.').pop()?.toLowerCase() ?? ''
+
+  return ALLOWED_ATTACHMENT_EXTENSIONS.has(extension) ? extension : null
+}
+
 export default function PatientRequestPage() {
   const { t, locale } = useI18n()
   const validationText =
@@ -227,6 +249,7 @@ export default function PatientRequestPage() {
           ageInvalid: 'Lutfen 1 ile 120 arasinda gecerli bir yas girin.',
           phoneRequired: 'Lutfen telefon numaranizi girin.',
           phoneInvalid: 'Lutfen gecerli bir telefon numarasi girin.',
+          fileTypeInvalid: 'Lutfen JPG, PNG veya PDF dosyasi yukleyin.',
         }
       : {
           fullNameRequired: 'Please enter your full name.',
@@ -235,6 +258,7 @@ export default function PatientRequestPage() {
           ageInvalid: 'Please enter a valid age between 1 and 120.',
           phoneRequired: 'Please enter your phone number.',
           phoneInvalid: 'Please enter a valid phone number.',
+          fileTypeInvalid: 'Please upload a JPG, PNG, or PDF file.',
         }
 
   const [fullName, setFullName] = useState('')
@@ -620,8 +644,15 @@ export default function PatientRequestPage() {
     let attachmentPath: string | null = null
 
     if (attachment) {
-      const fileExt = attachment.name.split('.').pop()
-      const safeName = fullName.trim().toLowerCase().replace(/\s+/g, '-')
+      const fileExt = getAllowedAttachmentExtension(attachment.name)
+
+      if (!fileExt) {
+        setIsSubmitting(false)
+        setErrorMessage(validationText.fileTypeInvalid)
+        return
+      }
+
+      const safeName = createSafeStorageSlug(fullName)
       const fileName = `${safeName}-${Date.now()}.${fileExt}`
       const filePath = fileName
       const { error: uploadError } = await supabase.storage
