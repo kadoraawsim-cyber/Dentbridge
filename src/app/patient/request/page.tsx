@@ -715,7 +715,7 @@ export default function PatientRequestPage() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-2 sm:gap-3 min-w-0">
             <img
-              src="/dentbridge-icon.png"
+              src="/dentbridge-icon.webp"
               alt="DentBridge icon"
               className="h-8 w-8 sm:h-10 sm:w-10 shrink-0 object-contain"
             />
@@ -1263,7 +1263,7 @@ export default function PatientRequestPage() {
           <div>
             <div className="mb-4 flex items-center gap-3">
               <img
-                src="/dentbridge-icon.png"
+                src="/dentbridge-icon.webp"
                 alt="DentBridge icon"
                 className="h-8 w-8 sm:h-10 sm:w-10 shrink-0 object-contain"
               />
