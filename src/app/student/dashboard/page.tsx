@@ -15,27 +15,45 @@ export default async function StudentDashboardPage() {
     redirect('/student/login')
   }
 
-  const { data: studentProfile } = await supabase
-    .from('student_profiles')
-    .select('full_name, phone')
-    .eq('id', user.id)
-    .maybeSingle()
+  const [studentProfileResult, poolCasesResult, urgentPoolCasesResult, myRequestsResult] =
+    await Promise.all([
+      supabase
+        .from('student_profiles')
+        .select('full_name, phone')
+        .eq('id', user.id)
+        .maybeSingle(),
 
-  // Pool cases — full_name and phone intentionally excluded.
-  const { data: poolCases } = await supabase
-    .from('patient_requests')
-    .select(
-      'id, treatment_type, urgency, assigned_department, target_student_level, created_at'
-    )
-    .eq('status', 'matched')
-    .order('created_at', { ascending: false })
+      // Pool cases — full_name and phone intentionally excluded.
+      // The dashboard only renders the 5 most recent pool cases; keep the
+      // total count for stats without sending every matched case over the wire.
+      supabase
+        .from('patient_requests')
+        .select(
+          'id, treatment_type, urgency, assigned_department, target_student_level, created_at',
+          { count: 'exact' }
+        )
+        .eq('status', 'matched')
+        .order('created_at', { ascending: false })
+        .limit(5),
 
-  // All of this student's requests (for stats and pending count).
-  const { data: myRequests } = await supabase
-    .from('student_case_requests')
-    .select('id, case_id, status, created_at')
-    .eq('student_id', user.id)
-    .order('created_at', { ascending: false })
+      supabase
+        .from('patient_requests')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'matched')
+        .ilike('urgency', 'high'),
+
+      // All of this student's requests (for stats and pending count).
+      supabase
+        .from('student_case_requests')
+        .select('id, case_id, status, created_at')
+        .eq('student_id', user.id)
+        .order('created_at', { ascending: false }),
+    ])
+
+  const { data: studentProfile } = studentProfileResult
+  const { data: poolCases, count: poolCaseCount } = poolCasesResult
+  const { count: urgentPoolCaseCount } = urgentPoolCasesResult
+  const { data: myRequests } = myRequestsResult
 
   const approvedCaseIds = (myRequests ?? [])
     .filter((r) => r.status === 'approved')
@@ -67,18 +85,23 @@ export default async function StudentDashboardPage() {
   }[] = []
 
   if (approvedCaseIds.length > 0) {
-    const { data: activeData } = await supabase
-      .from('patient_requests')
-      .select('id, treatment_type, assigned_department, status, full_name, phone')
-      .in('id', approvedCaseIds)
+    const [activeDataResult, progressDataResult] = await Promise.all([
+      supabase
+        .from('patient_requests')
+        .select('id, treatment_type, assigned_department, status, full_name, phone')
+        .in('id', approvedCaseIds),
 
-    const { data: progressData } = await supabase
-      .from('case_progress_entries')
-      .select(
-        'id, case_id, student_id, student_name, status_at_time, appointment_date, appointment_time, note, what_was_done, next_step, next_appointment_date, next_appointment_time, needs_faculty_attention, created_at'
-      )
-      .in('case_id', approvedCaseIds)
-      .order('created_at', { ascending: false })
+      supabase
+        .from('case_progress_entries')
+        .select(
+          'id, case_id, student_id, student_name, status_at_time, appointment_date, appointment_time, note, what_was_done, next_step, next_appointment_date, next_appointment_time, needs_faculty_attention, created_at'
+        )
+        .in('case_id', approvedCaseIds)
+        .order('created_at', { ascending: false }),
+    ])
+
+    const { data: activeData } = activeDataResult
+    const { data: progressData } = progressDataResult
 
     const progressEntriesByCase = new Map<
       string,
@@ -120,6 +143,8 @@ export default async function StudentDashboardPage() {
   return (
     <DashboardClient
       poolCases={poolCases ?? []}
+      poolCaseCount={poolCaseCount ?? poolCases?.length ?? 0}
+      urgentPoolCaseCount={urgentPoolCaseCount ?? 0}
       myRequests={myRequests ?? []}
       activeCases={activeCases}
       studentEmail={user.email ?? ''}

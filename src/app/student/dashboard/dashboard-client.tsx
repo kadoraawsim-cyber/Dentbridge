@@ -71,6 +71,8 @@ type ProgressEntry = {
 
 interface Props {
   poolCases: PoolCase[]
+  poolCaseCount: number
+  urgentPoolCaseCount: number
   myRequests: MyRequest[]
   activeCases: ActiveCase[]
   studentEmail: string
@@ -149,6 +151,8 @@ function buildProgressEntriesMap(activeCases: ActiveCase[]) {
 
 export function DashboardClient({
   poolCases,
+  poolCaseCount,
+  urgentPoolCaseCount,
   myRequests,
   activeCases,
   studentEmail,
@@ -498,14 +502,14 @@ export function DashboardClient({
 
   const stats = useMemo(
     () => ({
-      available: poolCases.length,
-      urgent: poolCases.filter((c) => (c.urgency || '').toLowerCase() === 'high').length,
+      available: poolCaseCount,
+      urgent: urgentPoolCaseCount,
       pending: myRequests.filter((r) => r.status === 'pending').length,
       approved: activeCases.filter((c) =>
         !['completed', 'cancelled'].includes((c.status || '').toLowerCase())
       ).length,
     }),
-    [poolCases, myRequests, activeCases]
+    [poolCaseCount, urgentPoolCaseCount, myRequests, activeCases]
   )
 
   const displayName = studentFullName?.trim() || ''

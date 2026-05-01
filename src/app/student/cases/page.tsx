@@ -44,19 +44,24 @@ export default async function StudentCasesPage() {
 
   // Fetch pool cases — full_name and phone intentionally excluded.
   // Students must not see patient identity until their request is approved.
-  const { data: casesData } = await supabase
-    .from('patient_requests')
-    .select(
-      'id, age, treatment_type, complaint_text, urgency, assigned_department, target_student_level, pain_score, preferred_days, symptom_duration, medical_condition, clinical_notes, created_at, attachment_path'
-    )
-    .eq('status', 'matched')
-    .order('created_at', { ascending: false })
+  const [casesResult, myRequestsResult] = await Promise.all([
+    supabase
+      .from('patient_requests')
+      .select(
+        'id, age, treatment_type, complaint_text, urgency, assigned_department, target_student_level, pain_score, preferred_days, symptom_duration, medical_condition, clinical_notes, created_at, attachment_path'
+      )
+      .eq('status', 'matched')
+      .order('created_at', { ascending: false }),
 
-  // Fetch this student's own requests across all cases.
-  const { data: myRequestsData } = await supabase
-    .from('student_case_requests')
-    .select('id, case_id, status, created_at')
-    .eq('student_id', user.id)
+    // Fetch this student's own requests across all cases.
+    supabase
+      .from('student_case_requests')
+      .select('id, case_id, status, created_at')
+      .eq('student_id', user.id),
+  ])
+
+  const { data: casesData } = casesResult
+  const { data: myRequestsData } = myRequestsResult
 
   // Build a map of case_id → { requestId, status } for O(1) lookups in the client.
   const requestsByCaseId: Record<string, RequestInfo> = {}
