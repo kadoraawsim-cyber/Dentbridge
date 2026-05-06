@@ -46,7 +46,23 @@ export default function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
 
   useEffect(() => {
-    supabase.auth.signOut()
+    let cancelled = false
+
+    async function clearActiveSession() {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!cancelled && session) {
+        await supabase.auth.signOut()
+      }
+    }
+
+    void clearActiveSession()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {

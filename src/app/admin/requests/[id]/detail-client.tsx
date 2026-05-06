@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { ArrowLeft, Calendar, CheckCircle2, Clock, LogOut, Phone, ShieldCheck, XCircle } from 'lucide-react'
@@ -99,6 +99,9 @@ const studentLevelOptions = [
   'Year 5 Clinical Student',
   'Specialist Dentist',
 ]
+
+const PREVIEW_SIGNED_URL_TTL_MS = 3600 * 1000
+const SIGNED_URL_FRESHNESS_BUFFER_MS = 30 * 1000
 
 function keywordRoutingHint(treatmentType: string, assignedDepartment: string | null) {
   if (assignedDepartment) return assignedDepartment
@@ -458,6 +461,8 @@ export function CaseDetailClient({
   const [openingFile, setOpeningFile] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [previewLoading, setPreviewLoading] = useState(!!request.attachment_path)
+  const previewUrlExpiresAtRef = useRef(0)
+  const saveSuccessTimeoutRef = useRef<number | null>(null)
 
   // 'reject' or 'approve' means a confirmation is pending; null means normal button state
   const [pendingAction, setPendingAction] = useState<'reject' | 'approve' | null>(null)
@@ -495,7 +500,13 @@ export function CaseDetailClient({
   const [isEditingTriage, setIsEditingTriage] = useState(false)
 
   useEffect(() => {
-    if (!request.attachment_path) return
+    if (!request.attachment_path) {
+      previewUrlExpiresAtRef.current = 0
+      setPreviewUrl(null)
+      setPreviewLoading(false)
+      return
+    }
+
     let cancelled = false
     setPreviewLoading(true)
     supabase.storage
@@ -504,11 +515,24 @@ export function CaseDetailClient({
       .then(({ data }) => {
         if (!cancelled) {
           setPreviewUrl(data?.signedUrl ?? null)
+          previewUrlExpiresAtRef.current = data?.signedUrl
+            ? Date.now() + PREVIEW_SIGNED_URL_TTL_MS
+            : 0
           setPreviewLoading(false)
         }
       })
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [request.attachment_path])
+
+  useEffect(() => {
+    return () => {
+      if (saveSuccessTimeoutRef.current !== null) {
+        window.clearTimeout(saveSuccessTimeoutRef.current)
+      }
+    }
+  }, [])
 
   async function handleSignOut() {
     await supabase.auth.signOut()
@@ -560,6 +584,14 @@ export function CaseDetailClient({
   async function handleViewAttachment() {
     if (!request.attachment_path) return
 
+    if (
+      previewUrl &&
+      previewUrlExpiresAtRef.current - Date.now() > SIGNED_URL_FRESHNESS_BUFFER_MS
+    ) {
+      window.open(previewUrl, '_blank')
+      return
+    }
+
     setOpeningFile(true)
     setErrorMessage('')
 
@@ -581,7 +613,13 @@ export function CaseDetailClient({
 
   function showSaved(message: string) {
     setSaveSuccess(message)
-    setTimeout(() => setSaveSuccess(''), 3000)
+    if (saveSuccessTimeoutRef.current !== null) {
+      window.clearTimeout(saveSuccessTimeoutRef.current)
+    }
+    saveSuccessTimeoutRef.current = window.setTimeout(() => {
+      setSaveSuccess('')
+      saveSuccessTimeoutRef.current = null
+    }, 3000)
   }
 
   function resetTriageForm() {

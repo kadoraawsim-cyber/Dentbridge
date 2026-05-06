@@ -31,20 +31,25 @@ export default async function AdminRequestDetailPage({
 
   if (error || !data) notFound()
 
-  // Fetch all student requests for this case so faculty can review and act on them.
-  const { data: studentRequests } = await supabase
-    .from('student_case_requests')
-    .select('id, student_email, status, clinical_notes, reviewed_by, reviewed_at, created_at')
-    .eq('case_id', id)
-    .order('created_at', { ascending: false })
+  const [studentRequestsResult, progressEntriesResult] = await Promise.all([
+    // Fetch all student requests for this case so faculty can review and act on them.
+    supabase
+      .from('student_case_requests')
+      .select('id, student_email, status, clinical_notes, reviewed_by, reviewed_at, created_at')
+      .eq('case_id', id)
+      .order('created_at', { ascending: false }),
 
-  const { data: progressEntries } = await supabase
-    .from('case_progress_entries')
-    .select(
-      'id, case_id, student_id, student_name, status_at_time, appointment_date, appointment_time, note, what_was_done, next_step, next_appointment_date, next_appointment_time, needs_faculty_attention, created_at'
-    )
-    .eq('case_id', id)
-    .order('created_at', { ascending: false })
+    supabase
+      .from('case_progress_entries')
+      .select(
+        'id, case_id, student_id, student_name, status_at_time, appointment_date, appointment_time, note, what_was_done, next_step, next_appointment_date, next_appointment_time, needs_faculty_attention, created_at'
+      )
+      .eq('case_id', id)
+      .order('created_at', { ascending: false }),
+  ])
+
+  const { data: studentRequests } = studentRequestsResult
+  const { data: progressEntries } = progressEntriesResult
 
   const studentEmails = Array.from(
     new Set((studentRequests ?? []).map((request) => request.student_email).filter(Boolean))

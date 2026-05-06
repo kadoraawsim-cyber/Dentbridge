@@ -74,7 +74,23 @@ export default function PatientsPageClient() {
   // Clear any staff session when landing on the public home page.
   // Patients are always anonymous so signOut() is a no-op for them.
   useEffect(() => {
-    supabase.auth.signOut()
+    let cancelled = false
+
+    async function clearActiveSession() {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!cancelled && session) {
+        await supabase.auth.signOut()
+      }
+    }
+
+    void clearActiveSession()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {

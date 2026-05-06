@@ -84,23 +84,28 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { data: plannerRows, error: plannerError } = await supabase
-    .from('student_planner_events')
-    .select(
-      'id, title, description, event_date, patient_id, language, created_at, source_kind, source_case_id'
-    )
-    .eq('student_id', user.id)
-    .order('event_date', { ascending: true })
+  const [plannerResult, requestsResult] = await Promise.all([
+    supabase
+      .from('student_planner_events')
+      .select(
+        'id, title, description, event_date, patient_id, language, created_at, source_kind, source_case_id'
+      )
+      .eq('student_id', user.id)
+      .order('event_date', { ascending: true }),
+
+    supabase
+      .from('student_case_requests')
+      .select('case_id')
+      .eq('student_id', user.id)
+      .eq('status', 'approved'),
+  ])
+
+  const { data: plannerRows, error: plannerError } = plannerResult
+  const { data: approvedRequests, error: requestsError } = requestsResult
 
   if (plannerError) {
     return NextResponse.json({ error: plannerError.message }, { status: 500 })
   }
-
-  const { data: approvedRequests, error: requestsError } = await supabase
-    .from('student_case_requests')
-    .select('case_id')
-    .eq('student_id', user.id)
-    .eq('status', 'approved')
 
   if (requestsError) {
     return NextResponse.json({ error: requestsError.message }, { status: 500 })
@@ -123,21 +128,6 @@ export async function GET() {
     status: string
   }> = []
 
-  if (approvedCaseIds.length > 0) {
-    const { data: patientRows, error: patientsError } = await supabase
-      .from('patient_requests')
-      .select('id, full_name, treatment_type, assigned_department, status')
-      .in('id', approvedCaseIds)
-      .in('status', ACTIVE_CASE_STATUSES)
-      .order('created_at', { ascending: false })
-
-    if (patientsError) {
-      return NextResponse.json({ error: patientsError.message }, { status: 500 })
-    }
-
-    activePatients = patientRows ?? []
-  }
-
   const latestLinkedAppointmentsByCase = new Map<
     string,
     {
@@ -146,25 +136,42 @@ export async function GET() {
     }
   >()
 
-  if (linkedCaseIds.length > 0) {
-    const { data: linkedAppointmentRows, error: linkedAppointmentsError } = await supabase
-      .from('case_progress_entries')
-      .select('case_id, appointment_date, appointment_time, created_at')
-      .in('case_id', linkedCaseIds)
-      .not('appointment_date', 'is', null)
-      .order('created_at', { ascending: false })
+  const [patientsResult, linkedAppointmentsResult] = await Promise.all([
+    approvedCaseIds.length > 0
+      ? supabase
+          .from('patient_requests')
+          .select('id, full_name, treatment_type, assigned_department, status')
+          .in('id', approvedCaseIds)
+          .in('status', ACTIVE_CASE_STATUSES)
+          .order('created_at', { ascending: false })
+      : Promise.resolve(null),
 
-    if (linkedAppointmentsError) {
-      return NextResponse.json({ error: linkedAppointmentsError.message }, { status: 500 })
-    }
+    linkedCaseIds.length > 0
+      ? supabase
+          .from('case_progress_entries')
+          .select('case_id, appointment_date, appointment_time, created_at')
+          .in('case_id', linkedCaseIds)
+          .not('appointment_date', 'is', null)
+          .order('created_at', { ascending: false })
+      : Promise.resolve(null),
+  ])
 
-    for (const row of linkedAppointmentRows ?? []) {
-      if (!latestLinkedAppointmentsByCase.has(row.case_id)) {
-        latestLinkedAppointmentsByCase.set(row.case_id, {
-          appointment_date: row.appointment_date,
-          appointment_time: row.appointment_time,
-        })
-      }
+  if (patientsResult?.error) {
+    return NextResponse.json({ error: patientsResult.error.message }, { status: 500 })
+  }
+
+  activePatients = patientsResult?.data ?? []
+
+  if (linkedAppointmentsResult?.error) {
+    return NextResponse.json({ error: linkedAppointmentsResult.error.message }, { status: 500 })
+  }
+
+  for (const row of linkedAppointmentsResult?.data ?? []) {
+    if (!latestLinkedAppointmentsByCase.has(row.case_id)) {
+      latestLinkedAppointmentsByCase.set(row.case_id, {
+        appointment_date: row.appointment_date,
+        appointment_time: row.appointment_time,
+      })
     }
   }
 
