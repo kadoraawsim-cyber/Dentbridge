@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { buildCaseTimeline } from '@/lib/case-timeline'
 import { ArrowLeft, Calendar, CheckCircle2, Clock, LogOut, Phone, ShieldCheck, XCircle } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
@@ -555,6 +556,15 @@ export function CaseDetailClient({
       ),
     [initialProgressEntries]
   )
+  const treatmentJourney = useMemo(
+    () =>
+      buildCaseTimeline({
+        request,
+        studentRequests,
+        progressEntries: initialProgressEntries,
+      }),
+    [request, studentRequests, initialProgressEntries]
+  )
 
   const currentStatus = (request.status || '').toLowerCase()
 
@@ -580,6 +590,35 @@ export function CaseDetailClient({
     request.assigned_department || keywordRoutingHint(request.treatment_type, request.assigned_department)
   const departmentChanged = assignedDepartment !== originalDepartment
   const departmentChangeWarning = !isTriagePhase && departmentChanged && ['student_approved', 'contacted', 'appointment_scheduled', 'in_treatment'].includes(currentStatus)
+
+  function getJourneyTone(kind: 'system' | 'appointment' | 'progress' | 'closure') {
+    switch (kind) {
+      case 'appointment':
+        return {
+          rail: 'bg-indigo-100',
+          icon: 'border-indigo-200 bg-indigo-50 text-indigo-700',
+          badge: 'bg-indigo-50 text-indigo-700 border-indigo-100',
+        }
+      case 'progress':
+        return {
+          rail: 'bg-purple-100',
+          icon: 'border-purple-200 bg-purple-50 text-purple-700',
+          badge: 'bg-purple-50 text-purple-700 border-purple-100',
+        }
+      case 'closure':
+        return {
+          rail: 'bg-emerald-100',
+          icon: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+          badge: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+        }
+      default:
+        return {
+          rail: 'bg-slate-100',
+          icon: 'border-slate-200 bg-slate-50 text-slate-600',
+          badge: 'bg-slate-50 text-slate-600 border-slate-100',
+        }
+    }
+  }
 
   async function handleViewAttachment() {
     if (!request.attachment_path) return
@@ -1577,6 +1616,92 @@ export function CaseDetailClient({
                 <p className="text-sm text-slate-400">
                   {t('admin.detail.noReviewYet')}
                 </p>
+              )}
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h3 className="mb-4 text-sm font-bold text-slate-900">
+                {t('admin.detail.treatmentJourneyTitle')}
+              </h3>
+
+              {treatmentJourney.length === 0 ? (
+                <p className="text-sm text-slate-400">{t('admin.detail.treatmentJourneyEmpty')}</p>
+              ) : (
+                <div className="space-y-4">
+                  {treatmentJourney.map((item, index) => {
+                    const tone = getJourneyTone(item.kind)
+                    const detailText =
+                      (item.titleKey === 'admin.detail.journeyFacultyReviewed' ||
+                        item.kind === 'closure') &&
+                      item.detail
+                        ? tStatus(item.detail)
+                        : item.detail
+                    const kindLabel =
+                      item.kind === 'appointment'
+                        ? t('admin.detail.journeyKindAppointment')
+                        : item.kind === 'progress'
+                        ? t('admin.detail.journeyKindProgress')
+                        : item.kind === 'closure'
+                        ? t('admin.detail.journeyKindClosure')
+                        : t('admin.detail.journeyKindSystem')
+
+                    return (
+                      <div key={item.id} className="relative flex gap-3">
+                        {index < treatmentJourney.length - 1 && (
+                          <div
+                            className={`absolute left-[15px] top-8 h-[calc(100%+0.5rem)] w-px ${tone.rail}`}
+                            aria-hidden="true"
+                          />
+                        )}
+                        <div
+                          className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${tone.icon}`}
+                        >
+                          {item.kind === 'appointment' ? (
+                            <Calendar className="h-4 w-4" />
+                          ) : item.kind === 'progress' ? (
+                            <Clock className="h-4 w-4" />
+                          ) : item.kind === 'closure' &&
+                            ['rejected', 'cancelled'].includes((item.detail || '').toLowerCase()) ? (
+                            <XCircle className="h-4 w-4" />
+                          ) : item.kind === 'closure' ? (
+                            <CheckCircle2 className="h-4 w-4" />
+                          ) : (
+                            <ShieldCheck className="h-4 w-4" />
+                          )}
+                        </div>
+
+                        <div className="min-w-0 flex-1 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-slate-900">{t(item.titleKey)}</p>
+                              <p className="mt-1 text-xs text-slate-400">
+                                {item.appointmentDate
+                                  ? `${formatDateOnly(item.appointmentDate)}${
+                                      item.appointmentTime ? ` · ${formatTimeOnly(item.appointmentTime)}` : ''
+                                    }`
+                                  : formatReviewDate(item.occurredAt)}
+                              </p>
+                            </div>
+                            <span
+                              className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${tone.badge}`}
+                            >
+                              {kindLabel}
+                            </span>
+                          </div>
+
+                          {detailText && (
+                            <p className="mt-2 break-words text-xs text-slate-600">{detailText}</p>
+                          )}
+                          {item.actor && (
+                            <p className="mt-2 text-xs text-slate-400">
+                              {t('admin.detail.journeyActorLabel')} {item.actor}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
               )}
             </div>
 

@@ -888,6 +888,27 @@ export type TranslationShape = {
       historyClinicalNotesUpdated: string
       historyCaseCancelled: string
       historyReturnedToPool: string
+      treatmentJourneyTitle: string
+      treatmentJourneyEmpty: string
+      journeyPatientSubmitted: string
+      journeyFacultyReviewed: string
+      journeyStudentRequested: string
+      journeyStudentApproved: string
+      journeyStudentRejected: string
+      journeyStudentRevoked: string
+      journeyAppointmentScheduled: string
+      journeyAppointmentRescheduled: string
+      journeyTreatmentStarted: string
+      journeyProgressNote: string
+      journeyFollowUpPlanned: string
+      journeyCaseCompleted: string
+      journeyCaseCancelled: string
+      journeyCaseRejected: string
+      journeyKindSystem: string
+      journeyKindAppointment: string
+      journeyKindProgress: string
+      journeyKindClosure: string
+      journeyActorLabel: string
       treatmentTimelineTitle: string
       treatmentTimelineEmpty: string
       timelineAddedByLabel: string
@@ -2127,6 +2148,27 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       historyClinicalNotesUpdated: 'Clinical notes updated',
       historyCaseCancelled: 'Case cancelled',
       historyReturnedToPool: 'Case returned to pool',
+      treatmentJourneyTitle: 'Treatment Journey',
+      treatmentJourneyEmpty: 'No treatment journey events are available yet.',
+      journeyPatientSubmitted: 'Patient submitted request',
+      journeyFacultyReviewed: 'Faculty reviewed / case status updated',
+      journeyStudentRequested: 'Student requested case',
+      journeyStudentApproved: 'Student request approved',
+      journeyStudentRejected: 'Student request rejected',
+      journeyStudentRevoked: 'Student assignment revoked',
+      journeyAppointmentScheduled: 'Appointment scheduled',
+      journeyAppointmentRescheduled: 'Appointment rescheduled',
+      journeyTreatmentStarted: 'Treatment started',
+      journeyProgressNote: 'Progress note added',
+      journeyFollowUpPlanned: 'Follow-up appointment planned',
+      journeyCaseCompleted: 'Treatment completed',
+      journeyCaseCancelled: 'Case cancelled',
+      journeyCaseRejected: 'Case rejected',
+      journeyKindSystem: 'System',
+      journeyKindAppointment: 'Appointment',
+      journeyKindProgress: 'Progress',
+      journeyKindClosure: 'Closure',
+      journeyActorLabel: 'By:',
       treatmentTimelineTitle: 'Treatment Progress Timeline',
       treatmentTimelineEmpty: 'No treatment progress has been recorded yet.',
       timelineAddedByLabel: 'Added by:',
