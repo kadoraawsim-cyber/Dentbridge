@@ -628,6 +628,7 @@ export type TranslationShape = {
       deleteSuccess: string
       noActivePatients: string
       managedFromCaseCard: string
+      pastAppointment: string
     }
   }
 
@@ -1860,6 +1861,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       deleteSuccess: 'Planner event deleted.',
       noActivePatients: 'No active patients available to link right now.',
       managedFromCaseCard: 'Managed from case card',
+      pastAppointment: 'Past appointment',
     },
   },
 

@@ -154,6 +154,10 @@ function getEventComparableTime(event: PlannerEvent) {
   return getPrivateEventStart(event).getTime()
 }
 
+function isPastEvent(event: PlannerEvent, now = Date.now()) {
+  return getEventComparableTime(event) < now
+}
+
 function getEventDateKey(event: PlannerEvent) {
   if (isLinkedCaseAppointment(event) && event.linked_appointment_date) {
     return event.linked_appointment_date
@@ -239,6 +243,14 @@ function sortPlannerEvents(items: PlannerEvent[]) {
 }
 
 function getEventTone(event: PlannerEvent) {
+  if (isLinkedCaseAppointment(event) && isPastEvent(event)) {
+    return {
+      card: 'border-slate-200 bg-slate-50/90 hover:bg-slate-100/80',
+      badge: 'bg-slate-100 text-slate-600',
+      subtle: 'text-slate-500',
+    }
+  }
+
   if (event.patient_id) {
     return {
       card: 'border-teal-200 bg-teal-50/90 hover:bg-teal-100/80',
@@ -354,7 +366,7 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
   const upcomingEvents = useMemo(() => {
     const now = new Date().getTime()
     return [...events]
-      .filter((event) => getEventComparableTime(event) >= now - 24 * 60 * 60 * 1000)
+      .filter((event) => getEventComparableTime(event) >= now)
       .sort((left, right) => getEventComparableTime(left) - getEventComparableTime(right))
       .slice(0, 6)
   }, [events])
@@ -736,11 +748,14 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
               {t('student.planner.noEventsForDay')}
             </p>
           ) : (
-            selectedDateEvents.map((event) => (
-              isLinkedCaseAppointment(event) ? (
+            selectedDateEvents.map((event) => {
+              const eventTone = getEventTone(event)
+              const isPastLinkedAppointment = isLinkedCaseAppointment(event) && isPastEvent(event)
+
+              return isLinkedCaseAppointment(event) ? (
                 <div
                   key={event.id}
-                  className={`w-full rounded-2xl border px-4 py-4 text-left ${getEventTone(event).card}`}
+                  className={`w-full rounded-2xl border px-4 py-4 text-left ${eventTone.card}`}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
@@ -755,6 +770,11 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
                         : t('student.planner.noLinkedPatient')}
                     </span>
                   </div>
+                  {isPastLinkedAppointment && (
+                    <span className={`mt-3 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${eventTone.badge}`}>
+                      {t('student.planner.pastAppointment')}
+                    </span>
+                  )}
                   <p className="mt-3 text-xs text-slate-500">{t('student.planner.managedFromCaseCard')}</p>
                   {event.description && (
                     <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-slate-600">
@@ -767,7 +787,7 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
                   key={event.id}
                   type="button"
                   onClick={() => openEditModal(event)}
-                  className={`w-full rounded-2xl border px-4 py-4 text-left transition ${getEventTone(event).card}`}
+                  className={`w-full rounded-2xl border px-4 py-4 text-left transition ${eventTone.card}`}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
@@ -789,7 +809,7 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
                   )}
                 </button>
               )
-            ))
+            })
           )}
         </div>
       </div>
@@ -995,23 +1015,36 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
                         {t('student.planner.noEventsForDay')}
                       </p>
                     ) : (
-                      selectedDateEvents.map((event) => (
-                        <div key={event.id} className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
-                          <p className="text-sm font-semibold text-slate-900">{event.title}</p>
-                          <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
-                            <Clock3 className="h-3.5 w-3.5" />
-                            {formatTimeRange(event, dateLocale, t)}
+                      selectedDateEvents.map((event) => {
+                        const eventTone = getEventTone(event)
+                        const isPastLinkedAppointment = isLinkedCaseAppointment(event) && isPastEvent(event)
+                        const eventCardClass = isLinkedCaseAppointment(event)
+                          ? eventTone.card
+                          : 'border-slate-100 bg-slate-50'
+
+                        return (
+                          <div key={event.id} className={`rounded-xl border px-4 py-3 ${eventCardClass}`}>
+                            <p className="text-sm font-semibold text-slate-900">{event.title}</p>
+                            <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
+                              <Clock3 className="h-3.5 w-3.5" />
+                              {formatTimeRange(event, dateLocale, t)}
+                            </div>
+                            {isPastLinkedAppointment && (
+                              <span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${eventTone.badge}`}>
+                                {t('student.planner.pastAppointment')}
+                              </span>
+                            )}
+                            <p className="mt-2 text-xs text-slate-500">
+                              {event.patient_id
+                                ? `${t('student.planner.linkedPatient')}: ${patientMap[event.patient_id] ?? event.patient_id}`
+                                : t('student.planner.noLinkedPatient')}
+                            </p>
+                            {isLinkedCaseAppointment(event) && (
+                              <p className="mt-2 text-xs text-slate-500">{t('student.planner.managedFromCaseCard')}</p>
+                            )}
                           </div>
-                          <p className="mt-2 text-xs text-slate-500">
-                            {event.patient_id
-                              ? `${t('student.planner.linkedPatient')}: ${patientMap[event.patient_id] ?? event.patient_id}`
-                              : t('student.planner.noLinkedPatient')}
-                          </p>
-                          {isLinkedCaseAppointment(event) && (
-                            <p className="mt-2 text-xs text-slate-500">{t('student.planner.managedFromCaseCard')}</p>
-                          )}
-                        </div>
-                      ))
+                        )
+                      })
                     )}
                   </div>
                 </div>
