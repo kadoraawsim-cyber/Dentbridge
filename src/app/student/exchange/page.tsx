@@ -22,7 +22,7 @@ export default function StudentExchangePage() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-3">
             <img
-              src="/dentbridge-icon.png"
+              src="/dentbridge-icon.webp"
               alt="DentBridge icon"
               className="h-10 w-10 object-contain"
             />

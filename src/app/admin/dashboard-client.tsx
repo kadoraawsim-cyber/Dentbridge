@@ -445,7 +445,7 @@ export function DashboardClient({ initialRequests, adminEmail, currentRole }: Pr
         <div className="mx-auto flex max-w-7xl items-center justify-between px-3 py-2 sm:px-6 lg:px-8">
           <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-3">
             <img
-              src="/dentbridge-icon.png"
+              src="/dentbridge-icon.webp"
               alt="DentBridge icon"
               className="h-8 w-8 sm:h-10 sm:w-10 shrink-0 object-contain"
             />

@@ -61,7 +61,7 @@ export default function FaqPage() {
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-3">
-            <img src="/dentbridge-icon.png" alt="DentBridge" className="h-9 w-9 object-contain" />
+            <img src="/dentbridge-icon.webp" alt="DentBridge" className="h-9 w-9 object-contain" />
             <div>
               <p className="text-sm font-bold leading-none text-slate-900">DentBridge</p>
               <p className="text-[10px] uppercase tracking-wider text-slate-400">

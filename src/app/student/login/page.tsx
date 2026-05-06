@@ -88,7 +88,7 @@ export default function StudentLoginPage() {
       <div className="mb-6 flex w-full max-w-md items-center justify-between">
         <Link href="/" className="flex items-center gap-3">
           <img
-            src="/dentbridge-icon.png"
+            src="/dentbridge-icon.webp"
             alt="DentBridge icon"
             className="h-9 w-9 object-contain"
           />

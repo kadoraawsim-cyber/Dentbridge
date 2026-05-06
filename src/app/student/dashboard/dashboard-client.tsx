@@ -564,7 +564,7 @@ export function DashboardClient({
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-3 py-2 sm:px-6 lg:px-8">
           <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-3">
-            <img src="/dentbridge-icon.png" alt="DentBridge" className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 object-contain" />
+            <img src="/dentbridge-icon.webp" alt="DentBridge" className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 object-contain" />
             <div className="min-w-0">
               <p className="truncate text-sm sm:text-[15px] font-bold leading-none text-slate-900">DentBridge</p>
               <p className="hidden sm:block truncate text-[10px] uppercase tracking-wider text-slate-400">

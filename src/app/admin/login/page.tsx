@@ -86,7 +86,7 @@ export default function AdminLoginPage() {
       <div className="mb-10 flex w-full max-w-md items-center justify-between">
         <Link href="/" className="flex items-center gap-3">
           <img
-            src="/dentbridge-icon.png"
+            src="/dentbridge-icon.webp"
             alt="DentBridge icon"
             className="h-10 w-10 object-contain"
           />
