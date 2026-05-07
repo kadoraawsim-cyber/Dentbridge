@@ -1154,6 +1154,26 @@ export function CaseDetailClient({
               {waitingDays(request.created_at)}
             </span>
           </div>
+
+          <div className="mt-5 flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white/80 p-3 shadow-sm">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600">
+              <span className="text-slate-400">{t('admin.detail.assignDeptLabel')}</span>
+              <span className="font-semibold text-slate-900">{tDepartment(assignedDepartment)}</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-100 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">
+              <span className="text-amber-500/80">{t('admin.detail.urgencyLabel')}</span>
+              <span className="font-semibold">{tUrgency(mapDetailToUrgency(urgencyLevel))}</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-100 bg-teal-50 px-3 py-1.5 text-xs font-medium text-teal-700">
+              <span className="font-semibold">{tStatus(request.status)}</span>
+            </span>
+            {targetStudentLevel && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-800">
+                <span className="text-blue-500/80">{t('admin.detail.studentLevelLabel')}</span>
+                <span className="font-semibold">{tStudentLevel(targetStudentLevel)}</span>
+              </span>
+            )}
+          </div>
         </div>
 
         {errorMessage && (
@@ -1162,7 +1182,7 @@ export function CaseDetailClient({
           </div>
         )}
 
-        <div className="grid gap-8 md:grid-cols-3">
+        <div className="grid items-start gap-6 md:grid-cols-3">
           <div className="space-y-6 md:col-span-2">
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <h3 className="mb-6 border-b border-slate-100 pb-4 text-xl font-bold text-slate-900">
@@ -1259,52 +1279,123 @@ export function CaseDetailClient({
                 </div>
               </div>
 
-              <h3 className="mb-4 border-b border-slate-100 pb-4 text-xl font-bold text-slate-900">
-                {t('admin.detail.triageTitle')}
-              </h3>
+              <div className="mb-8 border-t border-slate-100 pt-6">
+                <h3 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">
+                  {t('admin.detail.uploadedImagesTitle')}
+                </h3>
 
-              {isTerminal && (
-                <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-                  {(request.status || '').toLowerCase() === 'matched'
-                    ? t('admin.detail.triageReleasedNote')
-                    : t('admin.detail.triageClosedNote')}
-                </div>
-              )}
-
-              {!isTriagePhase && canEditTriage && !isEditingTriage && (
-                <div className="mb-4 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => setIsEditingTriage(true)}
-                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                  >
-                    {t('admin.detail.editCase')}
-                  </button>
-                </div>
-              )}
-
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-700">
-                      {t('admin.detail.assignDeptLabel')}{' '}
-                      <span className="text-xs font-normal text-slate-400">
-                        {t('admin.detail.assignDeptHint')}
-                      </span>
-                    </label>
-                    <select
-                      value={assignedDepartment}
-                      onChange={(e) => setAssignedDepartment(e.target.value)}
-                      disabled={saving || (!isTriagePhase && !isEditingTriage)}
-                      className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-blue-900 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
-                    >
-                      {departmentOptions.map((dept) => (
-                        <option key={dept} value={dept}>
-                          {tDepartment(dept)}
-                        </option>
-                      ))}
-                    </select>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                    {!request.attachment_path ? (
+                      <div className="flex aspect-video items-center justify-center">
+                        <p className="px-4 text-center text-xs text-slate-400">{t('admin.detail.noUploadedImage')}</p>
+                      </div>
+                    ) : previewLoading ? (
+                      <div className="flex aspect-video items-center justify-center">
+                        <span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-slate-600" />
+                      </div>
+                    ) : previewUrl ? (
+                      <img
+                        src={previewUrl}
+                        alt={attachmentLabel}
+                        className="aspect-video w-full object-contain"
+                      />
+                    ) : (
+                      <div className="flex aspect-video items-center justify-center">
+                        <p className="px-4 text-center text-xs text-slate-500">{attachmentLabel}</p>
+                      </div>
+                    )}
                   </div>
+
+                  <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    {request.attachment_path ? (
+                      <p className="min-w-0 truncate text-xs text-slate-400">{attachmentLabel}</p>
+                    ) : (
+                      <p className="text-xs text-slate-400">{t('admin.detail.noUploadedImage')}</p>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={handleViewAttachment}
+                      disabled={!request.attachment_path || openingFile}
+                      className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {openingFile ? t('admin.detail.openingFile') : t('admin.detail.viewFullScreen')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <section
+                aria-labelledby="faculty-triage-title"
+                className="rounded-2xl border border-blue-100 bg-blue-50/40 p-5 shadow-sm ring-1 ring-blue-100/70"
+              >
+                <div className="mb-5 flex flex-col gap-3 border-b border-blue-100 pb-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-900 text-white shadow-sm">
+                      <ShieldCheck className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h3 id="faculty-triage-title" className="text-xl font-bold text-slate-950">
+                        {t('admin.detail.triageTitle')}
+                      </h3>
+                    </div>
+                  </div>
+                  <span
+                    className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide ${
+                      isTerminal
+                        ? 'border-slate-200 bg-white text-slate-500'
+                        : isTriagePhase
+                        ? 'border-blue-200 bg-white text-blue-900'
+                        : 'border-teal-200 bg-white text-teal-700'
+                    }`}
+                  >
+                    {tStatus(request.status)}
+                  </span>
+                </div>
+
+                {isTerminal && (
+                  <div className="mb-5 rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-500">
+                    {(request.status || '').toLowerCase() === 'matched'
+                      ? t('admin.detail.triageReleasedNote')
+                      : t('admin.detail.triageClosedNote')}
+                  </div>
+                )}
+
+                {!isTriagePhase && canEditTriage && !isEditingTriage && (
+                  <div className="mb-5 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingTriage(true)}
+                      className="rounded-xl border border-blue-100 bg-white px-4 py-2 text-sm font-semibold text-blue-900 transition hover:bg-blue-50"
+                    >
+                      {t('admin.detail.editCase')}
+                    </button>
+                  </div>
+                )}
+
+                <div className="space-y-5">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-slate-700">
+                        {t('admin.detail.assignDeptLabel')}{' '}
+                        <span className="text-xs font-normal text-slate-400">
+                          {t('admin.detail.assignDeptHint')}
+                        </span>
+                      </label>
+                      <select
+                        value={assignedDepartment}
+                        onChange={(e) => setAssignedDepartment(e.target.value)}
+                        disabled={saving || (!isTriagePhase && !isEditingTriage)}
+                        className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-900/10 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
+                      >
+                        {departmentOptions.map((dept) => (
+                          <option key={dept} value={dept}>
+                            {tDepartment(dept)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
                   <div className="space-y-2">
                     <label className="text-sm font-semibold text-slate-700">
@@ -1314,7 +1405,7 @@ export function CaseDetailClient({
                       value={urgencyLevel}
                       onChange={(e) => setUrgencyLevel(e.target.value)}
                       disabled={saving || (!isTriagePhase && !isEditingTriage)}
-                      className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-blue-900 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
+                      className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-900/10 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
                     >
                       <option value="High (Emergency / Severe Pain)">{t('admin.detail.urgencyHighOption')}</option>
                       <option value="Medium (Discomfort)">{t('admin.detail.urgencyMediumOption')}</option>
@@ -1331,7 +1422,7 @@ export function CaseDetailClient({
                     value={targetStudentLevel}
                     onChange={(e) => setTargetStudentLevel(e.target.value)}
                     disabled={saving || (!isTriagePhase && !isEditingTriage)}
-                    className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-blue-900 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
+                    className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-900/10 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
                   >
                     {studentLevelOptions.map((opt) => (
                       <option key={opt} value={opt}>
@@ -1350,7 +1441,7 @@ export function CaseDetailClient({
                     onChange={(e) => setClinicalNotes(e.target.value)}
                     disabled={saving || (!isTriagePhase && !isEditingTriage)}
                     placeholder={t('admin.detail.clinicalNotesPlaceholder')}
-                    className="min-h-[110px] w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm text-slate-900 outline-none focus:border-blue-900 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
+                    className="min-h-[110px] w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-900/10 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
                   />
                 </div>
 
@@ -1372,18 +1463,18 @@ export function CaseDetailClient({
                       value={triageReason}
                       onChange={(e) => setTriageReason(e.target.value)}
                       placeholder={t('admin.detail.reasonPlaceholder')}
-                      className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-blue-900"
+                      className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-900/10"
                     />
                   </div>
                 )}
               </div>
 
-              <div className="mt-8 border-t border-slate-100 pt-6">
-                {saveSuccess && (
-                  <p className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-700">
-                    {saveSuccess}
-                  </p>
-                )}
+                <div className="mt-6 rounded-xl border border-blue-100 bg-white/80 p-4">
+                  {saveSuccess && (
+                    <p className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-700">
+                      {saveSuccess}
+                    </p>
+                  )}
 
                 {isTriagePhase ? pendingAction === 'reject' ? (
                   <div className="rounded-xl border border-red-200 bg-red-50 p-4">
@@ -1393,7 +1484,7 @@ export function CaseDetailClient({
                     <p className="mb-4 text-sm text-red-700">
                       {t('admin.detail.rejectConfirmDesc')}
                     </p>
-                    <div className="flex gap-3">
+                    <div className="flex flex-col gap-3 sm:flex-row">
                       <button
                         type="button"
                         onClick={() => setPendingAction(null)}
@@ -1428,7 +1519,7 @@ export function CaseDetailClient({
                         {t('admin.detail.releaseStudentLevelLabel')} <strong>{tStudentLevel(targetStudentLevel)}</strong>
                       </li>
                     </ul>
-                    <div className="flex gap-3">
+                    <div className="flex flex-col gap-3 sm:flex-row">
                       <button
                         type="button"
                         onClick={() => setPendingAction(null)}
@@ -1448,7 +1539,7 @@ export function CaseDetailClient({
                     </div>
                   </div>
                 ) : (
-                  <div className="flex gap-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                     <button
                       type="button"
                       onClick={handleSaveDraft}
@@ -1467,19 +1558,19 @@ export function CaseDetailClient({
                       {t('admin.detail.rejectOutOfScope')}
                     </button>
 
-                    <div className="ml-auto">
+                    <div className="sm:ml-auto">
                       <button
                         type="button"
                         onClick={() => setPendingAction('approve')}
                         disabled={saving}
-                        className="rounded-xl bg-blue-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:opacity-60"
+                        className="w-full rounded-xl bg-blue-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:opacity-60 sm:w-auto"
                       >
                         {t('admin.detail.approveReleaseToPool')}
                       </button>
                     </div>
                   </div>
                 ) : canEditTriage && isEditingTriage ? (
-                  <div className="flex gap-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                     <button
                       type="button"
                       onClick={() => {
@@ -1565,8 +1656,9 @@ export function CaseDetailClient({
                       </button>
                     </div>
                   </div>
-                )}
-              </div>
+                  )}
+                </div>
+              </section>
             </div>
           </div>
 
@@ -1600,15 +1692,22 @@ export function CaseDetailClient({
               )}
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="mb-4 text-sm font-bold text-slate-900">
-                {t('admin.detail.treatmentJourneyTitle')}
-              </h3>
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <h3 className="text-sm font-bold text-slate-900">
+                  {t('admin.detail.treatmentJourneyTitle')}
+                </h3>
+                {treatmentJourney.length > 0 && (
+                  <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-semibold text-slate-500">
+                    {treatmentJourney.length}
+                  </span>
+                )}
+              </div>
 
               {treatmentJourney.length === 0 ? (
                 <p className="text-sm text-slate-400">{t('admin.detail.treatmentJourneyEmpty')}</p>
               ) : (
-                <div className="space-y-4">
+                <div className="max-h-[520px] space-y-2.5 overflow-y-auto pr-1">
                   {treatmentJourney.map((item, index) => {
                     const tone = getJourneyTone(item.kind)
                     const detailText =
@@ -1627,54 +1726,54 @@ export function CaseDetailClient({
                         : t('admin.detail.journeyKindSystem')
 
                     return (
-                      <div key={item.id} className="relative flex gap-3">
+                      <div key={item.id} className="relative flex gap-2.5">
                         {index < treatmentJourney.length - 1 && (
                           <div
-                            className={`absolute left-[15px] top-8 h-[calc(100%+0.5rem)] w-px ${tone.rail}`}
+                            className={`absolute left-[13px] top-7 h-[calc(100%+0.35rem)] w-px ${tone.rail}`}
                             aria-hidden="true"
                           />
                         )}
                         <div
-                          className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${tone.icon}`}
+                          className={`relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border ${tone.icon}`}
                         >
                           {item.kind === 'appointment' ? (
-                            <Calendar className="h-4 w-4" />
+                            <Calendar className="h-3.5 w-3.5" />
                           ) : item.kind === 'progress' ? (
-                            <Clock className="h-4 w-4" />
+                            <Clock className="h-3.5 w-3.5" />
                           ) : item.kind === 'closure' &&
                             ['rejected', 'cancelled'].includes((item.detail || '').toLowerCase()) ? (
-                            <XCircle className="h-4 w-4" />
+                            <XCircle className="h-3.5 w-3.5" />
                           ) : item.kind === 'closure' ? (
-                            <CheckCircle2 className="h-4 w-4" />
+                            <CheckCircle2 className="h-3.5 w-3.5" />
                           ) : (
-                            <ShieldCheck className="h-4 w-4" />
+                            <ShieldCheck className="h-3.5 w-3.5" />
                           )}
                         </div>
 
-                        <div className="min-w-0 flex-1 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
-                          <div className="flex flex-wrap items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium text-slate-900">{t(item.titleKey)}</p>
-                              <p className="mt-1 text-xs text-slate-400">
-                                {item.appointmentDate
-                                  ? `${formatDateOnly(item.appointmentDate)}${
-                                      item.appointmentTime ? ` · ${formatTimeOnly(item.appointmentTime)}` : ''
-                                    }`
-                                  : formatReviewDate(item.occurredAt)}
-                              </p>
-                            </div>
+                        <div className="min-w-0 flex-1 rounded-lg border border-slate-100 bg-slate-50/80 px-3 py-2">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <p className="min-w-0 flex-1 text-sm font-medium leading-snug text-slate-900">
+                              {t(item.titleKey)}
+                            </p>
                             <span
-                              className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${tone.badge}`}
+                              className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${tone.badge}`}
                             >
                               {kindLabel}
                             </span>
                           </div>
+                          <p className="mt-0.5 text-xs text-slate-400">
+                            {item.appointmentDate
+                              ? `${formatDateOnly(item.appointmentDate)}${
+                                  item.appointmentTime ? ` · ${formatTimeOnly(item.appointmentTime)}` : ''
+                                }`
+                              : formatReviewDate(item.occurredAt)}
+                          </p>
 
                           {detailText && (
-                            <p className="mt-2 break-words text-xs text-slate-600">{detailText}</p>
+                            <p className="mt-1 break-words text-xs leading-snug text-slate-600">{detailText}</p>
                           )}
                           {item.actor && (
-                            <p className="mt-2 text-xs text-slate-400">
+                            <p className="mt-1 text-xs text-slate-400">
                               {t('admin.detail.journeyActorLabel')} {item.actor}
                             </p>
                           )}
@@ -1686,15 +1785,22 @@ export function CaseDetailClient({
               )}
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="mb-4 text-sm font-bold text-slate-900">
-                {t('admin.detail.historyTitle')}
-              </h3>
+            <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold text-slate-700">
+                  {t('admin.detail.historyTitle')}
+                </h3>
+                {sortedActivityLog.length > 0 && (
+                  <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-400">
+                    {sortedActivityLog.length}
+                  </span>
+                )}
+              </div>
 
               {sortedActivityLog.length === 0 ? (
                 <p className="text-sm text-slate-400">{t('admin.detail.historyEmpty')}</p>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {sortedActivityLog.map((entry) => {
                     const detailText =
                       entry.type === 'case_released' || entry.type === 'department_changed'
@@ -1704,16 +1810,18 @@ export function CaseDetailClient({
                         : entry.detail
 
                     return (
-                      <div key={entry.id} className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
-                        <p className="text-sm font-medium text-slate-900">
-                          {activityLabel(entry)}
-                        </p>
+                      <div key={entry.id} className="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2">
+                        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                          <p className="text-xs font-semibold text-slate-700">
+                            {activityLabel(entry)}
+                          </p>
+                          <p className="text-[11px] text-slate-400">
+                            {formatReviewDate(entry.timestamp)}
+                          </p>
+                        </div>
                         {detailText && (
-                          <p className="mt-0.5 text-xs text-slate-500">{detailText}</p>
+                          <p className="mt-1 break-words text-xs leading-snug text-slate-500">{detailText}</p>
                         )}
-                        <p className="mt-1 text-xs text-slate-400">
-                          {formatReviewDate(entry.timestamp)}
-                        </p>
                       </div>
                     )
                   })}
@@ -1721,55 +1829,6 @@ export function CaseDetailClient({
               )}
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="mb-4 text-lg font-bold text-slate-900">{t('admin.detail.uploadedImagesTitle')}</h3>
-
-              <div className="mb-3 overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
-                {!request.attachment_path ? (
-                  <div className="flex aspect-video items-center justify-center">
-                    <p className="px-4 text-center text-xs text-slate-400">{t('admin.detail.noUploadedImage')}</p>
-                  </div>
-                ) : previewLoading ? (
-                  <div className="flex aspect-video items-center justify-center">
-                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-slate-600" />
-                  </div>
-                ) : previewUrl ? (
-                  <img
-                    src={previewUrl}
-                    alt={attachmentLabel}
-                    className="aspect-video w-full object-contain"
-                  />
-                ) : (
-                  <div className="flex aspect-video items-center justify-center">
-                    <p className="px-4 text-center text-xs text-slate-500">{attachmentLabel}</p>
-                  </div>
-                )}
-              </div>
-
-              {request.attachment_path && (
-                <p className="mb-3 truncate text-xs text-slate-400">{attachmentLabel}</p>
-              )}
-
-              <button
-                type="button"
-                onClick={handleViewAttachment}
-                disabled={!request.attachment_path || openingFile}
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {openingFile ? t('admin.detail.openingFile') : t('admin.detail.viewFullScreen')}
-              </button>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 shadow-sm">
-              <h3 className="mb-2 text-sm font-bold text-slate-900">{t('admin.detail.priorRecordsTitle')}</h3>
-              <p className="mb-4 text-sm text-slate-500">
-                {t('admin.detail.priorRecordsDesc')}
-              </p>
-              <div className="flex items-center gap-2 text-xs text-slate-400">
-                <ShieldCheck className="h-4 w-4 text-slate-400" />
-                {t('admin.detail.priorRecordsNote')}
-              </div>
-            </div>
           </div>
         </div>
 
