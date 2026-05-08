@@ -5,6 +5,7 @@ const BASE_URL = 'https://dentbridgetr.com'
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes = [
     '',
+    '/about',
     '/patients',
     '/patient/request',
     '/patient/status',

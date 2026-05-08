@@ -1298,6 +1298,11 @@ export default function PatientRequestPage() {
                 </Link>
               </li>
               <li>
+                <Link href="/about" className="hover:text-white">
+                  {t('footer.aboutDentBridge')}
+                </Link>
+              </li>
+              <li>
                 <Link href="/privacy" className="hover:text-white">
                   {t('footer.privacyPolicy')}
                 </Link>

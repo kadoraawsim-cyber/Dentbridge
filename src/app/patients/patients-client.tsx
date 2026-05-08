@@ -515,6 +515,11 @@ export default function PatientsPageClient() {
                 </Link>
               </li>
               <li>
+                <Link href="/about" className="transition hover:text-white">
+                  {t('footer.aboutDentBridge')}
+                </Link>
+              </li>
+              <li>
                 <Link href="/privacy" className="transition hover:text-white">
                   {t('footer.privacyPolicy')}
                 </Link>

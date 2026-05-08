@@ -438,6 +438,7 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
     contact: 'İletişim',
     requestTreatment: 'Tedavi Talep Et',
     checkStatus: 'Talep Durumunu Kontrol Et',
+    aboutDentBridge: 'DentBridge Hakkında',
     privacyPolicy: 'Gizlilik Politikası',
     forStudents: 'Öğrenciler İçin',
     studentPortal: 'Öğrenci Portalı',
@@ -452,6 +453,61 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
     whatsappSupport: 'WhatsApp: WhatsApp desteği mevcuttur',
     copyright:
       '© 2026 DentBridge. Tüm tedaviler akademik denetim altında sağlanmaktadır.',
+  },
+
+  aboutPage: {
+    title: 'DentBridge Hakkında',
+    heroSubtitle: 'Hastaları denetimli üniversite diş hekimliği bakımıyla buluşturuyor.',
+    introOne:
+      'DentBridge, erişilebilir diş tedavisi arayan hastaları akademik denetim altında çalışan diş hekimliği öğrencileriyle buluşturmaya yardımcı olmak için tasarlanmış fakülte destekli bir klinik platformdur.',
+    introTwo:
+      'Amacımız, süreci hem hastalar hem de geleceğin diş hekimleri için daha düzenli, şeffaf ve kolay izlenebilir hale getirmektir.',
+    whyTitle: 'DentBridge Neden Var?',
+    whyContentOne:
+      'Birçok kişi yüksek maliyetler, belirsizlik veya güvenilir bakıma ulaşmakta yaşanan zorluklar nedeniyle diş tedavisini erteler.',
+    whyContentTwo:
+      'Aynı zamanda diş hekimliği öğrencilerinin, fakülte denetimi altında gerçek hasta ortamlarında pratik becerilerini geliştirmeye devam edebilmesi için yapılandırılmış klinik deneyime ihtiyacı vardır.',
+    whyContentThree:
+      'DentBridge, bu iki tarafı yapılandırılmış bir akademik iş akışıyla buluşturmaya yardımcı olmak için oluşturuldu.',
+    howTitle: 'DentBridge Nasıl Çalışır?',
+    steps: {
+      submitTitle: 'Tedavi Talebi Gönder',
+      submitText:
+        'Hastalar platform üzerinden tedavi taleplerini gönderir ve ihtiyaçları hakkında temel bilgileri paylaşır.',
+      reviewTitle: 'Fakülte İncelemesi',
+      reviewText:
+        'Üniversite fakülte ekipleri, uygun bölümü ve klinik süreci belirlemek için talepleri inceler ve değerlendirir.',
+      matchingTitle: 'Öğrenci Eşleştirmesi',
+      matchingText:
+        'Onaylanan vakalar; bölüm, klinik düzey ve uygunluk durumuna göre nitelikli diş hekimliği öğrencilerine açılabilir.',
+      supervisedTitle: 'Denetimli Tedavi Süreci',
+      supervisedText:
+        'Öğrenciler hastalarla iletişim kurar ve akademik klinik ortamda fakülte denetimi altında tedavi sağlar.',
+    },
+    academicTitle: 'Akademik ve Denetimli Ortam',
+    academicContentOne:
+      'DentBridge, yapılandırılmış ve üniversite destekli bir iş akışı etrafında tasarlanmıştır.',
+    academicContentTwo:
+      'Tüm tedaviler akademik klinik ortamda incelenir ve denetlenir; bu da süreç boyunca hasta güvenliğini, düzeni ve iletişimi desteklemeye yardımcı olur.',
+    academicContentThree:
+      'Platform, klinik eğitimi ve erişilebilirliği desteklerken hastalar, öğrenciler ve fakülte ekipleri arasındaki koordinasyonu iyileştirmeyi amaçlar.',
+    differentTitle: 'DentBridge’i Farklı Kılan Nedir?',
+    differences: {
+      workflow: 'Yapılandırılmış akademik iş akışı',
+      supervision: 'Fakülte denetimli klinik ortam',
+      communication: 'Düzenli iletişim ve takip',
+      tracking: 'Dijital hasta talebi ve takip sistemi',
+      education: 'Diş hekimliği eğitimi ve klinik deneyim desteği',
+      accessibility: 'Hastalar için daha erişilebilir tedavi fırsatları',
+    },
+    visionTitle: 'Vizyonumuz',
+    visionContentOne:
+      'Üniversite destekli diş hekimliği bakımının daha erişilebilir, düzenli ve dijital olarak bağlantılı hale gelebileceğine inanıyoruz.',
+    visionContentTwo:
+      'DentBridge, hastalar, diş hekimliği öğrencileri ve akademik klinik ekipler arasında modern bir köprü kurma vizyonuyla geliştirildi.',
+    ctaTitle: 'Tedavi talebi oluşturmaya hazır mısınız?',
+    ctaText: 'Talebinizi gönderin, üniversite ekibimiz vakanızı değerlendirsin.',
+    ctaButton: 'Tedavi Talebi Gönder',
   },
 
   faqPage: {

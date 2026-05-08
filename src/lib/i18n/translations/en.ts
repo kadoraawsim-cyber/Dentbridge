@@ -1030,6 +1030,7 @@ export type TranslationShape = {
     contact: string
     requestTreatment: string
     checkStatus: string
+    aboutDentBridge: string
     privacyPolicy: string
     forStudents: string
     studentPortal: string
@@ -1044,6 +1045,47 @@ export type TranslationShape = {
     whatsappSupport: string
     /** {year} is replaced at render time */
     copyright: string
+  }
+
+  aboutPage: {
+    title: string
+    heroSubtitle: string
+    introOne: string
+    introTwo: string
+    whyTitle: string
+    whyContentOne: string
+    whyContentTwo: string
+    whyContentThree: string
+    howTitle: string
+    steps: {
+      submitTitle: string
+      submitText: string
+      reviewTitle: string
+      reviewText: string
+      matchingTitle: string
+      matchingText: string
+      supervisedTitle: string
+      supervisedText: string
+    }
+    academicTitle: string
+    academicContentOne: string
+    academicContentTwo: string
+    academicContentThree: string
+    differentTitle: string
+    differences: {
+      workflow: string
+      supervision: string
+      communication: string
+      tracking: string
+      education: string
+      accessibility: string
+    }
+    visionTitle: string
+    visionContentOne: string
+    visionContentTwo: string
+    ctaTitle: string
+    ctaText: string
+    ctaButton: string
   }
 
   faqPage: {
@@ -2289,6 +2331,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     contact: 'Contact',
     requestTreatment: 'Request Treatment',
     checkStatus: 'Check Request Status',
+    aboutDentBridge: 'About DentBridge',
     privacyPolicy: 'Privacy Policy',
     forStudents: 'For Students',
     studentPortal: 'Student Portal',
@@ -2303,6 +2346,61 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     whatsappSupport: 'WhatsApp: WhatsApp support available',
     copyright:
       '© 2026 DentBridge. All treatments are provided under academic supervision.',
+  },
+
+  aboutPage: {
+    title: 'About DentBridge',
+    heroSubtitle: 'Bridging patients with supervised university dental care.',
+    introOne:
+      'DentBridge is a faculty-supported clinical platform designed to help connect patients seeking accessible dental treatment with dental students working under academic supervision.',
+    introTwo:
+      'Our goal is to make the process more organized, transparent, and easier to navigate for both patients and future dentists.',
+    whyTitle: 'Why DentBridge Exists',
+    whyContentOne:
+      'Many people delay dental treatment because of high costs, uncertainty, or difficulty finding trusted care.',
+    whyContentTwo:
+      'At the same time, dental students need structured clinical experience to continue developing their practical skills in real patient environments under faculty supervision.',
+    whyContentThree:
+      'DentBridge was created to help bridge these two sides through a structured academic workflow.',
+    howTitle: 'How DentBridge Works',
+    steps: {
+      submitTitle: 'Submit a Treatment Request',
+      submitText:
+        'Patients submit their treatment request through the platform and provide basic information about their needs.',
+      reviewTitle: 'Faculty Review',
+      reviewText:
+        'University faculty teams review and evaluate requests to determine the appropriate department and clinical pathway.',
+      matchingTitle: 'Student Matching',
+      matchingText:
+        'Approved cases may become available to qualified dental students based on department, clinical level, and availability.',
+      supervisedTitle: 'Supervised Treatment Process',
+      supervisedText:
+        'Students communicate with patients and provide treatment within an academic clinical environment under faculty supervision.',
+    },
+    academicTitle: 'Academic & Supervised Environment',
+    academicContentOne:
+      'DentBridge is designed around a structured university-supported workflow.',
+    academicContentTwo:
+      'All treatments are reviewed and supervised within an academic clinical setting, helping support patient safety, organization, and communication throughout the process.',
+    academicContentThree:
+      'The platform aims to improve coordination between patients, students, and faculty teams while supporting clinical education and accessibility.',
+    differentTitle: 'What Makes DentBridge Different',
+    differences: {
+      workflow: 'Structured academic workflow',
+      supervision: 'Faculty-supervised clinical environment',
+      communication: 'Organized communication and follow-up',
+      tracking: 'Digital patient request and tracking system',
+      education: 'Support for dental education and clinical experience',
+      accessibility: 'More accessible treatment opportunities for patients',
+    },
+    visionTitle: 'Our Vision',
+    visionContentOne:
+      'We believe university-supported dental care can become more accessible, organized, and digitally connected.',
+    visionContentTwo:
+      'DentBridge was built with the vision of creating a modern bridge between patients, dental students, and academic clinical teams.',
+    ctaTitle: 'Ready to Request Treatment?',
+    ctaText: 'Submit your request and let our university team review your case.',
+    ctaButton: 'Submit Treatment Request',
   },
 
   faqPage: {
