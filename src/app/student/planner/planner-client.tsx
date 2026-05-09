@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -44,16 +44,11 @@ type ActivePatient = {
   status: string
 }
 
-type PlannerResponse = {
-  data: {
-    events: PlannerEvent[]
-    activePatients: ActivePatient[]
-  }
-}
-
 interface Props {
   studentEmail: string
   studentFullName: string
+  initialEvents: PlannerEvent[]
+  initialActivePatients: ActivePatient[]
 }
 
 type PlannerFormState = {
@@ -266,7 +261,7 @@ function getEventTone(event: PlannerEvent) {
   }
 }
 
-export function PlannerClient({ studentEmail, studentFullName }: Props) {
+export function PlannerClient({ studentEmail, studentFullName, initialEvents, initialActivePatients }: Props) {
   const router = useRouter()
   const { t, locale } = useI18n()
   const dateLocale = locale === 'tr' ? 'tr-TR' : 'en-GB'
@@ -274,10 +269,8 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
   const [view, setView] = useState<PlannerView>('month')
   const [currentDate, setCurrentDate] = useState(() => startOfDay(new Date()))
   const [selectedDate, setSelectedDate] = useState(() => startOfDay(new Date()))
-  const [events, setEvents] = useState<PlannerEvent[]>([])
-  const [activePatients, setActivePatients] = useState<ActivePatient[]>([])
-  const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState('')
+  const [events, setEvents] = useState<PlannerEvent[]>(initialEvents)
+  const [activePatients, setActivePatients] = useState<ActivePatient[]>(initialActivePatients)
   const [saveError, setSaveError] = useState('')
   const [saveSuccess, setSaveSuccess] = useState('')
   const [showModal, setShowModal] = useState(false)
@@ -305,33 +298,6 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
     await supabase.auth.signOut()
     router.replace('/student/login')
   }
-
-  const loadPlannerData = useCallback(async () => {
-    setLoading(true)
-    setLoadError('')
-
-    const response = await fetch('/api/student/planner', { cache: 'no-store' })
-
-    if (!response.ok) {
-      const body = await response.json().catch(() => ({ error: t('student.planner.loadError') }))
-      setLoadError((body as { error?: string }).error ?? t('student.planner.loadError'))
-      setLoading(false)
-      return
-    }
-
-    const body = (await response.json()) as PlannerResponse
-    setEvents(body.data.events)
-    setActivePatients(body.data.activePatients)
-    setLoading(false)
-  }, [t])
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      void loadPlannerData()
-    }, 0)
-
-    return () => window.clearTimeout(timeoutId)
-  }, [loadPlannerData])
 
   const patientMap = useMemo(
     () =>
@@ -886,22 +852,6 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
           </div>
         )}
 
-        {loading ? (
-          <div className="rounded-2xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
-            <p className="text-sm text-slate-500">{t('student.planner.loading')}</p>
-          </div>
-        ) : loadError ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 px-6 py-8 text-center shadow-sm">
-            <p className="text-sm text-red-700">{loadError}</p>
-            <button
-              type="button"
-              onClick={() => void loadPlannerData()}
-              className="mt-4 inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50"
-            >
-              {t('student.planner.retry')}
-            </button>
-          </div>
-        ) : (
           <>
             <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
               <div className="flex flex-wrap items-center gap-2">
@@ -1118,7 +1068,6 @@ export function PlannerClient({ studentEmail, studentFullName }: Props) {
               </aside>
             </div>
           </>
-        )}
       </section>
 
       {showModal && (
