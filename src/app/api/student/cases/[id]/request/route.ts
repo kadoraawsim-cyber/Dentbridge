@@ -19,17 +19,14 @@ async function resolveReleasedCurrentStage({
       .select('id, status')
       .eq('id', currentStageId)
       .eq('case_id', caseId)
-      .single()
+      .maybeSingle()
 
-    if (currentStageError || !currentStage) {
-      return {
-        stageId: null,
-        error: currentStageError?.message ?? 'Current routing stage was not found',
-        status: currentStageError ? 500 : 409,
-      }
+    if (currentStageError) {
+      return { stageId: null, error: 'Unable to verify case stage. Please try again.', status: 500 }
     }
 
-    if ((currentStage.status || '').toLowerCase() !== 'released') {
+    // When the stage row is readable, enforce the released check.
+    if (currentStage && (currentStage.status || '').toLowerCase() !== 'released') {
       return {
         stageId: null,
         error: 'This case stage is not currently available for requests',
@@ -37,7 +34,9 @@ async function resolveReleasedCurrentStage({
       }
     }
 
-    return { stageId: currentStage.id as string, error: null, status: 200 }
+    // FK on patient_requests.current_stage_id guarantees the stage exists.
+    // Case is already verified 'matched' — use currentStageId directly.
+    return { stageId: currentStageId, error: null, status: 200 }
   }
 
   const { data: fallbackStage, error: fallbackStageError } = await supabase

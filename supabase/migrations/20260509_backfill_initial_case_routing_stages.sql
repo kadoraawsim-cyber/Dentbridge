@@ -102,7 +102,7 @@ WHERE event.stage_id IS NULL
     event.source_case_id = pr.id
     OR (
       event.source_case_id IS NULL
-      AND event.patient_id = pr.id
+      AND event.patient_id = pr.id::text
     )
   );
 

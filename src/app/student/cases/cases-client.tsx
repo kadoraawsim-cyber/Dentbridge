@@ -497,8 +497,10 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
                   </div>
 
                   <div className="flex flex-1 flex-col p-5">
-                    {/* Treatment */}
-                    <p className="text-base font-bold text-slate-900">{tTreatment(c.treatment_type)}</p>
+                    {/* Department (faculty-assigned) with treatment_type as legacy fallback */}
+                    <p className="text-base font-bold text-slate-900">
+                      {c.assigned_department ? tDept(c.assigned_department) : tTreatment(c.treatment_type)}
+                    </p>
                     <div className="mt-3 space-y-2 text-sm leading-relaxed text-slate-600">
                       <p>
                         <span className="font-semibold text-slate-700">{t('student.cases.ageLabel')}:</span>{' '}
