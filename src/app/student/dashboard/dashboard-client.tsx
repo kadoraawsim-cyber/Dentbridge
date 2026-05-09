@@ -204,6 +204,7 @@ export function DashboardClient({
           manageAssignedCases: 'Atanmış vakalarınızı yönetin',
           pendingSummary: 'Bekleyen İstekler',
           pendingSummaryDesc: 'Fakülte onayı bekleyen talepleriniz',
+          initialRequest: 'İlk talep:',
         }
       : {
           nextAction: 'Next Action',
@@ -224,6 +225,7 @@ export function DashboardClient({
           manageAssignedCases: 'Manage your assigned cases',
           pendingSummary: 'Pending Requests',
           pendingSummaryDesc: 'Requests still waiting for faculty review',
+          initialRequest: 'Initial request:',
         }
 
   function tTreatment(v: string): string {
@@ -738,7 +740,7 @@ export function DashboardClient({
               <>
                 <p className="truncate text-sm sm:text-base font-medium text-slate-700">{nextActionLabel}</p>
                 <p className="mt-0.5 sm:mt-1 truncate text-[10px] sm:text-xs text-slate-400">
-                  {tTreatment(nextActionCase.treatment_type)}
+                  {nextActionCase.assigned_department ? tDept(nextActionCase.assigned_department) : tTreatment(nextActionCase.treatment_type)}
                 </p>
                 <a
                   href="#my-active-cases"
@@ -875,7 +877,14 @@ export function DashboardClient({
                     </div>
 
                     <div className="p-3 sm:p-5">
-                      <p className="truncate text-sm sm:text-base font-bold text-slate-900">{tTreatment(c.treatment_type)}</p>
+                      <p className="truncate text-sm sm:text-base font-bold text-slate-900">
+                        {c.assigned_department ? tDept(c.assigned_department) : tTreatment(c.treatment_type)}
+                      </p>
+                      {c.assigned_department && (
+                        <p className="mt-0.5 truncate text-[10px] sm:text-xs text-slate-400">
+                          {ui.initialRequest} {tTreatment(c.treatment_type)}
+                        </p>
+                      )}
 
                       {!isClosed && (
                         <div className="mt-3 w-full">
@@ -1606,12 +1615,13 @@ export function DashboardClient({
                     </span>
                   </div>
                   <div className="p-3 sm:p-5">
-                    <p className="truncate text-sm sm:text-base font-bold text-slate-900">{tTreatment(c.treatment_type)}</p>
+                    <p className="truncate text-sm sm:text-base font-bold text-slate-900">
+                      {c.assigned_department ? tDept(c.assigned_department) : tTreatment(c.treatment_type)}
+                    </p>
                     {c.assigned_department && (
-                      <div className="mt-1 flex items-center gap-1.5 text-xs sm:text-sm text-slate-500">
-                        <Stethoscope className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0 text-blue-500" />
-                        <span className="truncate">{tDept(c.assigned_department)}</span>
-                      </div>
+                      <p className="mt-0.5 truncate text-[10px] sm:text-xs text-slate-400">
+                        {ui.initialRequest} {tTreatment(c.treatment_type)}
+                      </p>
                     )}
                     <div
                       className={`mt-3 flex w-full items-center justify-center gap-2 rounded-lg sm:rounded-xl border px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-semibold ${
