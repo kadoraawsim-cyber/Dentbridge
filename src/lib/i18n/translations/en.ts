@@ -237,6 +237,7 @@ export type TranslationShape = {
       contacted: string
       appointment_scheduled: string
       in_treatment: string
+      faculty_review: string
       completed: string
     }
     badge: {
@@ -247,6 +248,7 @@ export type TranslationShape = {
       contacted: string
       appointment_scheduled: string
       in_treatment: string
+      faculty_review: string
       completed: string
       rejected: string
       cancelled: string
@@ -394,10 +396,12 @@ export type TranslationShape = {
       stepContacted: string
       stepApptSet: string
       stepInTreatment: string
+      stepFacultyReview: string
       statusReadyToContact: string
       statusPatientContacted: string
       statusApptConfirmed: string
       statusInTreatmentDesc: string
+      statusAwaitingFacultyReview: string
       statusCompleted: string
       statusCancelled: string
       patientContact: string
@@ -405,6 +409,8 @@ export type TranslationShape = {
       btnMarkContacted: string
       btnMarkApptScheduled: string
       btnMarkInTreatment: string
+      btnSubmitStageReview: string
+      submitStageReviewDesc: string
       appointmentComposerTitle: string
       appointmentComposerDesc: string
       appointmentDateLabel: string
@@ -755,6 +761,7 @@ export type TranslationShape = {
       statusContacted: string
       statusAppointmentScheduled: string
       statusInTreatment: string
+      statusFacultyReview: string
       statusCompleted: string
       statusCancelled: string
       statusRejected: string
@@ -798,6 +805,7 @@ export type TranslationShape = {
       statusLabelContacted: string
       statusLabelAppointmentScheduled: string
       statusLabelInTreatment: string
+      statusLabelFacultyReview: string
       statusLabelCompleted: string
       statusLabelCancelled: string
       statusLabelRejected: string
@@ -896,6 +904,11 @@ export type TranslationShape = {
       journeyStudentApproved: string
       journeyStudentRejected: string
       journeyStudentRevoked: string
+      journeyStageReleased: string
+      journeyNextStageReleased: string
+      journeyStageStudentAssigned: string
+      journeyStageSubmittedReview: string
+      journeyStageReviewed: string
       journeyAppointmentScheduled: string
       journeyAppointmentRescheduled: string
       journeyTreatmentStarted: string
@@ -935,6 +948,7 @@ export type TranslationShape = {
       stepPatientContacted: string
       stepApptScheduled: string
       stepInTreatment: string
+      stepFacultyReview: string
       stepCompleted: string
       stepCancelled: string
       markContacted: string
@@ -942,6 +956,17 @@ export type TranslationShape = {
       markInTreatment: string
       markCompleted: string
       markCancelled: string
+      stageReviewActionsTitle: string
+      stageReviewActionsDesc: string
+      releaseNextStageTitle: string
+      releaseNextStageDesc: string
+      releaseNextStageButton: string
+      nextStageReleased: string
+      nextStageNotAllowed: string
+      nextStageReleaseError: string
+      markFullCompletedTitle: string
+      markFullCompletedDesc: string
+      markFullCompletedButton: string
       closedCompleted: string
       closedCancelledMsg: string
       closedGenericMsg: string
@@ -976,6 +1001,7 @@ export type TranslationShape = {
       statusContacted: string
       statusApptScheduled: string
       statusInTreatment: string
+      statusFacultyReview: string
       statusCompleted: string
       statusRejected: string
       statusCancelled: string
@@ -1517,25 +1543,27 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     notFoundBefore:
       "We couldn't find a request for that number. Double-check and try again, or",
     notFoundLink: 'submit a new request',
-    step: {
-      submitted: 'Submitted',
-      under_review: 'Under Review',
-      matched: 'Assigned to Dept.',
-      student_approved: 'Student Assigned',
-      contacted: 'Contacted',
-      appointment_scheduled: 'Appt. Scheduled',
-      in_treatment: 'In Treatment',
-      completed: 'Completed',
-    },
+      step: {
+        submitted: 'Submitted',
+        under_review: 'Under Review',
+        matched: 'Assigned to Dept.',
+        student_approved: 'Student Assigned',
+        contacted: 'Contacted',
+        appointment_scheduled: 'Appt. Scheduled',
+        in_treatment: 'In Treatment',
+        faculty_review: 'Faculty Review',
+        completed: 'Completed',
+      },
     badge: {
       submitted: 'Submitted — Awaiting Review',
       under_review: 'Under Faculty Review',
       matched: 'Assigned to Department — Awaiting Student',
       student_approved: 'Student Assigned — Preparing Contact',
-      contacted: 'Patient Contacted by Student',
-      appointment_scheduled: 'Appointment Scheduled',
-      in_treatment: 'Currently In Treatment',
-      completed: 'Treatment Completed',
+        contacted: 'Patient Contacted by Student',
+        appointment_scheduled: 'Appointment Scheduled',
+        in_treatment: 'Currently In Treatment',
+        faculty_review: 'Stage Under Faculty Review',
+        completed: 'Full Treatment Completed',
       rejected: 'Out of Scope',
       cancelled: 'Cancelled',
     },
@@ -1688,10 +1716,12 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       stepContacted: 'Contacted',
       stepApptSet: 'Appt. Set',
       stepInTreatment: 'In Treatment',
+      stepFacultyReview: 'Faculty Review',
       statusReadyToContact: 'Ready to contact \u2014 reach out to schedule the appointment',
       statusPatientContacted: 'Patient contacted \u2014 confirm appointment date and time',
       statusApptConfirmed: 'Appointment confirmed \u2014 mark when treatment begins',
-      statusInTreatmentDesc: 'Treatment in progress \u2014 faculty will close this case',
+      statusInTreatmentDesc: 'Treatment in progress \u2014 submit this stage when ready',
+      statusAwaitingFacultyReview: 'Stage submitted \u2014 awaiting faculty review',
       statusCompleted: 'Treatment completed',
       statusCancelled: 'This case has been cancelled',
       patientContact: 'Patient Contact',
@@ -1699,6 +1729,8 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       btnMarkContacted: 'Mark Patient Contacted',
       btnMarkApptScheduled: 'Mark Appointment Scheduled',
       btnMarkInTreatment: 'Mark In Treatment',
+      btnSubmitStageReview: 'Submit Stage for Faculty Review',
+      submitStageReviewDesc: 'This sends only the current department stage back to faculty. It does not complete the full patient case.',
       appointmentComposerTitle: 'Appointment details',
       appointmentComposerDesc: 'Save the scheduled visit details before moving this case forward.',
       appointmentDateLabel: 'Appointment date',
@@ -1733,7 +1765,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       timelineNoNoteFallbackAppointment: 'Appointment scheduled.',
       timelineNoNoteFallbackProgress: 'Progress update added.',
       updating: 'Updating\u2026',
-      treatmentInProgress: 'Treatment in progress \u2014 faculty will close case',
+      treatmentInProgress: 'Treatment in progress \u2014 submit this stage when ready',
       caseClosed: 'Case closed \u2014 treatment completed',
       caseCancelledText: 'Case cancelled',
       recentlyInPool: 'Recently in Pool',
@@ -2054,6 +2086,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       statusContacted: 'Contacted',
       statusAppointmentScheduled: 'Appointment Scheduled',
       statusInTreatment: 'In Treatment',
+      statusFacultyReview: 'Faculty Review',
       statusCompleted: 'Completed',
       statusCancelled: 'Cancelled',
       statusRejected: 'Out of Scope',
@@ -2097,6 +2130,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       statusLabelContacted: 'Contacted',
       statusLabelAppointmentScheduled: 'Appointment Scheduled',
       statusLabelInTreatment: 'In Treatment',
+      statusLabelFacultyReview: 'Faculty Review',
       statusLabelCompleted: 'Completed',
       statusLabelCancelled: 'Cancelled',
       statusLabelRejected: 'Out of Scope',
@@ -2198,6 +2232,11 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       journeyStudentApproved: 'Student request approved',
       journeyStudentRejected: 'Student request rejected',
       journeyStudentRevoked: 'Student assignment revoked',
+      journeyStageReleased: 'Department stage released',
+      journeyNextStageReleased: 'Next department stage released',
+      journeyStageStudentAssigned: 'Student assigned to stage',
+      journeyStageSubmittedReview: 'Stage submitted for faculty review',
+      journeyStageReviewed: 'Faculty reviewed completed stage',
       journeyAppointmentScheduled: 'Appointment scheduled',
       journeyAppointmentRescheduled: 'Appointment rescheduled',
       journeyTreatmentStarted: 'Treatment started',
@@ -2237,6 +2276,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       stepPatientContacted: 'Patient Contacted',
       stepApptScheduled: 'Appt. Scheduled',
       stepInTreatment: 'In Treatment',
+      stepFacultyReview: 'Faculty Review',
       stepCompleted: 'Completed',
       stepCancelled: 'Cancelled',
       markContacted: 'Mark Patient Contacted',
@@ -2244,6 +2284,20 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       markInTreatment: 'Mark In Treatment',
       markCompleted: 'Mark Treatment Completed',
       markCancelled: 'Mark Cancelled',
+      stageReviewActionsTitle: 'Stage awaiting faculty review',
+      stageReviewActionsDesc:
+        'Choose the next department stage for this same patient case, or close the full case if treatment is complete.',
+      releaseNextStageTitle: 'Release Next Department Stage',
+      releaseNextStageDesc:
+        'Create the next routing stage and release this same case back to the student pool.',
+      releaseNextStageButton: 'Release Next Department Stage',
+      nextStageReleased: 'Next department stage released to pool.',
+      nextStageNotAllowed: 'Next-stage routing is only available while the case is awaiting faculty review.',
+      nextStageReleaseError: 'Unable to release the next department stage right now.',
+      markFullCompletedTitle: 'Mark Full Case Completed',
+      markFullCompletedDesc:
+        'Use this only when no further department stages are needed for this patient case.',
+      markFullCompletedButton: 'Mark Full Case Completed',
       closedCompleted: 'Treatment completed. This case is closed.',
       closedCancelledMsg: 'This case has been cancelled.',
       closedGenericMsg: 'This case is closed.',
@@ -2277,6 +2331,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       statusContacted: 'Contacted',
       statusApptScheduled: 'Appt. Scheduled',
       statusInTreatment: 'In Treatment',
+      statusFacultyReview: 'Faculty Review',
       statusCompleted: 'Completed',
       statusRejected: 'Rejected',
       statusCancelled: 'Cancelled',

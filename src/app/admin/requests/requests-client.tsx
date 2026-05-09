@@ -51,7 +51,13 @@ interface Props {
 
 const URGENCY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 }
 const TRIAGE_STATUSES = ['submitted', 'under_review']
-const ACTIVE_STATUSES = ['student_approved', 'contacted', 'appointment_scheduled', 'in_treatment']
+const ACTIVE_STATUSES = [
+  'student_approved',
+  'contacted',
+  'appointment_scheduled',
+  'in_treatment',
+  'faculty_review',
+]
 const CLOSED_STATUSES = ['completed', 'rejected', 'cancelled']
 const DEPARTMENT_OPTIONS = [
   'Endodontics',
@@ -106,6 +112,8 @@ function getStatusBadgeClass(status: string) {
       return 'bg-indigo-50 text-indigo-700 border border-indigo-200'
     case 'in_treatment':
       return 'bg-purple-50 text-purple-700 border border-purple-200'
+    case 'faculty_review':
+      return 'bg-amber-50 text-amber-700 border border-amber-200'
     case 'completed':
       return 'bg-emerald-50 text-emerald-700 border border-emerald-200'
     case 'cancelled':
@@ -325,6 +333,8 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
         return t('admin.requests.statusLabelAppointmentScheduled')
       case 'in_treatment':
         return t('admin.requests.statusLabelInTreatment')
+      case 'faculty_review':
+        return t('admin.requests.statusLabelFacultyReview')
       case 'completed':
         return t('admin.requests.statusLabelCompleted')
       case 'cancelled':
@@ -818,6 +828,7 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
               {t('admin.requests.statusAppointmentScheduled')}
             </option>
             <option value="in_treatment">{t('admin.requests.statusInTreatment')}</option>
+            <option value="faculty_review">{t('admin.requests.statusFacultyReview')}</option>
             <option value="completed">{t('admin.requests.statusCompleted')}</option>
             <option value="cancelled">{t('admin.requests.statusCancelled')}</option>
             <option value="rejected">{t('admin.requests.statusRejected')}</option>

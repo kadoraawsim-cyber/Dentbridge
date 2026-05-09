@@ -44,6 +44,13 @@ function parseLocalDateTime(value: string) {
   return new Date(value)
 }
 
+function isCurrentStageRequest(
+  requestStageId: string | null | undefined,
+  currentStageId: string | null | undefined
+) {
+  return !requestStageId || !currentStageId || requestStageId === currentStageId
+}
+
 async function getAuthorizedStudent() {
   const cookieStore = await cookies()
   const supabase = createSupabaseServerClient(cookieStore)
@@ -69,41 +76,63 @@ async function validatePatientLink(
   patientId: string | null
 ) {
   if (!patientId) {
-    return null
+    return { stageId: null as string | null }
   }
 
   const { data: approvedRequest, error: requestError } = await supabase
     .from('student_case_requests')
-    .select('case_id')
+    .select('case_id, stage_id')
     .eq('student_id', studentId)
     .eq('status', 'approved')
     .eq('case_id', patientId)
     .maybeSingle()
 
   if (requestError) {
-    return NextResponse.json({ error: requestError.message }, { status: 500 })
+    return {
+      response: NextResponse.json({ error: requestError.message }, { status: 500 }),
+      stageId: null as string | null,
+    }
   }
 
   if (!approvedRequest) {
-    return NextResponse.json({ error: 'Selected patient is not available to link.' }, { status: 403 })
+    return {
+      response: NextResponse.json({ error: 'Selected patient is not available to link.' }, { status: 403 }),
+      stageId: null as string | null,
+    }
   }
 
   const { data: activePatient, error: patientError } = await supabase
     .from('patient_requests')
-    .select('id')
+    .select('id, current_stage_id')
     .eq('id', patientId)
     .in('status', ACTIVE_CASE_STATUSES)
     .maybeSingle()
 
   if (patientError) {
-    return NextResponse.json({ error: patientError.message }, { status: 500 })
+    return {
+      response: NextResponse.json({ error: patientError.message }, { status: 500 }),
+      stageId: null as string | null,
+    }
   }
 
   if (!activePatient) {
-    return NextResponse.json({ error: 'Selected patient is no longer active.' }, { status: 409 })
+    return {
+      response: NextResponse.json({ error: 'Selected patient is no longer active.' }, { status: 409 }),
+      stageId: null as string | null,
+    }
   }
 
-  return null
+  if (!isCurrentStageRequest(approvedRequest.stage_id, activePatient.current_stage_id)) {
+    return {
+      response: NextResponse.json(
+        { error: 'Selected patient is no longer active for your stage.' },
+        { status: 409 }
+      ),
+      stageId: null as string | null,
+    }
+  }
+
+  return { stageId: activePatient.current_stage_id ?? approvedRequest.stage_id ?? null }
 }
 
 export async function PATCH(
@@ -155,8 +184,8 @@ export async function PATCH(
     return NextResponse.json({ error: 'End time must be after start time.' }, { status: 400 })
   }
 
-  const patientValidationError = await validatePatientLink(supabase, user.id, patientId)
-  if (patientValidationError) return patientValidationError
+  const patientValidation = await validatePatientLink(supabase, user.id, patientId)
+  if (patientValidation.response) return patientValidation.response
 
   const { data: existingEvent, error: existingEventError } = await supabase
     .from('student_planner_events')
@@ -184,11 +213,13 @@ export async function PATCH(
       description: encodeDescription(description, endAtValue),
       event_date: startAtValue,
       patient_id: patientId,
+      stage_id: patientValidation.stageId,
+      lifecycle_state: patientId ? 'active' : null,
     })
     .eq('id', id)
     .eq('student_id', user.id)
     .select(
-      'id, title, description, event_date, patient_id, language, created_at, source_kind, source_case_id'
+      'id, title, description, event_date, patient_id, language, created_at, source_kind, source_case_id, stage_id, lifecycle_state'
     )
     .maybeSingle()
 
@@ -215,6 +246,8 @@ export async function PATCH(
       created_at: updatedRow.created_at,
       source_kind: updatedRow.source_kind,
       source_case_id: updatedRow.source_case_id,
+      stage_id: updatedRow.stage_id,
+      lifecycle_state: updatedRow.lifecycle_state,
       linked_appointment_date: null,
       linked_appointment_time: null,
     },

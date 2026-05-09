@@ -61,6 +61,7 @@ const STATUS_FLOW_KEYS = [
   'contacted',
   'appointment_scheduled',
   'in_treatment',
+  'faculty_review',
   'completed',
 ] as const
 
@@ -82,6 +83,8 @@ function getStatusBadgeClass(status: string) {
       return 'bg-indigo-50 text-indigo-700 border border-indigo-200'
     case 'in_treatment':
       return 'bg-purple-50 text-purple-700 border border-purple-200'
+    case 'faculty_review':
+      return 'bg-amber-50 text-amber-700 border border-amber-200'
     case 'completed':
       return 'bg-emerald-50 text-emerald-700 border border-emerald-200'
     case 'rejected':
@@ -134,8 +137,10 @@ function getLocalizedStatusMessage(status: string, locale: string) {
         return 'Randevunuz planlandı.'
       case 'in_treatment':
         return 'Tedaviniz şu anda devam ediyor.'
+      case 'faculty_review':
+        return 'Tamamlanan aşamanız fakülte tarafından inceleniyor ve sonraki adım değerlendiriliyor.'
       case 'completed':
-        return 'Tedaviniz başarıyla tamamlandı.'
+        return 'Tüm tedaviniz başarıyla tamamlandı.'
       case 'rejected':
         return 'Talebiniz tedavi için uygun bulunmadı.'
       case 'cancelled':
@@ -160,8 +165,10 @@ function getLocalizedStatusMessage(status: string, locale: string) {
       return 'Your appointment has been scheduled.'
     case 'in_treatment':
       return 'Your treatment is currently in progress.'
+    case 'faculty_review':
+      return 'Your completed stage is under faculty review for the next step.'
     case 'completed':
-      return 'Your treatment has been completed successfully.'
+      return 'Your full treatment has been completed successfully.'
     case 'rejected':
       return 'Your request could not be accepted for treatment.'
     case 'cancelled':
@@ -188,8 +195,10 @@ function getLocalizedStatusGuidance(status: string, locale: string) {
         return 'Lütfen planlanan randevunuza belirtilen gün ve saatte katılın.'
       case 'in_treatment':
         return 'Vakanız aktiftir. Tedavi planına göre ek seanslar gerekebilir.'
+      case 'faculty_review':
+        return 'Fakülte tamamlanan aşamayı inceliyor. Yeni bir başvuru göndermenize gerek yoktur.'
       case 'completed':
-        return 'Bu tedavi talebi tamamlandı. Yeni bir ihtiyacınız varsa yeni bir başvuru gönderebilirsiniz.'
+        return 'Bu tedavi talebinin tüm aşamaları tamamlandı. Yeni bir ihtiyacınız varsa yeni bir başvuru gönderebilirsiniz.'
       case 'rejected':
         return 'Gerekirse daha net bilgi veya görüntülerle yeni bir başvuru gönderebilirsiniz.'
       case 'cancelled':
@@ -212,8 +221,10 @@ function getLocalizedStatusGuidance(status: string, locale: string) {
       return 'Please attend your scheduled appointment at the agreed time.'
     case 'in_treatment':
       return 'Your case is active. Follow-up visits may still be needed depending on treatment progress.'
+    case 'faculty_review':
+      return 'Faculty is reviewing the completed stage and deciding the next step. You do not need to submit a new request.'
     case 'completed':
-      return 'This treatment request has been completed. If you need new care, you can submit a new request.'
+      return 'All stages of this treatment request have been completed. If you need new care, you can submit a new request.'
     case 'rejected':
       return 'If needed, you may submit a new request with updated information or clearer images.'
     case 'cancelled':

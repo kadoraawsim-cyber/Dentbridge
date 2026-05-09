@@ -12,6 +12,7 @@ type StudentCaseRequest = {
   id: string
   student_email: string
   status: string
+  stage_id?: string | null
   clinical_notes: string | null
   reviewed_by: string | null
   reviewed_at: string | null
@@ -43,12 +44,15 @@ type PatientRequest = {
   clinical_notes: string | null
   reviewed_by: string | null
   reviewed_at: string | null
+  routing_completed_at?: string | null
   created_at: string | null
 }
 
 type CaseProgressEntry = {
   id: string
   case_id: string
+  stage_id?: string | null
+  department_at_time?: string | null
   student_id: string
   student_name: string | null
   status_at_time: string
@@ -63,11 +67,37 @@ type CaseProgressEntry = {
   created_at: string
 }
 
+type CaseRoutingStage = {
+  id: string
+  case_id: string
+  sequence: number
+  department: string
+  target_student_level: string | null
+  status: string
+  faculty_notes: string | null
+  student_request_id: string | null
+  student_id: string | null
+  student_email: string | null
+  released_by: string | null
+  released_at: string | null
+  assigned_by: string | null
+  assigned_at: string | null
+  stage_submitted_by: string | null
+  stage_submitted_at: string | null
+  stage_reviewed_by: string | null
+  stage_reviewed_at: string | null
+  completed_at: string | null
+  cancelled_at: string | null
+  created_at: string
+  updated_at: string
+}
+
 interface Props {
   initialRequest: PatientRequest
   adminEmail: string
   initialStudentRequests: StudentCaseRequest[]
   initialProgressEntries: CaseProgressEntry[]
+  initialRoutingStages: CaseRoutingStage[]
   studentOpenCaseCounts: Record<string, number>
 }
 
@@ -81,6 +111,7 @@ const STATUS_ORDER = [
   'contacted',
   'appointment_scheduled',
   'in_treatment',
+  'faculty_review',
   'completed',
 ]
 
@@ -157,6 +188,8 @@ function getStatusBadgeClass(status: string) {
       return 'bg-indigo-50 text-indigo-700 border border-indigo-200'
     case 'in_treatment':
       return 'bg-purple-50 text-purple-700 border border-purple-200'
+    case 'faculty_review':
+      return 'bg-amber-50 text-amber-700 border border-amber-200'
     case 'completed':
       return 'bg-emerald-50 text-emerald-700 border border-emerald-200'
     case 'rejected':
@@ -236,6 +269,7 @@ export function CaseDetailClient({
   adminEmail,
   initialStudentRequests,
   initialProgressEntries,
+  initialRoutingStages,
   studentOpenCaseCounts,
 }: Props) {
   const { t, locale } = useI18n()
@@ -287,6 +321,7 @@ export function CaseDetailClient({
       case 'contacted':             return t('admin.db.statusContacted')
       case 'appointment_scheduled': return t('admin.db.statusApptScheduled')
       case 'in_treatment':          return t('admin.db.statusInTreatment')
+      case 'faculty_review':        return t('admin.db.statusFacultyReview')
       case 'completed':             return t('admin.db.statusCompleted')
       case 'rejected':              return t('admin.db.statusRejected')
       case 'cancelled':             return t('admin.db.statusCancelled')
@@ -462,6 +497,7 @@ export function CaseDetailClient({
   // Student request management
   const [studentRequests, setStudentRequests] =
     useState<StudentCaseRequest[]>(initialStudentRequests)
+  const [routingStages, setRoutingStages] = useState<CaseRoutingStage[]>(initialRoutingStages)
   // Which request_id is currently being approved/rejected (disables that row's buttons)
   const [requestActionId, setRequestActionId] = useState<string | null>(null)
   const [pendingStudentAction, setPendingStudentAction] = useState<{
@@ -543,8 +579,9 @@ export function CaseDetailClient({
         request,
         studentRequests,
         progressEntries: initialProgressEntries,
+        routingStages,
       }),
-    [request, studentRequests, initialProgressEntries]
+    [request, studentRequests, initialProgressEntries, routingStages]
   )
 
   const currentStatus = (request.status || '').toLowerCase()
@@ -555,7 +592,7 @@ export function CaseDetailClient({
   // Lifecycle phase: case is active post-pool; faculty advances through stages
   const isLifecyclePhase = [
     'matched', 'student_approved', 'contacted',
-    'appointment_scheduled', 'in_treatment',
+    'appointment_scheduled', 'in_treatment', 'faculty_review',
   ].includes(currentStatus)
 
   // Closed: no further actions possible
@@ -689,6 +726,11 @@ export function CaseDetailClient({
         ? null
         : resultData.reviewed_by ?? adminEmail
 
+    const approvedStageId =
+      action === 'approve_student_request'
+        ? studentRequests.find((studentRequest) => studentRequest.id === requestId)?.stage_id ?? null
+        : null
+
     setStudentRequests((prev) =>
       prev.map((r) =>
         r.id === requestId
@@ -699,7 +741,9 @@ export function CaseDetailClient({
               reviewed_at: reviewedAt,
             }
           : // auto-reject other pending rows when one is approved
-            action === 'approve_student_request' && r.status === 'pending'
+            action === 'approve_student_request' &&
+              r.status === 'pending' &&
+              (!approvedStageId || r.stage_id === approvedStageId)
             ? { ...r, status: 'rejected', reviewed_by: adminEmail, reviewed_at: reviewedAt ?? new Date().toISOString() }
             : r
       )
@@ -931,6 +975,8 @@ export function CaseDetailClient({
       status: data.status,
       reviewed_by: data.reviewed_by,
       reviewed_at: data.reviewed_at,
+      routing_completed_at:
+        action === 'mark_completed' ? data.reviewed_at : prev.routing_completed_at,
     }))
     if (action === 'mark_cancelled') {
       setActivityLog((prev) => [
@@ -941,6 +987,89 @@ export function CaseDetailClient({
       setCancelReason('')
     }
     showSaved(t('admin.detail.statusUpdated'))
+  }
+
+  async function handleReleaseNextStage() {
+    if (currentStatus !== 'faculty_review') {
+      setErrorMessage(t('admin.detail.nextStageNotAllowed'))
+      return
+    }
+
+    setLifecycleLoading(true)
+    setErrorMessage('')
+
+    const res = await fetch(`/api/admin/cases/${request.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'release_next_stage',
+        assigned_department: assignedDepartment,
+        urgency: mapDetailToUrgency(urgencyLevel),
+        target_student_level: targetStudentLevel,
+        clinical_notes: clinicalNotes,
+      }),
+    })
+
+    setLifecycleLoading(false)
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Unknown error' }))
+      setErrorMessage((err as { error?: string }).error ?? t('admin.detail.nextStageReleaseError'))
+      return
+    }
+
+    const { data } = (await res.json()) as {
+      data: {
+        status: string
+        reviewed_by: string | null
+        reviewed_at: string
+        stage_id: string
+        sequence: number
+      }
+    }
+
+    setRequest((prev) => ({
+      ...prev,
+      assigned_department: assignedDepartment,
+      urgency: mapDetailToUrgency(urgencyLevel),
+      target_student_level: targetStudentLevel,
+      clinical_notes: clinicalNotes,
+      status: data.status,
+      reviewed_by: data.reviewed_by,
+      reviewed_at: data.reviewed_at,
+    }))
+    setRoutingStages((prev) => [
+      ...prev,
+      {
+        id: data.stage_id,
+        case_id: request.id,
+        sequence: data.sequence,
+        department: assignedDepartment,
+        target_student_level: targetStudentLevel,
+        status: 'released',
+        faculty_notes: clinicalNotes || null,
+        student_request_id: null,
+        student_id: null,
+        student_email: null,
+        released_by: data.reviewed_by,
+        released_at: data.reviewed_at,
+        assigned_by: null,
+        assigned_at: null,
+        stage_submitted_by: null,
+        stage_submitted_at: null,
+        stage_reviewed_by: null,
+        stage_reviewed_at: null,
+        completed_at: null,
+        cancelled_at: null,
+        created_at: data.reviewed_at,
+        updated_at: data.reviewed_at,
+      },
+    ])
+    setActivityLog((prev) => [
+      makeLogEntry('case_released', data.reviewed_at, assignedDepartment),
+      ...prev,
+    ])
+    showSaved(t('admin.detail.nextStageReleased'))
   }
 
   async function handleSaveDraft() {
@@ -1845,6 +1974,7 @@ export function CaseDetailClient({
                 { key: 'contacted',              label: t('admin.detail.stepPatientContacted') },
                 { key: 'appointment_scheduled',  label: t('admin.detail.stepApptScheduled') },
                 { key: 'in_treatment',           label: t('admin.detail.stepInTreatment') },
+                { key: 'faculty_review',         label: t('admin.detail.stepFacultyReview') },
                 { key: 'completed',              label: t('admin.detail.stepCompleted') },
                 { key: 'cancelled',              label: t('admin.detail.stepCancelled') },
               ].map((step) => {
@@ -1920,6 +2050,77 @@ export function CaseDetailClient({
                   >
                     {lifecycleLoading ? '…' : t('admin.detail.markCompleted')}
                   </button>
+                )}
+                {currentStatus === 'faculty_review' && (
+                  <div className="w-full rounded-xl border border-amber-200 bg-amber-50 p-4">
+                    <p className="text-sm font-semibold text-amber-900">
+                      {t('admin.detail.stageReviewActionsTitle')}
+                    </p>
+                    <p className="mt-1 text-sm text-amber-800">
+                      {t('admin.detail.stageReviewActionsDesc')}
+                    </p>
+                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                      <div className="rounded-xl border border-amber-200 bg-white p-4">
+                        <p className="text-sm font-semibold text-slate-900">
+                          {t('admin.detail.releaseNextStageTitle')}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {t('admin.detail.releaseNextStageDesc')}
+                        </p>
+                        <div className="mt-3 space-y-3">
+                          <select
+                            value={assignedDepartment}
+                            onChange={(event) => setAssignedDepartment(event.target.value)}
+                            disabled={lifecycleLoading}
+                            className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-blue-900"
+                          >
+                            {departmentOptions.map((dept) => (
+                              <option key={dept} value={dept}>
+                                {tDepartment(dept)}
+                              </option>
+                            ))}
+                          </select>
+                          <select
+                            value={targetStudentLevel}
+                            onChange={(event) => setTargetStudentLevel(event.target.value)}
+                            disabled={lifecycleLoading}
+                            className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-blue-900"
+                          >
+                            {studentLevelOptions.map((opt) => (
+                              <option key={opt} value={opt}>
+                                {tStudentLevel(opt)}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={handleReleaseNextStage}
+                            disabled={lifecycleLoading}
+                            className="w-full rounded-xl bg-blue-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:opacity-60"
+                          >
+                            {lifecycleLoading ? '…' : t('admin.detail.releaseNextStageButton')}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-emerald-200 bg-white p-4">
+                        <p className="text-sm font-semibold text-slate-900">
+                          {t('admin.detail.markFullCompletedTitle')}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {t('admin.detail.markFullCompletedDesc')}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => handleLifecycleAction('mark_completed')}
+                          disabled={lifecycleLoading}
+                          className="mt-3 w-full rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+                        >
+                          {lifecycleLoading ? '…' : t('admin.detail.markFullCompletedButton')}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 )}
                 <div className="ml-auto">
                   <button

@@ -45,7 +45,7 @@ export default async function StudentDashboardPage() {
       // All of this student's requests (for stats and pending count).
       supabase
         .from('student_case_requests')
-        .select('id, case_id, status, created_at')
+        .select('id, case_id, stage_id, status, created_at')
         .eq('student_id', user.id)
         .order('created_at', { ascending: false }),
     ])
@@ -88,7 +88,7 @@ export default async function StudentDashboardPage() {
     const [activeDataResult, progressDataResult] = await Promise.all([
       supabase
         .from('patient_requests')
-        .select('id, treatment_type, assigned_department, status, full_name, phone')
+        .select('id, treatment_type, assigned_department, status, full_name, phone, current_stage_id')
         .in('id', approvedCaseIds),
 
       supabase
@@ -129,7 +129,18 @@ export default async function StudentDashboardPage() {
       progressEntriesByCase.set(entry.case_id, existing)
     }
 
-    activeCases = (activeData ?? []).map((row) => ({
+    const approvedRequestsByCaseId = new Map(
+      (myRequests ?? [])
+        .filter((request) => request.status === 'approved')
+        .map((request) => [request.case_id, request])
+    )
+
+    activeCases = (activeData ?? [])
+      .filter((row) => {
+        const approvedRequest = approvedRequestsByCaseId.get(row.id)
+        return !approvedRequest?.stage_id || approvedRequest.stage_id === row.current_stage_id
+      })
+      .map((row) => ({
       caseId: row.id,
       treatment_type: row.treatment_type,
       assigned_department: row.assigned_department,

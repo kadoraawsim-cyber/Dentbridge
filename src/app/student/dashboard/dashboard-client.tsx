@@ -38,6 +38,7 @@ type PoolCase = {
 type MyRequest = {
   id: string
   case_id: string
+  stage_id?: string | null
   status: 'pending' | 'approved' | 'rejected' | 'revoked'
   created_at: string
 }
@@ -125,6 +126,8 @@ function getActiveCaseStatusBadge(status: string): string {
       return 'bg-indigo-50 text-indigo-700 border border-indigo-200'
     case 'in_treatment':
       return 'bg-purple-50 text-purple-700 border border-purple-200'
+    case 'faculty_review':
+      return 'bg-amber-50 text-amber-700 border border-amber-200'
     case 'completed':
       return 'bg-emerald-50 text-emerald-700 border border-emerald-200'
     case 'cancelled':
@@ -140,6 +143,7 @@ function getStepIndex(status: string): number {
     'contacted',
     'appointment_scheduled',
     'in_treatment',
+    'faculty_review',
     'completed',
   ]
   return order.indexOf(status)
@@ -283,7 +287,11 @@ export function DashboardClient({
 
   async function handleLifecycleAction(
     caseId: string,
-    action: 'mark_contacted' | 'mark_appointment_scheduled' | 'mark_in_treatment'
+    action:
+      | 'mark_contacted'
+      | 'mark_appointment_scheduled'
+      | 'mark_in_treatment'
+      | 'submit_stage_for_review'
   ) {
     if (actionLoading) return
 
@@ -454,6 +462,8 @@ export function DashboardClient({
         return t('student.dashboard.stepApptSet')
       case 'in_treatment':
         return t('student.dashboard.stepInTreatment')
+      case 'faculty_review':
+        return t('student.dashboard.stepFacultyReview')
       case 'completed':
         return t('student.dashboard.statusCompleted')
       case 'cancelled':
@@ -506,7 +516,7 @@ export function DashboardClient({
       urgent: urgentPoolCaseCount,
       pending: myRequests.filter((r) => r.status === 'pending').length,
       approved: activeCases.filter((c) =>
-        !['completed', 'cancelled'].includes((c.status || '').toLowerCase())
+        !['completed', 'cancelled', 'faculty_review'].includes((c.status || '').toLowerCase())
       ).length,
     }),
     [poolCaseCount, urgentPoolCaseCount, myRequests, activeCases]
@@ -529,7 +539,7 @@ export function DashboardClient({
   }))
 
   const trulyActiveCases = liveActiveCases.filter(
-    (c) => !['completed', 'cancelled'].includes(c.liveStatus)
+    (c) => !['completed', 'cancelled', 'faculty_review'].includes(c.liveStatus)
   )
   const closedCases = liveActiveCases.filter((c) =>
     ['completed', 'cancelled'].includes(c.liveStatus)
@@ -557,6 +567,7 @@ export function DashboardClient({
     { label: t('student.dashboard.stepContacted'), step: 0 },
     { label: t('student.dashboard.stepApptSet'), step: 1 },
     { label: t('student.dashboard.stepInTreatment'), step: 2 },
+    { label: t('student.dashboard.stepFacultyReview'), step: 3 },
   ]
 
   return (
@@ -1411,9 +1422,34 @@ export function DashboardClient({
                           )}
 
                           {liveStatus === 'in_treatment' && (
-                            <div className="flex w-full items-center justify-center gap-2 rounded-lg sm:rounded-xl border border-purple-200 bg-purple-50 px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-semibold text-purple-700">
+                            <div className="space-y-2">
+                              <div className="flex w-full items-center justify-center gap-2 rounded-lg sm:rounded-xl border border-purple-200 bg-purple-50 px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-semibold text-purple-700">
+                                <Clock className="h-3 w-3 sm:h-4 w-4 shrink-0" />
+                                <span className="truncate">{t('student.dashboard.treatmentInProgress')}</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleLifecycleAction(c.caseId, 'submit_stage_for_review')}
+                                disabled={isLoading}
+                                className="flex w-full items-center justify-center gap-1.5 rounded-lg sm:rounded-xl bg-amber-600 px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-semibold text-white transition hover:bg-amber-700 disabled:opacity-60"
+                              >
+                                {isLoading ? (
+                                  <span className="h-3 w-3 sm:h-4 sm:w-4 shrink-0 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                                ) : (
+                                  <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
+                                )}
+                                <span className="truncate">{t('student.dashboard.btnSubmitStageReview')}</span>
+                              </button>
+                              <p className="text-center text-[11px] text-slate-500">
+                                {t('student.dashboard.submitStageReviewDesc')}
+                              </p>
+                            </div>
+                          )}
+
+                          {liveStatus === 'faculty_review' && (
+                            <div className="flex w-full items-center justify-center gap-2 rounded-lg sm:rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-semibold text-amber-700">
                               <Clock className="h-3 w-3 sm:h-4 w-4 shrink-0" />
-                              <span className="truncate">{t('student.dashboard.treatmentInProgress')}</span>
+                              <span className="truncate">{t('student.dashboard.statusAwaitingFacultyReview')}</span>
                             </div>
                           )}
 

@@ -3,13 +3,14 @@ import { cookies } from 'next/headers'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 type LifecycleAction = 'mark_contacted' | 'mark_appointment_scheduled' | 'mark_in_treatment'
-type StudentAction = LifecycleAction | 'reschedule_appointment'
+type StudentAction = LifecycleAction | 'reschedule_appointment' | 'submit_stage_for_review'
 
 const VALID_ACTIONS: StudentAction[] = [
   'mark_contacted',
   'mark_appointment_scheduled',
   'mark_in_treatment',
   'reschedule_appointment',
+  'submit_stage_for_review',
 ]
 
 const ACTION_TO_STATUS: Record<LifecycleAction, string> = {
@@ -27,6 +28,8 @@ const EXPECTED_CURRENT_STATUS: Record<LifecycleAction, string> = {
   mark_appointment_scheduled: 'contacted',
   mark_in_treatment: 'appointment_scheduled',
 }
+
+type SupabaseClient = ReturnType<typeof createSupabaseServerClient>
 
 function isValidDate(value: string | undefined) {
   return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value))
@@ -56,6 +59,134 @@ function buildPlannerEventTitle(patientName: string | null) {
   return cleanPatientName
     ? `Scheduled appointment - ${cleanPatientName}`
     : 'Scheduled appointment'
+}
+
+async function getAuthorizedStageContext({
+  supabase,
+  caseId,
+  studentId,
+}: {
+  supabase: SupabaseClient
+  caseId: string
+  studentId: string
+}) {
+  const [
+    { data: approvedRequest, error: requestError },
+    { data: currentCase, error: currentCaseError },
+  ] = await Promise.all([
+    supabase
+      .from('student_case_requests')
+      .select('id, stage_id')
+      .eq('case_id', caseId)
+      .eq('student_id', studentId)
+      .eq('status', 'approved')
+      .maybeSingle(),
+    supabase
+      .from('patient_requests')
+      .select('status, full_name, current_stage_id, assigned_department')
+      .eq('id', caseId)
+      .maybeSingle(),
+  ])
+
+  if (requestError) {
+    return { context: null, response: NextResponse.json({ error: requestError.message }, { status: 500 }) }
+  }
+
+  if (!approvedRequest) {
+    return {
+      context: null,
+      response: NextResponse.json({ error: 'No approved request found for this case.' }, { status: 403 }),
+    }
+  }
+
+  if (currentCaseError) {
+    return { context: null, response: NextResponse.json({ error: currentCaseError.message }, { status: 500 }) }
+  }
+
+  if (!currentCase) {
+    return { context: null, response: NextResponse.json({ error: 'Case not found.' }, { status: 404 }) }
+  }
+
+  const currentStageId = currentCase.current_stage_id ?? null
+  const requestStageId = approvedRequest.stage_id ?? null
+
+  if (currentStageId && requestStageId && currentStageId !== requestStageId) {
+    return {
+      context: null,
+      response: NextResponse.json(
+        { error: 'This assignment belongs to a different routing stage.' },
+        { status: 409 }
+      ),
+    }
+  }
+
+  const stageId = currentStageId ?? requestStageId
+  let stageDepartment = currentCase.assigned_department ?? null
+
+  if (stageId) {
+    const { data: currentStage, error: currentStageError } = await supabase
+      .from('case_routing_stages')
+      .select('id, department')
+      .eq('id', stageId)
+      .eq('case_id', caseId)
+      .maybeSingle()
+
+    if (currentStageError) {
+      return {
+        context: null,
+        response: NextResponse.json({ error: currentStageError.message }, { status: 500 }),
+      }
+    }
+
+    if (!currentStage) {
+      return {
+        context: null,
+        response: NextResponse.json({ error: 'Routing stage not found.' }, { status: 409 }),
+      }
+    }
+
+    stageDepartment = currentStage.department ?? stageDepartment
+
+    if (!currentStageId) {
+      const { error: linkCaseStageError } = await supabase
+        .from('patient_requests')
+        .update({ current_stage_id: stageId })
+        .eq('id', caseId)
+        .is('current_stage_id', null)
+
+      if (linkCaseStageError) {
+        return {
+          context: null,
+          response: NextResponse.json({ error: linkCaseStageError.message }, { status: 500 }),
+        }
+      }
+    }
+
+    if (!requestStageId) {
+      const { error: linkRequestStageError } = await supabase
+        .from('student_case_requests')
+        .update({ stage_id: stageId })
+        .eq('id', approvedRequest.id)
+        .is('stage_id', null)
+
+      if (linkRequestStageError) {
+        return {
+          context: null,
+          response: NextResponse.json({ error: linkRequestStageError.message }, { status: 500 }),
+        }
+      }
+    }
+  }
+
+  return {
+    context: {
+      approvedRequestId: approvedRequest.id as string,
+      currentCase,
+      stageId: stageId as string | null,
+      stageDepartment,
+    },
+    response: null,
+  }
 }
 
 /**
@@ -156,42 +287,20 @@ export async function PATCH(
   }
 
   // ── 3. Verify the student has an approved request for this case ──────────────
-  const { data: approvedRequest, error: requestError } = await supabase
-    .from('student_case_requests')
-    .select('id')
-    .eq('case_id', id)
-    .eq('student_id', user.id)
-    .eq('status', 'approved')
-    .maybeSingle()
+  const { context, response } = await getAuthorizedStageContext({
+    supabase,
+    caseId: id,
+    studentId: user.id,
+  })
 
-  if (requestError) {
-    return NextResponse.json({ error: requestError.message }, { status: 500 })
-  }
-
-  if (!approvedRequest) {
-    return NextResponse.json(
-      { error: 'No approved request found for this case.' },
-      { status: 403 }
-    )
+  if (response) return response
+  if (!context) {
+    return NextResponse.json({ error: 'Unable to load case context.' }, { status: 500 })
   }
 
   // ── 4a. Reschedule appointment (does not advance case status) ────────────────
   if (action === 'reschedule_appointment') {
-    const { data: rescheduleCase, error: rescheduleCaseError } = await supabase
-      .from('patient_requests')
-      .select('status')
-      .eq('id', id)
-      .maybeSingle()
-
-    if (rescheduleCaseError) {
-      return NextResponse.json({ error: rescheduleCaseError.message }, { status: 500 })
-    }
-
-    if (!rescheduleCase) {
-      return NextResponse.json({ error: 'Case not found.' }, { status: 404 })
-    }
-
-    if (!['appointment_scheduled', 'in_treatment'].includes(rescheduleCase.status)) {
+    if (!['appointment_scheduled', 'in_treatment'].includes(context.currentCase.status)) {
       return NextResponse.json(
         { error: 'Rescheduling is only available for scheduled or active cases.' },
         { status: 409 }
@@ -210,6 +319,8 @@ export async function PATCH(
         case_id: id,
         student_id: user.id,
         student_name: studentProfile?.full_name?.trim() || null,
+        stage_id: context.stageId,
+        department_at_time: context.stageDepartment,
         status_at_time: 'rescheduled',
         appointment_date: appointmentDate ?? null,
         appointment_time: appointmentTime ?? null,
@@ -230,7 +341,11 @@ export async function PATCH(
 
     const { error: plannerUpdateError } = await supabase
       .from('student_planner_events')
-      .update({ event_date: buildPlannerEventDate(appointmentDate!, appointmentTime) })
+      .update({
+        event_date: buildPlannerEventDate(appointmentDate!, appointmentTime),
+        stage_id: context.stageId,
+        lifecycle_state: 'active',
+      })
       .eq('student_id', user.id)
       .eq('source_kind', CASE_APPOINTMENT_SOURCE_KIND)
       .eq('source_case_id', id)
@@ -243,23 +358,57 @@ export async function PATCH(
     return NextResponse.json({ success: true, data: { progressEntry: rescheduleEntry } })
   }
 
+  if (action === 'submit_stage_for_review') {
+    if (context.currentCase.status !== 'in_treatment') {
+      return NextResponse.json(
+        { error: 'Only cases in treatment can be submitted for faculty review.' },
+        { status: 409 }
+      )
+    }
+
+    if (!context.stageId) {
+      return NextResponse.json(
+        { error: 'A routing stage is required before submitting for faculty review.' },
+        { status: 409 }
+      )
+    }
+
+    const submittedAt = new Date().toISOString()
+
+    const { error: stageUpdateError } = await supabase
+      .from('case_routing_stages')
+      .update({
+        status: 'faculty_review',
+        stage_submitted_by: user.id,
+        stage_submitted_at: submittedAt,
+        updated_at: submittedAt,
+      })
+      .eq('id', context.stageId)
+      .eq('case_id', id)
+
+    if (stageUpdateError) {
+      return NextResponse.json({ error: stageUpdateError.message }, { status: 500 })
+    }
+
+    const { error: caseUpdateError } = await supabase
+      .from('patient_requests')
+      .update({
+        status: 'faculty_review',
+        reviewed_by: user.email ?? null,
+        reviewed_at: submittedAt,
+      })
+      .eq('id', id)
+
+    if (caseUpdateError) {
+      return NextResponse.json({ error: caseUpdateError.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true, data: { status: 'faculty_review' } })
+  }
+
   // ── 4b. Advance the case status ───────────────────────────────────────────────
   // TypeScript narrows `action` to LifecycleAction after the reschedule early-return above.
-  const { data: currentCase, error: currentCaseError } = await supabase
-    .from('patient_requests')
-    .select('status, full_name')
-    .eq('id', id)
-    .maybeSingle()
-
-  if (currentCaseError) {
-    return NextResponse.json({ error: currentCaseError.message }, { status: 500 })
-  }
-
-  if (!currentCase) {
-    return NextResponse.json({ error: 'Case not found.' }, { status: 404 })
-  }
-
-  if (currentCase.status !== EXPECTED_CURRENT_STATUS[action]) {
+  if (context.currentCase.status !== EXPECTED_CURRENT_STATUS[action]) {
     return NextResponse.json(
       { error: 'This case is no longer in the expected stage for this action.' },
       { status: 409 }
@@ -300,6 +449,8 @@ export async function PATCH(
         case_id: id,
         student_id: user.id,
         student_name: studentProfile?.full_name?.trim() || null,
+        stage_id: context.stageId,
+        department_at_time: context.stageDepartment,
         status_at_time: newStatus,
         appointment_date: action === 'mark_appointment_scheduled' ? appointmentDate ?? null : null,
         appointment_time: action === 'mark_appointment_scheduled' ? appointmentTime ?? null : null,
@@ -327,13 +478,15 @@ export async function PATCH(
       .upsert(
         {
           student_id: user.id,
-          title: buildPlannerEventTitle(currentCase.full_name ?? null),
+          title: buildPlannerEventTitle(context.currentCase.full_name ?? null),
           description: null,
           event_date: buildPlannerEventDate(appointmentDate, appointmentTime),
           patient_id: id,
           language: null,
           source_kind: CASE_APPOINTMENT_SOURCE_KIND,
           source_case_id: id,
+          stage_id: context.stageId,
+          lifecycle_state: 'active',
         },
         {
           onConflict: 'student_id,source_kind,source_case_id',
@@ -348,6 +501,32 @@ export async function PATCH(
     }
 
     plannerEventUpserted = true
+  }
+
+  if (context.stageId) {
+    const { error: stageUpdateError } = await supabase
+      .from('case_routing_stages')
+      .update({
+        status: newStatus,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', context.stageId)
+      .eq('case_id', id)
+
+    if (stageUpdateError) {
+      if (progressEntry) {
+        await supabase.from('case_progress_entries').delete().eq('id', progressEntry.id)
+      }
+      if (plannerEventUpserted) {
+        await supabase
+          .from('student_planner_events')
+          .delete()
+          .eq('student_id', user.id)
+          .eq('source_kind', CASE_APPOINTMENT_SOURCE_KIND)
+          .eq('source_case_id', id)
+      }
+      return NextResponse.json({ error: stageUpdateError.message }, { status: 500 })
+    }
   }
 
   const { error: updateError } = await supabase

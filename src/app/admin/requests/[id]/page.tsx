@@ -24,32 +24,41 @@ export default async function AdminRequestDetailPage({
   const { data, error } = await supabase
     .from('patient_requests')
     .select(
-      'id, full_name, age, gender, phone, preferred_language, treatment_type, complaint_text, urgency, preferred_days, pain_score, symptom_duration, contact_method, best_contact_time, medical_condition, consent, status, attachment_path, attachment_name, assigned_department, target_student_level, clinical_notes, reviewed_by, reviewed_at, created_at'
+      'id, full_name, age, gender, phone, preferred_language, treatment_type, complaint_text, urgency, preferred_days, pain_score, symptom_duration, contact_method, best_contact_time, medical_condition, consent, status, attachment_path, attachment_name, assigned_department, target_student_level, clinical_notes, reviewed_by, reviewed_at, routing_completed_at, created_at'
     )
     .eq('id', id)
     .single()
 
   if (error || !data) notFound()
 
-  const [studentRequestsResult, progressEntriesResult] = await Promise.all([
+  const [studentRequestsResult, progressEntriesResult, routingStagesResult] = await Promise.all([
     // Fetch all student requests for this case so faculty can review and act on them.
     supabase
       .from('student_case_requests')
-      .select('id, student_email, status, clinical_notes, reviewed_by, reviewed_at, created_at')
+      .select('id, student_email, status, stage_id, clinical_notes, reviewed_by, reviewed_at, created_at')
       .eq('case_id', id)
       .order('created_at', { ascending: false }),
 
     supabase
       .from('case_progress_entries')
       .select(
-        'id, case_id, student_id, student_name, status_at_time, appointment_date, appointment_time, note, what_was_done, next_step, next_appointment_date, next_appointment_time, needs_faculty_attention, created_at'
+        'id, case_id, stage_id, department_at_time, student_id, student_name, status_at_time, appointment_date, appointment_time, note, what_was_done, next_step, next_appointment_date, next_appointment_time, needs_faculty_attention, created_at'
       )
       .eq('case_id', id)
       .order('created_at', { ascending: false }),
+
+    supabase
+      .from('case_routing_stages')
+      .select(
+        'id, case_id, sequence, department, target_student_level, status, faculty_notes, student_request_id, student_id, student_email, released_by, released_at, assigned_by, assigned_at, stage_submitted_by, stage_submitted_at, stage_reviewed_by, stage_reviewed_at, completed_at, cancelled_at, created_at, updated_at'
+      )
+      .eq('case_id', id)
+      .order('sequence', { ascending: true }),
   ])
 
   const { data: studentRequests } = studentRequestsResult
   const { data: progressEntries } = progressEntriesResult
+  const { data: routingStages } = routingStagesResult
 
   const studentEmails = Array.from(
     new Set((studentRequests ?? []).map((request) => request.student_email).filter(Boolean))
@@ -94,6 +103,7 @@ export default async function AdminRequestDetailPage({
       adminEmail={user.email ?? ''}
       initialStudentRequests={studentRequests ?? []}
       initialProgressEntries={progressEntries ?? []}
+      initialRoutingStages={routingStages ?? []}
       studentOpenCaseCounts={studentOpenCaseCounts}
     />
   )

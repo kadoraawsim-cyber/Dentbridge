@@ -2,6 +2,82 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
+type SupabaseClient = ReturnType<typeof createSupabaseServerClient>
+
+async function resolveReleasedCurrentStage({
+  supabase,
+  caseId,
+  currentStageId,
+}: {
+  supabase: SupabaseClient
+  caseId: string
+  currentStageId: string | null
+}) {
+  if (currentStageId) {
+    const { data: currentStage, error: currentStageError } = await supabase
+      .from('case_routing_stages')
+      .select('id, status')
+      .eq('id', currentStageId)
+      .eq('case_id', caseId)
+      .single()
+
+    if (currentStageError || !currentStage) {
+      return {
+        stageId: null,
+        error: currentStageError?.message ?? 'Current routing stage was not found',
+        status: currentStageError ? 500 : 409,
+      }
+    }
+
+    if ((currentStage.status || '').toLowerCase() !== 'released') {
+      return {
+        stageId: null,
+        error: 'This case stage is not currently available for requests',
+        status: 409,
+      }
+    }
+
+    return { stageId: currentStage.id as string, error: null, status: 200 }
+  }
+
+  const { data: fallbackStage, error: fallbackStageError } = await supabase
+    .from('case_routing_stages')
+    .select('id, status')
+    .eq('case_id', caseId)
+    .eq('sequence', 1)
+    .maybeSingle()
+
+  if (fallbackStageError) {
+    return { stageId: null, error: fallbackStageError.message, status: 500 }
+  }
+
+  if (!fallbackStage) {
+    return { stageId: null, error: null, status: 200 }
+  }
+
+  if ((fallbackStage.status || '').toLowerCase() !== 'released') {
+    return {
+      stageId: null,
+      error: 'This case stage is not currently available for requests',
+      status: 409,
+    }
+  }
+
+  const stageId = fallbackStage.id as string
+
+  const { error: linkStageError } = await supabase
+    .from('patient_requests')
+    .update({ current_stage_id: stageId })
+    .eq('id', caseId)
+    .is('current_stage_id', null)
+
+  if (linkStageError) {
+    return { stageId: null, error: linkStageError.message, status: 500 }
+  }
+
+  return { stageId, error: null, status: 200 }
+}
+
 /**
  * POST /api/student/cases/[id]/request
  *
@@ -42,7 +118,7 @@ export async function POST(
   // ── 2. Verify case exists and is available ───────────────────────────────────
   const { data: caseRow, error: caseError } = await supabase
     .from('patient_requests')
-    .select('id, status')
+    .select('id, status, current_stage_id')
     .eq('id', caseId)
     .single()
 
@@ -57,6 +133,16 @@ export async function POST(
     )
   }
 
+  const stageResult = await resolveReleasedCurrentStage({
+    supabase,
+    caseId,
+    currentStageId: caseRow.current_stage_id ?? null,
+  })
+
+  if (stageResult.error) {
+    return NextResponse.json({ error: stageResult.error }, { status: stageResult.status })
+  }
+
   // ── 3. Insert request ────────────────────────────────────────────────────────
   // UNIQUE (case_id, student_id) prevents duplicate rows at the DB level.
   const { data: inserted, error: insertError } = await supabase
@@ -66,8 +152,9 @@ export async function POST(
       student_id: user.id,
       student_email: user.email ?? '',
       status: 'pending',
+      stage_id: stageResult.stageId,
     })
-    .select('id, case_id, status, created_at')
+    .select('id, case_id, stage_id, status, created_at')
     .single()
 
   if (insertError) {

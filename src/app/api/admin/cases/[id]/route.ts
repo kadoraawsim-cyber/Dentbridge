@@ -15,6 +15,7 @@ type Action =
   | 'mark_contacted'
   | 'mark_appointment_scheduled'
   | 'mark_in_treatment'
+  | 'release_next_stage'
   | 'mark_completed'
   | 'mark_cancelled'
 
@@ -27,6 +28,8 @@ interface RequestBody {
   reason?: string
   request_id?: string // required for approve_student_request / reject_student_request
 }
+
+type SupabaseClient = ReturnType<typeof createSupabaseServerClient>
 
 function keywordRoutingHint(treatmentType: string, assignedDepartment: string | null) {
   if (assignedDepartment) return assignedDepartment
@@ -43,6 +46,119 @@ function keywordRoutingHint(treatmentType: string, assignedDepartment: string | 
     return 'Restorative Dentistry'
 
   return 'Oral Radiology'
+}
+
+async function ensureReleasedRoutingStage({
+  supabase,
+  caseId,
+  assignedDepartment,
+  targetStudentLevel,
+  clinicalNotes,
+  releasedBy,
+  releasedAt,
+}: {
+  supabase: SupabaseClient
+  caseId: string
+  assignedDepartment?: string
+  targetStudentLevel?: string
+  clinicalNotes?: string
+  releasedBy: string | null
+  releasedAt: string
+}) {
+  const { data: currentCase, error: currentCaseError } = await supabase
+    .from('patient_requests')
+    .select('id, current_stage_id, treatment_type, assigned_department')
+    .eq('id', caseId)
+    .single()
+
+  if (currentCaseError || !currentCase) {
+    return {
+      error: currentCaseError?.message ?? 'Case not found',
+      status: currentCaseError ? 500 : 404,
+    }
+  }
+
+  const department =
+    assignedDepartment?.trim() ||
+    currentCase.assigned_department ||
+    keywordRoutingHint(currentCase.treatment_type ?? '', null) ||
+    'general'
+
+  const stagePayload = {
+    department,
+    target_student_level: targetStudentLevel ?? null,
+    status: 'released',
+    faculty_notes: clinicalNotes ?? null,
+    released_by: releasedBy,
+    released_at: releasedAt,
+    updated_at: releasedAt,
+  }
+
+  if (currentCase.current_stage_id) {
+    const { error: updateStageError } = await supabase
+      .from('case_routing_stages')
+      .update(stagePayload)
+      .eq('id', currentCase.current_stage_id)
+      .eq('case_id', caseId)
+
+    if (updateStageError) {
+      return { error: updateStageError.message, status: 500 }
+    }
+
+    return { error: null, status: 200 }
+  }
+
+  const { data: existingStage, error: existingStageError } = await supabase
+    .from('case_routing_stages')
+    .select('id')
+    .eq('case_id', caseId)
+    .eq('sequence', 1)
+    .maybeSingle()
+
+  if (existingStageError) {
+    return { error: existingStageError.message, status: 500 }
+  }
+
+  let stageId = existingStage?.id ?? null
+
+  if (stageId) {
+    const { error: updateExistingStageError } = await supabase
+      .from('case_routing_stages')
+      .update(stagePayload)
+      .eq('id', stageId)
+      .eq('case_id', caseId)
+
+    if (updateExistingStageError) {
+      return { error: updateExistingStageError.message, status: 500 }
+    }
+  } else {
+    const { data: insertedStage, error: insertStageError } = await supabase
+      .from('case_routing_stages')
+      .insert({
+        case_id: caseId,
+        sequence: 1,
+        ...stagePayload,
+      })
+      .select('id')
+      .single()
+
+    if (insertStageError) {
+      return { error: insertStageError.message, status: 500 }
+    }
+
+    stageId = insertedStage.id
+  }
+
+  const { error: linkStageError } = await supabase
+    .from('patient_requests')
+    .update({ current_stage_id: stageId })
+    .eq('id', caseId)
+
+  if (linkStageError) {
+    return { error: linkStageError.message, status: 500 }
+  }
+
+  return { error: null, status: 200 }
 }
 
 /**
@@ -97,6 +213,7 @@ export async function PATCH(
     'mark_contacted',
     'mark_appointment_scheduled',
     'mark_in_treatment',
+    'release_next_stage',
     'mark_completed',
     'mark_cancelled',
   ]
@@ -122,13 +239,95 @@ export async function PATCH(
 
     const newStudentStatus = action === 'approve_student_request' ? 'approved' : 'rejected'
 
+    const [
+      { data: studentRequest, error: studentRequestError },
+      { data: currentCase, error: currentCaseError },
+    ] = await Promise.all([
+      supabase
+        .from('student_case_requests')
+        .select('id, case_id, student_id, student_email, stage_id')
+        .eq('id', body.request_id)
+        .eq('case_id', id)
+        .single(),
+      supabase
+        .from('patient_requests')
+        .select('id, current_stage_id')
+        .eq('id', id)
+        .single(),
+    ])
+
+    if (studentRequestError || !studentRequest) {
+      return NextResponse.json(
+        { error: studentRequestError?.message ?? 'Student request not found' },
+        { status: studentRequestError ? 500 : 404 }
+      )
+    }
+
+    if (currentCaseError || !currentCase) {
+      return NextResponse.json(
+        { error: currentCaseError?.message ?? 'Case not found' },
+        { status: currentCaseError ? 500 : 404 }
+      )
+    }
+
+    const currentStageId = currentCase.current_stage_id ?? null
+    const requestStageId = studentRequest.stage_id ?? null
+
+    if (currentStageId && requestStageId && currentStageId !== requestStageId) {
+      return NextResponse.json(
+        { error: 'This student request belongs to a different routing stage.' },
+        { status: 409 }
+      )
+    }
+
+    const stageIdForReview = requestStageId ?? currentStageId
+
+    if (stageIdForReview) {
+      const { data: stageForReview, error: stageForReviewError } = await supabase
+        .from('case_routing_stages')
+        .select('id, case_id')
+        .eq('id', stageIdForReview)
+        .eq('case_id', id)
+        .single()
+
+      if (stageForReviewError || !stageForReview) {
+        return NextResponse.json(
+          { error: stageForReviewError?.message ?? 'Routing stage not found' },
+          { status: stageForReviewError ? 500 : 409 }
+        )
+      }
+
+      if (!currentStageId) {
+        const { error: linkStageError } = await supabase
+          .from('patient_requests')
+          .update({ current_stage_id: stageIdForReview })
+          .eq('id', id)
+          .is('current_stage_id', null)
+
+        if (linkStageError) {
+          return NextResponse.json({ error: linkStageError.message }, { status: 500 })
+        }
+      }
+    }
+
+    const requestUpdatePayload: {
+      status: string
+      reviewed_by: string | null
+      reviewed_at: string
+      stage_id?: string
+    } = {
+      status: newStudentStatus,
+      reviewed_by: reviewedBy,
+      reviewed_at: reviewedAt,
+    }
+
+    if (!requestStageId && stageIdForReview) {
+      requestUpdatePayload.stage_id = stageIdForReview
+    }
+
     const { error: updateRequestError } = await supabase
       .from('student_case_requests')
-      .update({
-        status: newStudentStatus,
-        reviewed_by: reviewedBy,
-        reviewed_at: reviewedAt,
-      })
+      .update(requestUpdatePayload)
       .eq('id', body.request_id)
       .eq('case_id', id) // ensures the request belongs to this case
 
@@ -138,7 +337,9 @@ export async function PATCH(
 
     // When approving a student, also:
     //   a) advance the case to student_approved
-    //   b) reject all other pending requests for this case (one student per case)
+    //   b) mark the current routing stage as assigned when stage data exists
+    //   c) reject competing pending requests for the same stage, falling back
+    //      to the legacy case-wide behavior only when no stage exists
     if (action === 'approve_student_request') {
       const { error: caseStatusError } = await supabase
         .from('patient_requests')
@@ -153,8 +354,27 @@ export async function PATCH(
         return NextResponse.json({ error: caseStatusError.message }, { status: 500 })
       }
 
-      // Reject all other pending requests for this case
-      await supabase
+      if (stageIdForReview) {
+        const { error: updateStageError } = await supabase
+          .from('case_routing_stages')
+          .update({
+            status: 'student_assigned',
+            student_request_id: body.request_id,
+            student_id: studentRequest.student_id,
+            student_email: studentRequest.student_email,
+            assigned_by: reviewedBy,
+            assigned_at: reviewedAt,
+            updated_at: reviewedAt,
+          })
+          .eq('id', stageIdForReview)
+          .eq('case_id', id)
+
+        if (updateStageError) {
+          return NextResponse.json({ error: updateStageError.message }, { status: 500 })
+        }
+      }
+
+      let rejectOtherRequestsQuery = supabase
         .from('student_case_requests')
         .update({
           status: 'rejected',
@@ -164,6 +384,12 @@ export async function PATCH(
         .eq('case_id', id)
         .neq('id', body.request_id)
         .eq('status', 'pending')
+
+      if (stageIdForReview) {
+        rejectOtherRequestsQuery = rejectOtherRequestsQuery.eq('stage_id', stageIdForReview)
+      }
+
+      await rejectOtherRequestsQuery
     }
 
     return NextResponse.json({
@@ -290,6 +516,113 @@ export async function PATCH(
     })
   }
 
+  if (action === 'release_next_stage') {
+    const department = assigned_department?.trim()
+    if (!department) {
+      return NextResponse.json({ error: 'assigned_department is required' }, { status: 400 })
+    }
+
+    const { data: currentCase, error: currentCaseError } = await supabase
+      .from('patient_requests')
+      .select('status, current_stage_id, urgency, clinical_notes')
+      .eq('id', id)
+      .single()
+
+    if (currentCaseError || !currentCase) {
+      return NextResponse.json(
+        { error: currentCaseError?.message ?? 'Case not found' },
+        { status: currentCaseError ? 500 : 404 }
+      )
+    }
+
+    if ((currentCase.status || '').toLowerCase() !== 'faculty_review') {
+      return NextResponse.json(
+        { error: 'Next stage routing is only available while the case is awaiting faculty review.' },
+        { status: 409 }
+      )
+    }
+
+    if (currentCase.current_stage_id) {
+      const { error: reviewStageError } = await supabase
+        .from('case_routing_stages')
+        .update({
+          stage_reviewed_by: reviewedBy,
+          stage_reviewed_at: reviewedAt,
+          updated_at: reviewedAt,
+        })
+        .eq('id', currentCase.current_stage_id)
+        .eq('case_id', id)
+
+      if (reviewStageError) {
+        return NextResponse.json({ error: reviewStageError.message }, { status: 500 })
+      }
+    }
+
+    const { data: latestStage, error: latestStageError } = await supabase
+      .from('case_routing_stages')
+      .select('sequence')
+      .eq('case_id', id)
+      .order('sequence', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (latestStageError) {
+      return NextResponse.json({ error: latestStageError.message }, { status: 500 })
+    }
+
+    const nextSequence = Number(latestStage?.sequence ?? 0) + 1
+
+    const { data: nextStage, error: insertStageError } = await supabase
+      .from('case_routing_stages')
+      .insert({
+        case_id: id,
+        sequence: nextSequence,
+        department,
+        target_student_level: target_student_level ?? null,
+        status: 'released',
+        faculty_notes: clinical_notes ?? currentCase.clinical_notes ?? null,
+        released_by: reviewedBy,
+        released_at: reviewedAt,
+        created_at: reviewedAt,
+        updated_at: reviewedAt,
+      })
+      .select('id, sequence')
+      .single()
+
+    if (insertStageError) {
+      return NextResponse.json({ error: insertStageError.message }, { status: 500 })
+    }
+
+    const { error: updateCaseError } = await supabase
+      .from('patient_requests')
+      .update({
+        current_stage_id: nextStage.id,
+        assigned_department: department,
+        target_student_level: target_student_level ?? null,
+        clinical_notes: clinical_notes ?? currentCase.clinical_notes ?? null,
+        urgency: urgency ?? currentCase.urgency,
+        status: 'matched',
+        reviewed_by: reviewedBy,
+        reviewed_at: reviewedAt,
+      })
+      .eq('id', id)
+
+    if (updateCaseError) {
+      return NextResponse.json({ error: updateCaseError.message }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        status: 'matched',
+        reviewed_by: reviewedBy,
+        reviewed_at: reviewedAt,
+        stage_id: nextStage.id,
+        sequence: nextStage.sequence,
+      },
+    })
+  }
+
   // ── 3b. Lifecycle status transitions (post-approval) ─────────────────────────
   const lifecycleActions: Record<string, string> = {
     mark_contacted: 'contacted',
@@ -301,14 +634,24 @@ export async function PATCH(
 
   if (action in lifecycleActions) {
     const newStatus = lifecycleActions[action]
+    const updatePayload: {
+      status: string
+      reviewed_by: string | null
+      reviewed_at: string
+      routing_completed_at?: string
+    } = {
+      status: newStatus,
+      reviewed_by: reviewedBy,
+      reviewed_at: reviewedAt,
+    }
+
+    if (action === 'mark_completed') {
+      updatePayload.routing_completed_at = reviewedAt
+    }
 
     const { error: updateError } = await supabase
       .from('patient_requests')
-      .update({
-        status: newStatus,
-        reviewed_by: reviewedBy,
-        reviewed_at: reviewedAt,
-      })
+      .update(updatePayload)
       .eq('id', id)
 
     if (updateError) {
@@ -387,6 +730,20 @@ export async function PATCH(
       reviewed_at: reviewedAt,
     }
   } else if (action === 'approve') {
+    const stageResult = await ensureReleasedRoutingStage({
+      supabase,
+      caseId: id,
+      assignedDepartment: assigned_department,
+      targetStudentLevel: target_student_level,
+      clinicalNotes: clinical_notes,
+      releasedBy: reviewedBy,
+      releasedAt: reviewedAt,
+    })
+
+    if (stageResult.error) {
+      return NextResponse.json({ error: stageResult.error }, { status: stageResult.status })
+    }
+
     updatePayload = {
       assigned_department,
       urgency,

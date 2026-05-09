@@ -58,6 +58,13 @@ function parseLocalDateTime(value: string) {
   return new Date(value)
 }
 
+function isCurrentStageRequest(
+  requestStageId: string | null | undefined,
+  currentStageId: string | null | undefined
+) {
+  return !requestStageId || !currentStageId || requestStageId === currentStageId
+}
+
 async function getAuthorizedStudent() {
   const cookieStore = await cookies()
   const supabase = createSupabaseServerClient(cookieStore)
@@ -77,6 +84,71 @@ async function getAuthorizedStudent() {
   return { supabase, user, response: undefined as NextResponse | undefined }
 }
 
+async function validatePatientLink(
+  supabase: ReturnType<typeof createSupabaseServerClient>,
+  studentId: string,
+  patientId: string | null
+) {
+  if (!patientId) {
+    return { stageId: null as string | null }
+  }
+
+  const { data: approvedRequest, error: requestError } = await supabase
+    .from('student_case_requests')
+    .select('case_id, stage_id')
+    .eq('student_id', studentId)
+    .eq('status', 'approved')
+    .eq('case_id', patientId)
+    .maybeSingle()
+
+  if (requestError) {
+    return {
+      response: NextResponse.json({ error: requestError.message }, { status: 500 }),
+      stageId: null as string | null,
+    }
+  }
+
+  if (!approvedRequest) {
+    return {
+      response: NextResponse.json({ error: 'Selected patient is not available to link.' }, { status: 403 }),
+      stageId: null as string | null,
+    }
+  }
+
+  const { data: activePatient, error: patientError } = await supabase
+    .from('patient_requests')
+    .select('id, current_stage_id')
+    .eq('id', patientId)
+    .in('status', ACTIVE_CASE_STATUSES)
+    .maybeSingle()
+
+  if (patientError) {
+    return {
+      response: NextResponse.json({ error: patientError.message }, { status: 500 }),
+      stageId: null as string | null,
+    }
+  }
+
+  if (!activePatient) {
+    return {
+      response: NextResponse.json({ error: 'Selected patient is no longer active.' }, { status: 409 }),
+      stageId: null as string | null,
+    }
+  }
+
+  if (!isCurrentStageRequest(approvedRequest.stage_id, activePatient.current_stage_id)) {
+    return {
+      response: NextResponse.json(
+        { error: 'Selected patient is no longer active for your stage.' },
+        { status: 409 }
+      ),
+      stageId: null as string | null,
+    }
+  }
+
+  return { stageId: activePatient.current_stage_id ?? approvedRequest.stage_id ?? null }
+}
+
 export async function GET() {
   const { supabase, user, response } = await getAuthorizedStudent()
   if (response) return response
@@ -88,14 +160,14 @@ export async function GET() {
     supabase
       .from('student_planner_events')
       .select(
-        'id, title, description, event_date, patient_id, language, created_at, source_kind, source_case_id'
+        'id, title, description, event_date, patient_id, language, created_at, source_kind, source_case_id, stage_id, lifecycle_state'
       )
       .eq('student_id', user.id)
       .order('event_date', { ascending: true }),
 
     supabase
       .from('student_case_requests')
-      .select('case_id')
+      .select('case_id, stage_id')
       .eq('student_id', user.id)
       .eq('status', 'approved'),
   ])
@@ -112,6 +184,9 @@ export async function GET() {
   }
 
   const approvedCaseIds = (approvedRequests ?? []).map((row) => row.case_id)
+  const approvedStageByCase = new Map(
+    (approvedRequests ?? []).map((row) => [row.case_id, row.stage_id as string | null])
+  )
   const linkedCaseIds = Array.from(
     new Set(
       (plannerRows ?? [])
@@ -126,9 +201,17 @@ export async function GET() {
     treatment_type: string
     assigned_department: string | null
     status: string
+    current_stage_id?: string | null
   }> = []
 
   const latestLinkedAppointmentsByCase = new Map<
+    string,
+    {
+      appointment_date: string | null
+      appointment_time: string | null
+    }
+  >()
+  const latestLinkedAppointmentsByStage = new Map<
     string,
     {
       appointment_date: string | null
@@ -140,7 +223,7 @@ export async function GET() {
     approvedCaseIds.length > 0
       ? supabase
           .from('patient_requests')
-          .select('id, full_name, treatment_type, assigned_department, status')
+          .select('id, full_name, treatment_type, assigned_department, status, current_stage_id')
           .in('id', approvedCaseIds)
           .in('status', ACTIVE_CASE_STATUSES)
           .order('created_at', { ascending: false })
@@ -149,7 +232,7 @@ export async function GET() {
     linkedCaseIds.length > 0
       ? supabase
           .from('case_progress_entries')
-          .select('case_id, appointment_date, appointment_time, created_at')
+          .select('case_id, stage_id, appointment_date, appointment_time, created_at')
           .in('case_id', linkedCaseIds)
           .not('appointment_date', 'is', null)
           .order('created_at', { ascending: false })
@@ -160,13 +243,22 @@ export async function GET() {
     return NextResponse.json({ error: patientsResult.error.message }, { status: 500 })
   }
 
-  activePatients = patientsResult?.data ?? []
+  activePatients = (patientsResult?.data ?? []).filter((patient) =>
+    isCurrentStageRequest(approvedStageByCase.get(patient.id), patient.current_stage_id)
+  )
 
   if (linkedAppointmentsResult?.error) {
     return NextResponse.json({ error: linkedAppointmentsResult.error.message }, { status: 500 })
   }
 
   for (const row of linkedAppointmentsResult?.data ?? []) {
+    if (row.stage_id && !latestLinkedAppointmentsByStage.has(row.stage_id)) {
+      latestLinkedAppointmentsByStage.set(row.stage_id, {
+        appointment_date: row.appointment_date,
+        appointment_time: row.appointment_time,
+      })
+    }
+
     if (!latestLinkedAppointmentsByCase.has(row.case_id)) {
       latestLinkedAppointmentsByCase.set(row.case_id, {
         appointment_date: row.appointment_date,
@@ -181,7 +273,9 @@ export async function GET() {
         const { description, endAt } = stripEndMarker(row.description)
         const linkedAppointment =
           row.source_kind === CASE_APPOINTMENT_SOURCE_KIND && row.source_case_id
-            ? latestLinkedAppointmentsByCase.get(row.source_case_id)
+            ? row.stage_id
+              ? latestLinkedAppointmentsByStage.get(row.stage_id)
+              : latestLinkedAppointmentsByCase.get(row.source_case_id)
             : undefined
 
         return {
@@ -195,6 +289,8 @@ export async function GET() {
           created_at: row.created_at,
           source_kind: row.source_kind,
           source_case_id: row.source_case_id,
+          stage_id: row.stage_id,
+          lifecycle_state: row.lifecycle_state,
           linked_appointment_date: linkedAppointment?.appointment_date ?? null,
           linked_appointment_time: linkedAppointment?.appointment_time ?? null,
         }
@@ -251,38 +347,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'End time must be after start time.' }, { status: 400 })
   }
 
-  if (patientId) {
-    const { data: approvedRequest, error: requestError } = await supabase
-      .from('student_case_requests')
-      .select('case_id')
-      .eq('student_id', user.id)
-      .eq('status', 'approved')
-      .eq('case_id', patientId)
-      .maybeSingle()
-
-    if (requestError) {
-      return NextResponse.json({ error: requestError.message }, { status: 500 })
-    }
-
-    if (!approvedRequest) {
-      return NextResponse.json({ error: 'Selected patient is not available to link.' }, { status: 403 })
-    }
-
-    const { data: activePatient, error: patientError } = await supabase
-      .from('patient_requests')
-      .select('id')
-      .eq('id', patientId)
-      .in('status', ACTIVE_CASE_STATUSES)
-      .maybeSingle()
-
-    if (patientError) {
-      return NextResponse.json({ error: patientError.message }, { status: 500 })
-    }
-
-    if (!activePatient) {
-      return NextResponse.json({ error: 'Selected patient is no longer active.' }, { status: 409 })
-    }
-  }
+  const patientValidation = await validatePatientLink(supabase, user.id, patientId)
+  if (patientValidation.response) return patientValidation.response
 
   const { data: insertedRow, error: insertError } = await supabase
     .from('student_planner_events')
@@ -293,9 +359,11 @@ export async function POST(request: NextRequest) {
       event_date: startAtValue,
       patient_id: patientId,
       language,
+      stage_id: patientValidation.stageId,
+      lifecycle_state: patientId ? 'active' : null,
     })
     .select(
-      'id, title, description, event_date, patient_id, language, created_at, source_kind, source_case_id'
+      'id, title, description, event_date, patient_id, language, created_at, source_kind, source_case_id, stage_id, lifecycle_state'
     )
     .single()
 
@@ -317,6 +385,8 @@ export async function POST(request: NextRequest) {
       created_at: insertedRow.created_at,
       source_kind: insertedRow.source_kind,
       source_case_id: insertedRow.source_case_id,
+      stage_id: insertedRow.stage_id,
+      lifecycle_state: insertedRow.lifecycle_state,
       linked_appointment_date: null,
       linked_appointment_time: null,
     },

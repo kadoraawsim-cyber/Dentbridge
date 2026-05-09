@@ -6,18 +6,22 @@ export type CaseTimelinePatientRequest = {
   created_at: string | null
   reviewed_at: string | null
   reviewed_by: string | null
+  routing_completed_at?: string | null
 }
 
 export type CaseTimelineStudentRequest = {
   id: string
   student_email: string
   status: string
+  stage_id?: string | null
   reviewed_at: string | null
   created_at: string
 }
 
 export type CaseTimelineProgressEntry = {
   id: string
+  stage_id?: string | null
+  department_at_time?: string | null
   status_at_time: string
   appointment_date: string | null
   appointment_time: string | null
@@ -27,6 +31,25 @@ export type CaseTimelineProgressEntry = {
   next_appointment_date: string | null
   next_appointment_time: string | null
   student_name: string | null
+  created_at: string
+}
+
+export type CaseTimelineRoutingStage = {
+  id: string
+  sequence: number
+  department: string
+  target_student_level: string | null
+  status: string
+  student_email: string | null
+  released_by: string | null
+  released_at: string | null
+  assigned_by: string | null
+  assigned_at: string | null
+  stage_submitted_at: string | null
+  stage_reviewed_by: string | null
+  stage_reviewed_at: string | null
+  completed_at: string | null
+  cancelled_at: string | null
   created_at: string
 }
 
@@ -45,6 +68,7 @@ type BuildCaseTimelineInput = {
   request: CaseTimelinePatientRequest
   studentRequests: CaseTimelineStudentRequest[]
   progressEntries: CaseTimelineProgressEntry[]
+  routingStages?: CaseTimelineRoutingStage[]
 }
 
 const TERMINAL_STATUS_TITLE_KEYS: Record<string, string> = {
@@ -86,6 +110,7 @@ export function buildCaseTimeline({
   request,
   studentRequests,
   progressEntries,
+  routingStages = [],
 }: BuildCaseTimelineInput): CaseTimelineItem[] {
   const items: Array<CaseTimelineItem & { sortTime: number; order: number }> = []
   let order = 0
@@ -123,6 +148,66 @@ export function buildCaseTimeline({
       appointmentDate: null,
       appointmentTime: null,
     })
+  }
+
+  for (const stage of routingStages) {
+    const stageLabel = `Stage ${stage.sequence}: ${stage.department}`
+
+    if (stage.released_at || stage.created_at) {
+      addItem({
+        id: `stage-released-${stage.id}`,
+        kind: 'system',
+        titleKey: stage.sequence > 1
+          ? 'admin.detail.journeyNextStageReleased'
+          : 'admin.detail.journeyStageReleased',
+        occurredAt: stage.released_at ?? stage.created_at,
+        detail: stageLabel,
+        actor: stage.released_by,
+        appointmentDate: null,
+        appointmentTime: null,
+      })
+    }
+
+    if (stage.assigned_at) {
+      addItem({
+        id: `stage-assigned-${stage.id}`,
+        kind: 'system',
+        titleKey: 'admin.detail.journeyStageStudentAssigned',
+        occurredAt: stage.assigned_at,
+        detail: stage.student_email
+          ? `${stageLabel} · ${stage.student_email}`
+          : stageLabel,
+        actor: stage.assigned_by ?? stage.student_email,
+        appointmentDate: null,
+        appointmentTime: null,
+      })
+    }
+
+    if (stage.stage_submitted_at) {
+      addItem({
+        id: `stage-submitted-${stage.id}`,
+        kind: 'system',
+        titleKey: 'admin.detail.journeyStageSubmittedReview',
+        occurredAt: stage.stage_submitted_at,
+        detail: stageLabel,
+        actor: stage.student_email,
+        appointmentDate: null,
+        appointmentTime: null,
+      })
+    }
+
+    if (stage.stage_reviewed_at) {
+      addItem({
+        id: `stage-reviewed-${stage.id}`,
+        kind: 'system',
+        titleKey: 'admin.detail.journeyStageReviewed',
+        occurredAt: stage.stage_reviewed_at,
+        detail: stageLabel,
+        actor: stage.stage_reviewed_by,
+        appointmentDate: null,
+        appointmentTime: null,
+      })
+    }
   }
 
   for (const studentRequest of studentRequests) {
@@ -218,12 +303,13 @@ export function buildCaseTimeline({
   }
 
   const terminalTitleKey = TERMINAL_STATUS_TITLE_KEYS[(request.status || '').toLowerCase()]
-  if (terminalTitleKey && (request.reviewed_at || request.created_at)) {
+  const terminalAt = request.routing_completed_at ?? request.reviewed_at ?? request.created_at
+  if (terminalTitleKey && terminalAt) {
     addItem({
       id: `terminal-${request.id}-${request.status}`,
       kind: 'closure',
       titleKey: terminalTitleKey,
-      occurredAt: request.reviewed_at ?? request.created_at ?? new Date(0).toISOString(),
+      occurredAt: terminalAt,
       detail: request.status,
       actor: request.reviewed_by,
       appointmentDate: null,
