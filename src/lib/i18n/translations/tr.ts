@@ -901,6 +901,10 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
       messageRejected: 'Bu vaka için başvurunuz reddedildi.',
       messageRevoked:
         'Fakülte vaka yönlendirmesini güncelledi ve vakayı havuza geri aldı. Artık bu vakaya atanmış değilsiniz.',
+      messageRevokedRouted:
+        'Aşamanız tamamlandı. Hasta başka bir bölüme yönlendirildi.',
+      messageRevokedCompleted: 'Bu vaka tamamen tamamlandı.',
+      initialRequestLabel: 'Başlangıç talebi',
       goToDashboard: 'Panele Git',
       sectionActive: 'Aktif & Bekleyen',
       sectionCompleted: 'Tamamlanan Tedaviler',

@@ -121,9 +121,38 @@ export function RequestsClient({ myRequests, caseMap }: Props) {
 
   function renderCard(req: RequestRow) {
     const caseInfo = caseMap[req.case_id]
+    const isRevoked = req.status === 'revoked'
     const isCompleted =
       req.status === 'approved' &&
       ['completed', 'cancelled'].includes((caseInfo?.caseStatus ?? '').toLowerCase())
+
+    // For revoked cards: primary title = student's stage dept → case dept → treatment_type
+    const treatmentLabel = caseInfo ? tTreatment(caseInfo.treatment_type) : '—'
+    const stageDeptRaw = req.stage_dept
+    const caseDeptRaw = caseInfo?.assigned_department ?? null
+
+    let primaryTitle = treatmentLabel
+    let secondaryTreatment: string | null = null
+    let badgeDept: string | null = caseDeptRaw
+
+    if (isRevoked) {
+      const deptRaw = stageDeptRaw ?? caseDeptRaw
+      if (deptRaw) {
+        primaryTitle = tDept(deptRaw) || deptRaw
+        if (primaryTitle !== treatmentLabel) secondaryTreatment = treatmentLabel
+      }
+      badgeDept = deptRaw
+    }
+
+    // Per-scenario message for revoked cards
+    const cs = (caseInfo?.caseStatus ?? '').toLowerCase()
+    const revokedMessage = isRevoked
+      ? ['completed', 'cancelled'].includes(cs)
+        ? t('student.requests.messageRevokedCompleted')
+        : cs === 'matched'
+        ? t('student.requests.messageRevoked')
+        : t('student.requests.messageRevokedRouted')
+      : null
 
     return (
       <article
@@ -142,14 +171,17 @@ export function RequestsClient({ myRequests, caseMap }: Props) {
         </div>
 
         <div className="p-5">
-          <p className="text-base font-bold text-slate-900">
-            {caseInfo ? tTreatment(caseInfo.treatment_type) : '—'}
-          </p>
+          <p className="text-base font-bold text-slate-900">{primaryTitle}</p>
+          {isRevoked && secondaryTreatment && (
+            <p className="mt-0.5 text-xs text-slate-400">
+              {t('student.requests.initialRequestLabel')}: {secondaryTreatment}
+            </p>
+          )}
 
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            {caseInfo?.assigned_department && (
+            {badgeDept && (
               <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700">
-                {tDept(caseInfo.assigned_department)}
+                {tDept(badgeDept) || badgeDept}
               </span>
             )}
             {caseInfo?.urgency && (
@@ -170,7 +202,7 @@ export function RequestsClient({ myRequests, caseMap }: Props) {
             {req.status === 'approved' && !isCompleted && t('student.requests.messageApproved')}
             {isCompleted && t('student.requests.completedNote')}
             {req.status === 'rejected' && t('student.requests.messageRejected')}
-            {req.status === 'revoked' && t('student.requests.messageRevoked')}
+            {revokedMessage}
           </div>
 
           {req.status === 'approved' && !isCompleted && (

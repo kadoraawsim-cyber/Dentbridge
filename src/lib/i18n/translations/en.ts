@@ -573,6 +573,9 @@ export type TranslationShape = {
       messageApproved: string
       messageRejected: string
       messageRevoked: string
+      messageRevokedRouted: string
+      messageRevokedCompleted: string
+      initialRequestLabel: string
       goToDashboard: string
       sectionActive: string
       sectionCompleted: string
@@ -1895,6 +1898,10 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       messageRejected: 'Your request was declined for this case.',
       messageRevoked:
         'Faculty updated the case routing and returned it to the pool. You are no longer assigned to this case.',
+      messageRevokedRouted:
+        'Your stage is complete. The patient has been routed to another department.',
+      messageRevokedCompleted: 'This case has been fully completed.',
+      initialRequestLabel: 'Initial request',
       goToDashboard: 'Go to Dashboard',
       sectionActive: 'Active & Pending',
       sectionCompleted: 'Completed Treatments',

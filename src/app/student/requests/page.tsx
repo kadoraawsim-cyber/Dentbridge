@@ -7,6 +7,7 @@ export type RequestRow = {
   id: string
   case_id: string
   stage_id: string | null
+  stage_dept: string | null
   status: string
   created_at: string
 }
@@ -38,28 +39,41 @@ export default async function StudentRequestsPage() {
     .order('created_at', { ascending: false })
 
   const caseIds = (myRequests ?? []).map((r) => r.case_id)
+  const stageIds = (myRequests ?? [])
+    .map((r) => r.stage_id)
+    .filter((id): id is string => Boolean(id))
 
   let caseMap: Record<string, CaseInfo> = {}
+  let stageDeptMap: Record<string, string> = {}
 
-  if (caseIds.length > 0) {
-    const { data: caseRows } = await supabase
-      .from('patient_requests')
-      .select('id, treatment_type, assigned_department, urgency, status, current_stage_id')
-      .in('id', caseIds)
+  const [caseResult, stageResult] = await Promise.all([
+    caseIds.length > 0
+      ? supabase
+          .from('patient_requests')
+          .select('id, treatment_type, assigned_department, urgency, status, current_stage_id')
+          .in('id', caseIds)
+      : Promise.resolve(null),
+    stageIds.length > 0
+      ? supabase.from('case_routing_stages').select('id, department').in('id', stageIds)
+      : Promise.resolve(null),
+  ])
 
-    caseMap = Object.fromEntries(
-      (caseRows ?? []).map((c) => [
-        c.id,
-        {
-          treatment_type: c.treatment_type,
-          assigned_department: c.assigned_department,
-          urgency: c.urgency,
-          caseStatus: c.status,
-          current_stage_id: c.current_stage_id,
-        },
-      ])
-    )
-  }
+  caseMap = Object.fromEntries(
+    (caseResult?.data ?? []).map((c) => [
+      c.id,
+      {
+        treatment_type: c.treatment_type,
+        assigned_department: c.assigned_department,
+        urgency: c.urgency,
+        caseStatus: c.status,
+        current_stage_id: c.current_stage_id,
+      },
+    ])
+  )
+
+  stageDeptMap = Object.fromEntries(
+    (stageResult?.data ?? []).map((s) => [s.id, s.department as string])
+  )
 
   const stageAwareRequests = (myRequests ?? []).map((request) => {
     const currentStageId = caseMap[request.case_id]?.current_stage_id
@@ -68,8 +82,11 @@ export default async function StudentRequestsPage() {
       Boolean(request.stage_id) &&
       Boolean(currentStageId) &&
       request.stage_id !== currentStageId
+    const stage_dept = request.stage_id ? (stageDeptMap[request.stage_id] ?? null) : null
 
-    return isHistoricalStage ? { ...request, status: 'revoked' } : request
+    return isHistoricalStage
+      ? { ...request, status: 'revoked', stage_dept }
+      : { ...request, stage_dept }
   })
 
   return (
