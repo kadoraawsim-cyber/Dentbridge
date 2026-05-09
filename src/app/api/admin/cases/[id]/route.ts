@@ -288,12 +288,19 @@ export async function PATCH(
         .select('id, case_id')
         .eq('id', stageIdForReview)
         .eq('case_id', id)
-        .single()
+        .maybeSingle()
 
-      if (stageForReviewError || !stageForReview) {
+      if (stageForReviewError) {
         return NextResponse.json(
-          { error: stageForReviewError?.message ?? 'Routing stage not found' },
-          { status: stageForReviewError ? 500 : 409 }
+          { error: 'Unable to verify routing stage. Please try again.' },
+          { status: 500 }
+        )
+      }
+
+      if (!stageForReview) {
+        return NextResponse.json(
+          { error: 'Routing stage not found for this case.' },
+          { status: 409 }
         )
       }
 
