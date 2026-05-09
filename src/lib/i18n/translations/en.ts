@@ -1907,7 +1907,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       sectionCompleted: 'Completed Treatments',
       sectionRejected: 'Declined Requests',
       sectionRevoked: 'Reassigned / Returned to Pool',
-      completedNote: 'These cases have been fully completed.',
+      completedNote: 'This case has been fully completed.',
     },
     planner: {
       pageTitle: 'Student Planner',

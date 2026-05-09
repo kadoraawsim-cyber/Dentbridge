@@ -135,7 +135,8 @@ export function RequestsClient({ myRequests, caseMap }: Props) {
     let secondaryTreatment: string | null = null
     let badgeDept: string | null = caseDeptRaw
 
-    if (isRevoked) {
+    // For historical cards (revoked or completed): prefer stage dept → case dept → treatment_type
+    if (isRevoked || isCompleted) {
       const deptRaw = stageDeptRaw ?? caseDeptRaw
       if (deptRaw) {
         primaryTitle = tDept(deptRaw) || deptRaw
@@ -172,7 +173,7 @@ export function RequestsClient({ myRequests, caseMap }: Props) {
 
         <div className="p-5">
           <p className="text-base font-bold text-slate-900">{primaryTitle}</p>
-          {isRevoked && secondaryTreatment && (
+          {(isRevoked || isCompleted) && secondaryTreatment && (
             <p className="mt-0.5 text-xs text-slate-400">
               {t('student.requests.initialRequestLabel')}: {secondaryTreatment}
             </p>

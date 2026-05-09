@@ -910,7 +910,7 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
       sectionCompleted: 'Tamamlanan Tedaviler',
       sectionRejected: 'Reddedilen Başvurular',
       sectionRevoked: 'Yeniden Yönlendirilen / Havuza Geri Alınan',
-      completedNote: 'Bu vakalar tamamen tamamlandı.',
+      completedNote: 'Bu vaka tamamen tamamlandı.',
     },
     planner: {
       pageTitle: 'Öğrenci Planlayıcısı',
