@@ -1,5 +1,6 @@
 'use client'
 
+import type { MouseEvent } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import {
@@ -54,8 +55,35 @@ const platformFeatures = [
   { key: 'aiAssistant', icon: Sparkles },
 ] as const
 
+const HOW_IT_WORKS_ID = 'how-it-works'
+const HOW_IT_WORKS_HASH = `#${HOW_IT_WORKS_ID}`
+
 export default function StudentsPageClient() {
   const { t } = useI18n()
+
+  function handleHowItWorksClick(event: MouseEvent<HTMLAnchorElement>) {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
+      return
+    }
+
+    const target = document.getElementById(HOW_IT_WORKS_ID)
+
+    if (!target) {
+      return
+    }
+
+    event.preventDefault()
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    target.scrollIntoView({
+      behavior: prefersReducedMotion ? 'auto' : 'smooth',
+      block: 'start',
+    })
+
+    if (window.location.hash !== HOW_IT_WORKS_HASH) {
+      window.history.pushState(null, '', HOW_IT_WORKS_HASH)
+    }
+  }
 
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-white text-slate-950">
@@ -107,6 +135,7 @@ export default function StudentsPageClient() {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
                 href="#how-it-works"
+                onClick={handleHowItWorksClick}
                 className="dentbridge-primary-cta inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-slate-950 shadow-[0_18px_36px_-24px_rgba(255,255,255,0.8)] transition hover:bg-slate-100"
               >
                 {t('studentsPage.accessCta')}
