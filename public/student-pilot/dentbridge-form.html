@@ -1,0 +1,2075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0B2545">
+<title>DentBridge — Student Pilot Application</title>
+<meta name="description" content="Apply for the first DentBridge student pilot — a faculty-supported platform connecting dental students with suitable patient cases.">
+
+<!-- Open Graph -->
+<meta property="og:title" content="DentBridge — Student Pilot Application">
+<meta property="og:description" content="Join the first faculty-supported pilot helping dental students access suitable patient cases in a more organized, supervised way.">
+<meta property="og:type" content="website">
+
+<!-- Fonts: Fraunces (display serif) + Plus Jakarta Sans (body) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Plus+Jakarta+Sans:wght@300..700&display=swap" rel="stylesheet">
+
+<style>
+/* =========================================================
+   DESIGN TOKENS
+   Edit colors here to retheme the entire form.
+   ========================================================= */
+:root {
+  --navy:         #0B2545;
+  --navy-deep:    #07182E;
+  --navy-soft:    #13315C;
+  --teal:         #00B5A0;
+  --teal-deep:    #008F80;
+  --teal-tint:    #E8F7F4;
+  --gold:         #BFA15E;
+
+  --bg:           #F7F6F1;
+  --bg-grad-a:    #FAF9F4;
+  --bg-grad-b:    #EFEEE7;
+  --card:         #FFFFFF;
+  --border:       #E5E2D8;
+  --border-strong:#CFCBBE;
+
+  --text:         #14213D;
+  --text-soft:    #3A4561;
+  --text-muted:   #6B7388;
+  --text-faint:   #9AA0AE;
+
+  --error:        #B23A3A;
+  --error-bg:     #FBEEEE;
+  --success:      #1E7D5A;
+
+  --shadow-sm: 0 1px 2px rgba(11,37,69,.04), 0 1px 1px rgba(11,37,69,.03);
+  --shadow-md: 0 4px 12px rgba(11,37,69,.06), 0 2px 4px rgba(11,37,69,.04);
+  --shadow-lg: 0 24px 60px -20px rgba(11,37,69,.18), 0 8px 24px -8px rgba(11,37,69,.08);
+
+  --radius-sm: 10px;
+  --radius:    14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+
+  --maxw: 720px;
+
+  --serif: 'Fraunces', 'Iowan Old Style', 'Apple Garamond', 'Baskerville', Georgia, serif;
+  --sans:  'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* =========================================================
+   BASE
+   ========================================================= */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body {
+  margin: 0;
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--text);
+  background:
+    radial-gradient(1100px 600px at 90% -10%, rgba(0,181,160,.06), transparent 60%),
+    radial-gradient(900px 500px at -10% 100%, rgba(11,37,69,.06), transparent 55%),
+    linear-gradient(180deg, var(--bg-grad-a), var(--bg-grad-b));
+  min-height: 100vh;
+  min-height: 100svh;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Subtle grain texture for premium feel */
+body::before {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  opacity: .35; mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.05  0 0 0 0 0.1  0 0 0 0 0.2  0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+button { font: inherit; cursor: pointer; border: 0; background: none; color: inherit; }
+input, textarea, select { font: inherit; color: inherit; }
+a { color: var(--teal-deep); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* =========================================================
+   APP LAYOUT
+   ========================================================= */
+.app {
+  position: relative; z-index: 1;
+  min-height: 100vh; min-height: 100svh;
+  display: flex; flex-direction: column;
+}
+
+/* Top bar */
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(247,246,241,.85);
+  backdrop-filter: saturate(180%) blur(12px);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  border-bottom: 1px solid rgba(229,226,216,.7);
+}
+.topbar-inner {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 14px 20px;
+  display: flex; align-items: center; gap: 16px;
+}
+.brand {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 18px;
+  color: var(--navy);
+  letter-spacing: -.01em;
+}
+.brand-logo {
+  height: 38px;
+  width: auto;
+  display: block;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.progress-wrap { flex: 1; min-width: 0; }
+.progress-track {
+  height: 4px;
+  background: rgba(11,37,69,.08);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--teal), var(--teal-deep));
+  border-radius: 99px;
+  transition: width .45s cubic-bezier(.22,.61,.36,1);
+}
+.progress-meta {
+  margin-top: 6px;
+  display: flex; justify-content: space-between;
+  font-size: 11.5px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.language-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  background: rgba(255,255,255,.86);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+}
+.lang-btn {
+  min-width: 38px;
+  padding: 7px 10px;
+  border-radius: 99px;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: var(--text-muted);
+  transition: background .18s ease, color .18s ease, box-shadow .18s ease;
+}
+.lang-btn:hover { color: var(--navy); }
+.lang-btn.active {
+  background: var(--navy);
+  color: #fff;
+  box-shadow: 0 6px 14px -8px rgba(11,37,69,.55);
+}
+
+/* Main */
+main {
+  flex: 1;
+  width: 100%;
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 32px 20px 140px;
+}
+
+/* Step container */
+.step {
+  display: none;
+  animation: stepIn .5s cubic-bezier(.22,.61,.36,1);
+}
+.step.active { display: block; }
+@keyframes stepIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.section-label {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 12px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--teal-deep);
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+.section-label::before {
+  content: ''; width: 18px; height: 1px; background: var(--teal);
+}
+
+h1.step-title {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(28px, 5vw, 38px);
+  line-height: 1.15;
+  letter-spacing: -.02em;
+  color: var(--navy);
+  margin: 0 0 12px;
+}
+h1.step-title em {
+  font-style: italic;
+  font-weight: 300;
+  color: var(--teal-deep);
+}
+.step-intro {
+  font-size: 15.5px;
+  color: var(--text-soft);
+  line-height: 1.6;
+  margin: 0 0 28px;
+  max-width: 56ch;
+}
+
+/* =========================================================
+   WELCOME SCREEN
+   ========================================================= */
+.welcome {
+  text-align: left;
+  padding-top: clamp(10px, 5vw, 32px);
+}
+.welcome-copy {
+  position: relative;
+  padding: 2px 0 0;
+}
+.welcome-eyebrow {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 6px 12px 6px 8px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  font-size: 12px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--navy-soft);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 22px;
+}
+.welcome-eyebrow .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--teal);
+  box-shadow: 0 0 0 4px rgba(0,181,160,.18);
+}
+.welcome h1 {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: clamp(40px, 7.4vw, 64px);
+  line-height: 1.02;
+  letter-spacing: -.025em;
+  color: var(--navy);
+  margin: 0 0 20px;
+}
+.welcome h1 em {
+  font-style: italic;
+  font-weight: 400;
+  background: linear-gradient(90deg, var(--teal-deep), var(--navy-soft));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.welcome-sub {
+  font-size: clamp(17px, 2.6vw, 19px);
+  line-height: 1.58;
+  color: var(--text-soft);
+  margin: 0 0 18px;
+  max-width: 44ch;
+}
+.welcome-desc {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text-muted);
+  margin: 0 0 30px;
+  max-width: 52ch;
+}
+.welcome-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 10px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  margin-bottom: 36px;
+  box-shadow: var(--shadow-md);
+}
+.welcome-meta-item {
+  min-height: 74px;
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 9px;
+  padding: 12px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #fff, var(--bg-grad-a));
+  font-size: 13.5px;
+  color: var(--text-soft);
+}
+.welcome-meta-item svg {
+  width: 18px; height: 18px;
+  color: var(--teal-deep);
+  flex-shrink: 0;
+}
+
+/* =========================================================
+   QUESTIONS
+   ========================================================= */
+.question {
+  margin-bottom: 28px;
+  padding: 24px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+.question:focus-within {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 4px rgba(0,181,160,.10), var(--shadow-md);
+}
+.question.error {
+  border-color: var(--error);
+  background: var(--error-bg);
+}
+.q-label {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--navy);
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+.q-label .req { color: var(--error); margin-left: 4px; }
+.q-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0 0 16px;
+}
+.q-error {
+  display: none;
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--error);
+  font-weight: 500;
+}
+.question.error .q-error { display: block; }
+
+/* Text inputs */
+.input, .textarea, .select {
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--bg-grad-a);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  color: var(--text);
+  outline: none;
+  transition: border-color .15s, background .15s, box-shadow .15s;
+  font-family: inherit;
+}
+.input:focus, .textarea:focus, .select:focus {
+  border-color: var(--teal);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(0,181,160,.14);
+}
+.textarea { min-height: 110px; resize: vertical; line-height: 1.55; }
+.input::placeholder, .textarea::placeholder { color: var(--text-faint); }
+
+.phone-grid {
+  display: grid;
+  grid-template-columns: minmax(104px, .34fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: end;
+}
+.phone-part-label {
+  display: block;
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.phone-country .input {
+  text-align: center;
+  font-weight: 700;
+}
+
+/* Radio / Checkbox option cards */
+.options { display: grid; gap: 10px; }
+.option {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px;
+  background: var(--bg-grad-a);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all .15s ease;
+  position: relative;
+  user-select: none;
+}
+.option:hover {
+  border-color: var(--border-strong);
+  background: #fff;
+}
+.option input {
+  position: absolute; opacity: 0; pointer-events: none;
+}
+.option .indicator {
+  width: 20px; height: 20px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 50%;
+  background: #fff;
+  flex-shrink: 0;
+  position: relative;
+  transition: all .15s ease;
+}
+.option .indicator.square { border-radius: 5px; }
+.option .indicator::after {
+  content: ''; position: absolute;
+  inset: 0; margin: auto;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--teal-deep);
+  opacity: 0; transform: scale(.5);
+  transition: all .15s ease;
+}
+.option .indicator.square::after {
+  width: 11px; height: 6px;
+  background: transparent;
+  border-radius: 0;
+  border-left: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: rotate(-45deg) scale(.7);
+  margin-top: -2px;
+}
+.option .label { font-size: 15px; line-height: 1.4; color: var(--text); flex: 1; }
+.option input:checked ~ .indicator {
+  border-color: var(--teal-deep);
+  background: var(--teal-deep);
+}
+.option input:checked ~ .indicator::after {
+  opacity: 1; transform: scale(1);
+  background: #fff;
+}
+.option input:checked ~ .indicator.square::after {
+  border-left-color: #fff;
+  border-bottom-color: #fff;
+}
+.option input:checked ~ .label {
+  color: var(--navy);
+  font-weight: 500;
+}
+.option:has(input:checked) {
+  border-color: var(--teal-deep);
+  background: var(--teal-tint);
+}
+
+/* "Other" inline text field */
+.other-input {
+  margin-top: 10px;
+  display: none;
+}
+.other-input.show { display: block; }
+
+/* Rating scale */
+.rating {
+  display: flex; gap: 8px;
+  margin-top: 4px;
+}
+.rating-option {
+  flex: 1;
+  position: relative;
+}
+.rating-option input { position: absolute; opacity: 0; pointer-events: none; }
+.rating-option .pill {
+  display: flex; align-items: center; justify-content: center;
+  height: 56px;
+  background: var(--bg-grad-a);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 20px;
+  color: var(--text-soft);
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.rating-option:hover .pill {
+  border-color: var(--border-strong);
+  background: #fff;
+}
+.rating-option input:checked + .pill {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: #fff;
+}
+.rating-labels {
+  display: flex; justify-content: space-between;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Consent checkbox (single big confirmation) */
+.consent {
+  display: flex; gap: 14px; align-items: flex-start;
+  padding: 16px;
+  background: var(--bg-grad-a);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.consent:hover { background: #fff; border-color: var(--border-strong); }
+.consent input { position: absolute; opacity: 0; pointer-events: none; }
+.consent .indicator.square { margin-top: 2px; }
+.consent:has(input:checked) {
+  background: var(--teal-tint);
+  border-color: var(--teal-deep);
+}
+.consent .label { font-size: 14.5px; line-height: 1.5; color: var(--text-soft); }
+
+/* =========================================================
+   INFO CARD (About DentBridge)
+   ========================================================= */
+.info-card {
+  background: linear-gradient(180deg, var(--navy), var(--navy-deep));
+  color: #E9EEF6;
+  border-radius: var(--radius-xl);
+  padding: 32px 28px;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 28px;
+  box-shadow: var(--shadow-lg);
+}
+.info-card::before {
+  content: ''; position: absolute;
+  width: 280px; height: 280px;
+  right: -80px; top: -80px;
+  background: radial-gradient(circle, rgba(0,181,160,.22), transparent 70%);
+  pointer-events: none;
+}
+.info-card::after {
+  content: ''; position: absolute;
+  width: 320px; height: 320px;
+  left: -120px; bottom: -160px;
+  background: radial-gradient(circle, rgba(191,161,94,.10), transparent 70%);
+  pointer-events: none;
+}
+.info-card .eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 11.5px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--teal);
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+.info-card .eyebrow::before {
+  content: ''; width: 16px; height: 1px; background: var(--teal);
+}
+.info-card h2 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(24px, 4.4vw, 32px);
+  line-height: 1.2;
+  letter-spacing: -.02em;
+  margin: 0 0 18px;
+  color: #fff;
+}
+.info-card p {
+  margin: 0 0 14px;
+  font-size: 15px;
+  line-height: 1.65;
+  color: #C9D2E1;
+  position: relative;
+}
+.info-card p:last-child { margin-bottom: 0; }
+.info-card a {
+  color: #fff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.info-card .pill-row {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-top: 20px;
+}
+.info-pill {
+  font-size: 12px;
+  padding: 6px 12px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 99px;
+  color: #E9EEF6;
+  font-weight: 500;
+}
+
+/* =========================================================
+   FOOTER / NAV
+   ========================================================= */
+.footer-nav {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  background: linear-gradient(180deg, rgba(247,246,241,0), rgba(247,246,241,.96) 30%);
+  padding: 20px 20px max(20px, env(safe-area-inset-bottom));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.footer-inner {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  display: flex; align-items: center; gap: 12px;
+}
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 15px 24px;
+  border-radius: 99px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -.005em;
+  transition: all .18s ease;
+  white-space: nowrap;
+}
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn-primary {
+  background: var(--navy);
+  color: #fff;
+  flex: 1;
+  box-shadow: 0 8px 20px -8px rgba(11,37,69,.5);
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--navy-deep);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px -10px rgba(11,37,69,.6);
+}
+.btn-primary svg { transition: transform .18s ease; }
+.btn-primary:hover svg { transform: translateX(3px); }
+.btn-ghost {
+  background: transparent;
+  color: var(--text-soft);
+  padding: 15px 18px;
+}
+.btn-ghost:hover { color: var(--navy); }
+.btn-ghost svg { transition: transform .18s ease; }
+.btn-ghost:hover svg { transform: translateX(-3px); }
+
+/* CTA (welcome) — bigger */
+.btn-hero {
+  padding: 18px 32px;
+  font-size: 16px;
+}
+
+/* =========================================================
+   THANK YOU
+   ========================================================= */
+.thanks {
+  text-align: center;
+  padding: 40px 0;
+}
+.thanks-icon {
+  width: 72px; height: 72px;
+  margin: 0 auto 24px;
+  border-radius: 50%;
+  background: var(--teal-tint);
+  display: grid; place-items: center;
+  position: relative;
+}
+.thanks-icon::before {
+  content: ''; position: absolute; inset: -8px;
+  border: 1px dashed var(--teal);
+  border-radius: 50%;
+  opacity: .4;
+  animation: spin 20s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.thanks-icon svg { width: 32px; height: 32px; color: var(--teal-deep); position: relative; }
+.thanks h1 {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: clamp(32px, 6vw, 44px);
+  letter-spacing: -.02em;
+  color: var(--navy);
+  margin: 0 0 16px;
+}
+.thanks p {
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-soft);
+  max-width: 50ch;
+  margin: 0 auto 14px;
+}
+.thanks-actions {
+  margin-top: 36px;
+  display: flex; flex-direction: column; gap: 12px;
+  align-items: center;
+}
+.thanks-actions .btn {
+  min-width: 220px;
+}
+.thanks-debug {
+  margin-top: 28px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+.thanks-debug button {
+  color: var(--teal-deep);
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+/* Submission status */
+.submitting-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(247,246,241,.85);
+  backdrop-filter: blur(6px);
+  display: none;
+  align-items: center; justify-content: center;
+}
+.submitting-overlay.show { display: flex; }
+.submitting-box {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+}
+.spinner {
+  width: 32px; height: 32px;
+  border: 3px solid rgba(11,37,69,.12);
+  border-top-color: var(--navy);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+.submitting-status {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--navy);
+}
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+@media (max-width: 640px) {
+  main { padding: 24px 16px 130px; }
+  .topbar-inner { padding: 12px 16px; gap: 10px 12px; flex-wrap: wrap; }
+  .brand-logo { height: 34px; width: auto; }
+  .language-switch { margin-left: auto; }
+  .progress-wrap { order: 3; flex-basis: 100%; }
+  .welcome-meta { grid-template-columns: 1fr; }
+  .welcome-meta-item { min-height: auto; flex-direction: row; align-items: center; }
+  .phone-grid { grid-template-columns: 1fr; }
+  .phone-country .input { text-align: left; }
+  .question { padding: 20px 18px; border-radius: 16px; margin-bottom: 20px; }
+  .info-card { padding: 26px 22px; border-radius: 22px; }
+  .rating { gap: 6px; }
+  .rating-option .pill { height: 52px; font-size: 18px; }
+  .footer-nav { padding: 16px 16px max(16px, env(safe-area-inset-bottom)); }
+  .footer-inner { gap: 8px; }
+  .btn { padding: 14px 20px; font-size: 14.5px; }
+  .btn-hero { padding: 16px 28px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ===== TOP BAR ===== -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <img class="brand-logo" src="logo.png" alt="DentBridge">
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="progress-meta">
+          <span id="progressLabel">Welcome</span>
+          <span id="progressCount">—</span>
+        </div>
+      </div>
+      <div class="language-switch" role="group" aria-label="Language">
+        <button class="lang-btn active" type="button" data-lang="en" aria-pressed="true">EN</button>
+        <button class="lang-btn" type="button" data-lang="tr" aria-pressed="false">TR</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== MAIN (steps rendered here) ===== -->
+  <main id="main"></main>
+
+  <!-- ===== FOOTER NAV ===== -->
+  <footer class="footer-nav" id="footerNav">
+    <div class="footer-inner">
+      <button class="btn btn-ghost" id="btnBack" type="button" style="display:none">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span id="btnBackLabel">Back</span>
+      </button>
+      <button class="btn btn-primary" id="btnNext" type="button">
+        <span id="btnNextLabel">Continue</span>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </footer>
+
+</div>
+
+<!-- Submitting overlay -->
+<div class="submitting-overlay" id="submittingOverlay">
+  <div class="submitting-box">
+    <div class="spinner"></div>
+    <div class="submitting-status" id="submittingStatus">Submitting your application...</div>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   ░░░  DENTBRIDGE STUDENT PILOT APPLICATION  ░░░
+   ---------------------------------------------------------------------
+   Everything below — questions, options, copy, branding, submission
+   endpoint — is defined in CONFIG and FORM_STEPS. Edit those to change
+   any text, add/remove questions, reorder, or retarget the data
+   destination. The renderer below reads from them and builds the UI.
+   ===================================================================== */
+
+const CONFIG = {
+  /* Paste your Google Apps Script Web App URL here once deployed.
+     If left empty, the form will fall back to local CSV/JSON download
+     so you can still test the experience end-to-end. */
+  googleScriptUrl: "https://script.google.com/macros/s/AKfycbxcldaTtpPDM6MJi81Bfn6VBblPX1X--ndBgYyBTTY9UCBro5mY-19kXt5y8M-qPY_hgA/exec",
+
+  /* Public DentBridge website (used by the "Visit DentBridge" button) */
+  visitUrl: "https://dentbridgetr.com",
+
+  /* If true, after submit the user is offered a CSV download as backup.
+     Useful while you're still wiring up the Google Sheet. */
+  offerLocalBackup: true,
+};
+
+const FORM_STEPS = [
+
+  /* ===================== 0. WELCOME ===================== */
+  {
+    id: "welcome",
+    type: "welcome",
+    progressLabel: "Welcome",
+    eyebrow: "Faculty-supported pilot · Istanbul",
+    title: "DentBridge<br>Student Pilot <em>Application</em>",
+    subtitle: "Join the first faculty-supported pilot helping dental students access suitable patient cases in a more organized, supervised way.",
+    description: "This short application helps us understand students’ clinical needs and select up to 40 students for the first pilot phase.",
+    meta: [
+      { icon: "clock", text: "Approx. 5–7 minutes" },
+      { icon: "shield", text: "Anonymous research data" },
+      { icon: "users", text: "For 4th–5th year students at Istinye University" },
+    ],
+    cta: "Start Application",
+  },
+
+  /* ===================== 1. STUDENT INFORMATION ===================== */
+  {
+    id: "student-info",
+    type: "questions",
+    progressLabel: "Student Information",
+    sectionLabel: "Section 1",
+    title: "Student <em>Information</em>",
+    intro: "Let's start with how to reach you if you're selected.",
+    questions: [
+      { id: "fullName", col: "Full name", type: "text", label: "Full name", required: true, placeholder: "Your full name" },
+      { id: "email", col: "Email", type: "email", label: "Email address", required: true, placeholder: "you@example.com" },
+      { id: "phone", col: "Phone / WhatsApp", type: "phone", label: "Phone / WhatsApp number", required: true, countryLabel: "Country Code", phoneLabel: "Phone Number", countryCode: "+90", placeholder: "541 000 00 00" },
+      {
+        id: "year",
+        col: "Year of study",
+        type: "radio",
+        label: "What is your current year of study?",
+        required: true,
+        options: ["4th year", "5th year"],
+      },
+    ],
+  },
+
+  /* ===================== 2. CURRENT CLINICAL SITUATION ===================== */
+  {
+    id: "clinical-situation",
+    type: "questions",
+    progressLabel: "Clinical Situation",
+    sectionLabel: "Section 2",
+    title: "Current Clinical <em>Situation</em>",
+    intro: "This section helps us understand the current challenges dental students face when trying to find suitable patients for clinical requirements.",
+    questions: [
+      {
+        id: "requiredToFind",
+        col: "Required to find patients",
+        type: "radio",
+        label: "Do you currently need to find patients for your clinical requirements?",
+        required: true,
+        options: ["Yes", "No", "Not yet, but soon"],
+      },
+      {
+        id: "difficulty",
+        col: "Difficulty finding patients (1–5)",
+        type: "rating",
+        label: "How difficult is it for you to find suitable patients for your clinical requirements?",
+        required: true,
+        scale: 5,
+        lowLabel: "Not difficult at all",
+        highLabel: "Very difficult",
+      },
+      {
+        id: "situation",
+        col: "Current situation statement",
+        type: "radio",
+        label: "Which statement best describes your current situation?",
+        required: true,
+        options: [
+          "I usually find patients easily",
+          "I sometimes struggle to find patients",
+          "I often struggle to find suitable patients",
+          "I have patients, but not always for the required departments",
+          "I do not know where/how to find patients",
+          "Other"
+        ],
+        otherOption: "Other"
+      },
+      {
+        id: "departmentsNeeded",
+        col: "Departments needing patients",
+        type: "checkbox",
+        label: "In which departments do you currently need more patients?",
+        required: true,
+        options: [
+          "Restorative Dentistry",
+          "Endodontics",
+          "Periodontology",
+          "Prosthodontics",
+          "Pediatric Dentistry",
+          "Oral Surgery",
+          "Orthodontics",
+          "Diagnosis / Initial examination"
+        ],
+      },
+      {
+        id: "difficulties",
+        col: "Main difficulties",
+        type: "checkbox",
+        label: "What are the main difficulties you face when trying to find patients?",
+        required: true,
+        options: [
+          "I do not know where to find patients",
+          "Patients do not show up",
+          "Patients stop responding",
+          "Patients are not suitable for my requirements",
+          "Patients need a different department",
+          "It is hard to explain the process to patients",
+          "Language barrier",
+          "Scheduling difficulties",
+          "Lack of organized communication",
+          "I depend mostly on friends/family",
+          "I do not have enough time to search for patients",
+          "Other"
+        ],
+        otherOption: "Other"
+      },
+      {
+        id: "findingMethods",
+        col: "How you find patients now",
+        type: "checkbox",
+        label: "How do you usually find patients now?",
+        required: false,
+        options: [
+          "Friends and family",
+          "Social media",
+          "WhatsApp groups",
+          "Referrals from other students",
+          "Patients already coming to the faculty",
+          "Asking people directly",
+          "I currently do not have a clear method",
+          "Other"
+        ],
+        otherOption: "Other"
+      },
+      {
+        id: "biggestProblem",
+        col: "Biggest problem in current process",
+        type: "textarea",
+        label: "What do you think is the main reason students struggle to find suitable patients?",
+        required: false,
+        placeholder: "Write briefly in your own words."
+      },
+    ],
+  },
+
+  /* ===================== 3. ABOUT DENTBRIDGE (info screen) ===================== */
+  {
+    id: "about-dentbridge",
+    type: "info",
+    progressLabel: "About DentBridge",
+    eyebrow: "Student platform",
+    title: "What You Get Inside DentBridge",
+    paragraphs: [
+      "DentBridge is a faculty-supported pilot designed to help dental students find and manage suitable patient cases more efficiently.",
+      "DentBridge is not only a way to find patients. It is designed to help dental students manage their clinical workflow in one organized place.",
+      "Patients submit treatment requests through the DentBridge website. Faculty reviews and categorizes the requests by department. Once approved, suitable cases can become visible to students based on clinical need.",
+      "Inside the student platform, students may benefit from access to relevant clinical cases, case exchange between students, smart planner for appointments and follow-up, clinical requirement tracking, faculty updates and notifications, organized patient records, notes for every patient, access to uploaded images and radiographs, department-based protocols, and future AI-supported clinical guidance.",
+      "Students can request relevant cases, while faculty remains responsible for approval, assignment, clinical decisions, and supervision.",
+      "The goal is to reduce random patient searching, manual follow-up, and clinical-year chaos while keeping the process faculty-supervised.",
+      "Learn more about the student platform: https://dentbridgetr.com/students",
+    ],
+    pills: ["Relevant cases", "Case exchange", "Smart planner", "Requirement tracking", "Faculty updates", "Patient records", "Clinical notes", "Uploaded images", "Protocols", "AI guidance"],
+  },
+
+  /* ===================== 4. AFTER LEARNING ABOUT DENTBRIDGE ===================== */
+  {
+    id: "value",
+    type: "questions",
+    progressLabel: "After Learning About DentBridge",
+    sectionLabel: "Section 4",
+    title: "After Learning About <em>DentBridge</em>",
+    intro: "Please answer the following questions after reviewing what DentBridge offers to students. You can go back to the previous step or visit the student platform page if you want to read more.",
+    questions: [
+      {
+        id: "usefulness",
+        col: "Usefulness rating (1–5)",
+        type: "rating",
+        label: "After learning what DentBridge offers to students, how useful do you think it could be for dental students?",
+        required: true,
+        scale: 5,
+        lowLabel: "Not useful",
+        highLabel: "Very useful",
+      },
+      {
+        id: "features",
+        col: "Most useful features",
+        type: "checkbox",
+        label: "After reviewing the DentBridge student features, which parts would be most useful for you?",
+        required: true,
+        options: [
+          "Access to relevant clinical cases",
+          "Case exchange between students",
+          "Smart planner for appointments and follow-up",
+          "Clinical requirement tracking",
+          "Faculty updates and notifications",
+          "Organized patient information",
+          "Notes for every patient",
+          "Access to uploaded images and radiographs",
+          "Department-based protocols",
+          "Future AI clinical assistant",
+          "Other"
+        ],
+        otherOption: "Other"
+      },
+      {
+        id: "reduceDifficulty",
+        col: "DentBridge could reduce difficulty",
+        type: "radio",
+        label: "Do you think DentBridge could reduce the difficulty of finding suitable patients?",
+        required: true,
+        options: ["Yes", "No", "Maybe", "I need to try it first"],
+      },
+    ],
+  },
+
+  /* ===================== 5. PILOT PARTICIPATION ===================== */
+  {
+    id: "pilot",
+    type: "questions",
+    progressLabel: "Pilot Participation",
+    sectionLabel: "Section 5",
+    title: "Pilot <em>Participation</em>",
+    intro: "We are currently selecting a limited number of students for the first DentBridge student pilot.",
+    questions: [
+      {
+        id: "interested",
+        col: "Interested in pilot",
+        type: "radio",
+        label: "Are you interested in joining the first DentBridge student pilot?",
+        required: true,
+        options: ["Yes, definitely", "Maybe, I want more information", "Not right now"],
+      },
+      {
+        id: "onboarding",
+        col: "Willing to attend onboarding",
+        type: "radio",
+        label: "If selected, are you willing to attend a short onboarding session?",
+        required: true,
+        options: ["Yes", "No", "Maybe"],
+      },
+      {
+        id: "willingFeedback",
+        col: "Willing to provide feedback",
+        type: "radio",
+        label: "Are you willing to provide feedback after using the system?",
+        required: true,
+        options: ["Yes", "No", "Maybe"],
+      },
+      {
+        id: "shareWillingness",
+        col: "Willing to help share with patients",
+        type: "radio",
+        label: "Would you be willing to share DentBridge with potential patients if ready-to-use materials are provided?",
+        required: false,
+        options: ["Yes", "Maybe", "No"],
+      },
+      {
+        id: "contactMe",
+        col: "Wants to be contacted",
+        type: "radio",
+        label: "Would you like to be contacted about joining the pilot?",
+        required: true,
+        options: ["Yes", "No", "Maybe later"],
+      },
+    ],
+  },
+
+  /* ===================== 6. RESEARCH & CONSENT ===================== */
+  {
+    id: "research",
+    type: "questions",
+    progressLabel: "Research & Consent",
+    sectionLabel: "Section 6",
+    title: "Research &amp; <em>Consent</em>",
+    intro: "Final questions — and a couple of confirmations.",
+    questions: [
+      {
+        id: "researchConsent",
+        col: "Consent to research use",
+        type: "radio",
+        label: "Do you agree that your anonymous feedback may be used for research, improvement, or presentation purposes?",
+        required: true,
+        options: ["Yes", "No", "I want more information"],
+      },
+      {
+        id: "pilotConfirm",
+        col: "Confirm pilot information understanding",
+        type: "consent",
+        label: "Please confirm that you have read and understood the pilot information.",
+        hint: "DentBridge is currently in a pilot phase. Clinical decisions, patient approval, case assignment, and supervision remain under faculty responsibility. DentBridge technical/admin support is responsible for platform access, onboarding, technical issues, and user experience improvements.",
+        text: "I have read and understood.",
+        value: "I have read and understood.",
+        required: true,
+      },
+    ],
+  },
+
+  /* ===================== 7. THANK YOU ===================== */
+  {
+    id: "thanks",
+    type: "thanks",
+    progressLabel: "Complete",
+    title: "Thank you for <em>applying</em>",
+    paragraphs: [
+      "Thank you for completing the DentBridge Student Pilot Application.",
+      "Your answers will help us better understand dental students' clinical needs and build a more organized, useful, and faculty-supported pilot.",
+      "Selected students will be contacted with onboarding details and access instructions.",
+    ],
+    cta: "Visit DentBridge",
+  },
+
+];
+
+const UI_TEXT = {
+  en: {
+    language: "Language",
+    back: "Back",
+    continue: "Continue",
+    submit: "Submit Application",
+    submitting: "Submitting your application...",
+    step: "Step",
+    of: "of",
+    otherPlaceholder: "Please specify...",
+    required: "This question is required.",
+    confirmationRequired: "This confirmation is required.",
+    invalidEmail: "Please enter a valid email address.",
+    downloadCsv: "Download my answers as CSV",
+  },
+  tr: {
+    language: "Dil",
+    back: "Geri",
+    continue: "Devam",
+    submit: "Başvuruyu Gönder",
+    submitting: "Başvurunuz gönderiliyor...",
+    step: "Adım",
+    of: "/",
+    otherPlaceholder: "Lütfen belirtin...",
+    required: "Bu soru zorunludur.",
+    confirmationRequired: "Bu onay zorunludur.",
+    invalidEmail: "Lütfen geçerli bir e-posta adresi girin.",
+    downloadCsv: "Yanıtlarımı CSV olarak indir",
+  },
+};
+
+const STEP_TRANSLATIONS = {
+  tr: {
+    "welcome": {
+      progressLabel: "Hoş Geldiniz",
+      eyebrow: "Fakülte destekli pilot · İstanbul",
+      title: "DentBridge<br>Öğrenci Pilot <em>Başvurusu</em>",
+      subtitle: "Diş hekimliği öğrencilerinin uygun hasta vakalarına daha düzenli ve denetimli şekilde ulaşmasına yardımcı olan ilk fakülte destekli pilota katılın.",
+      description: "Bu kısa başvuru, öğrencilerin klinik ihtiyaçlarını anlamamıza ve ilk pilot aşama için en fazla 40 öğrenciyi seçmemize yardımcı olur.",
+      meta: [
+        "Yaklaşık 5-7 dakika",
+        "Anonim araştırma verisi",
+        "İstinye Üniversitesi 4. ve 5. sınıf öğrencileri için",
+      ],
+      cta: "Başvuruya Başla",
+    },
+    "student-info": {
+      progressLabel: "Öğrenci Bilgileri",
+      sectionLabel: "Bölüm 1",
+      title: "Öğrenci <em>Bilgileri</em>",
+      intro: "Seçilmeniz durumunda sizinle iletişime geçebilmemiz için temel bilgilerle başlayalım.",
+      questions: {
+        fullName: { label: "Ad Soyad", placeholder: "Adınız ve soyadınız" },
+        email: { label: "E-posta adresi", placeholder: "ornek@eposta.com" },
+        phone: { label: "Telefon / WhatsApp numarası", countryLabel: "Ülke kodu", phoneLabel: "Telefon numarası", placeholder: "541 000 00 00" },
+        year: {
+          label: "Şu anda kaçıncı sınıftasınız?",
+          options: ["4. sınıf", "5. sınıf"],
+        },
+      },
+    },
+    "clinical-situation": {
+      progressLabel: "Klinik Durum",
+      sectionLabel: "Bölüm 2",
+      title: "Mevcut Klinik <em>Durum</em>",
+      intro: "Bu bölüm, diş hekimliği öğrencilerinin klinik gereklilikler için uygun hasta bulurken yaşadığı zorlukları anlamamıza yardımcı olur.",
+      questions: {
+        requiredToFind: {
+          label: "Klinik gereklilikleriniz için şu anda hasta bulmanız gerekiyor mu?",
+          options: ["Evet", "Hayır", "Henüz değil, ama yakında"],
+        },
+        difficulty: {
+          label: "Klinik gereklilikleriniz için uygun hasta bulmak sizin için ne kadar zor?",
+          lowLabel: "Hiç zor değil",
+          highLabel: "Çok zor",
+        },
+        situation: {
+          label: "Aşağıdaki ifadelerden hangisi mevcut durumunuzu en iyi açıklar?",
+          options: [
+            "Genellikle kolayca hasta bulabiliyorum",
+            "Bazen hasta bulmakta zorlanıyorum",
+            "Uygun hasta bulmakta sık sık zorlanıyorum",
+            "Hastalarım var, ancak her zaman gerekli bölümler için uygun olmuyor",
+            "Nereden/nasıl hasta bulacağımı bilmiyorum",
+            "Diğer",
+          ],
+        },
+        departmentsNeeded: {
+          label: "Şu anda hangi bölümlerde daha fazla hastaya ihtiyacınız var?",
+          options: [
+            "Restoratif Diş Tedavisi",
+            "Endodonti",
+            "Periodontoloji",
+            "Protetik Diş Tedavisi",
+            "Pedodonti",
+            "Ağız Cerrahisi",
+            "Ortodonti",
+            "Tanı / İlk muayene",
+          ],
+        },
+        difficulties: {
+          label: "Hasta bulmaya çalışırken karşılaştığınız başlıca zorluklar nelerdir?",
+          options: [
+            "Nereden hasta bulacağımı bilmiyorum",
+            "Hastalar randevuya gelmiyor",
+            "Hastalar yanıt vermeyi bırakıyor",
+            "Hastalar gerekliliklerime uygun olmuyor",
+            "Hastanın farklı bir bölüme ihtiyacı oluyor",
+            "Süreci hastalara açıklamak zor oluyor",
+            "Dil engeli",
+            "Randevu planlama zorlukları",
+            "Düzenli iletişim eksikliği",
+            "Çoğunlukla arkadaş/aile çevreme bağlı kalıyorum",
+            "Hasta aramak için yeterli zamanım olmuyor",
+            "Diğer",
+          ],
+        },
+        findingMethods: {
+          label: "Şu anda hastaları genellikle nasıl buluyorsunuz?",
+          options: [
+            "Arkadaşlar ve aile",
+            "Sosyal medya",
+            "WhatsApp grupları",
+            "Diğer öğrencilerden yönlendirme",
+            "Fakülteye zaten gelen hastalar",
+            "İnsanlara doğrudan sorma",
+            "Şu anda net bir yöntemim yok",
+            "Diğer",
+          ],
+        },
+        biggestProblem: {
+          label: "Sizce öğrencilerin uygun hasta bulmakta zorlanmasının temel nedeni nedir?",
+          placeholder: "Kısaca kendi sözlerinizle yazın.",
+        },
+      },
+    },
+    "about-dentbridge": {
+      progressLabel: "DentBridge Hakkında",
+      eyebrow: "Öğrenci platformu",
+      title: "DentBridge İçinde Sizi Neler Bekliyor",
+      paragraphs: [
+        "DentBridge, diş hekimliği öğrencilerinin uygun hasta vakalarını daha verimli şekilde bulmasına ve yönetmesine yardımcı olmak için tasarlanmış fakülte destekli bir pilottur.",
+        "DentBridge yalnızca hasta bulma yöntemi değildir. Öğrencilerin klinik iş akışını tek ve düzenli bir yerde yönetmesine yardımcı olmak için tasarlanmıştır.",
+        "Hastalar tedavi taleplerini DentBridge web sitesi üzerinden gönderir. Fakülte talepleri inceler ve bölüme göre sınıflandırır. Onaylanan uygun vakalar, klinik ihtiyaca göre öğrenciler tarafından görülebilir hale gelebilir.",
+        "Öğrenci platformunda öğrenciler; ilgili klinik vakalara erişim, öğrenciler arası vaka değişimi, randevu ve takip için akıllı planlayıcı, klinik gereklilik takibi, fakülte güncellemeleri ve bildirimleri, düzenli hasta kayıtları, her hasta için notlar, yüklenen görüntü ve radyografilere erişim, bölüm bazlı protokoller ve gelecekte yapay zeka destekli klinik rehberlik gibi özelliklerden yararlanabilir.",
+        "Öğrenciler ilgili vakaları talep edebilir; onay, atama, klinik kararlar ve denetim fakültenin sorumluluğunda kalır.",
+        "Amaç; rastgele hasta aramayı, manuel takibi ve klinik yıl karmaşasını azaltırken süreci fakülte denetiminde tutmaktır.",
+        "Öğrenci platformu hakkında daha fazla bilgi alın: https://dentbridgetr.com/students",
+      ],
+      pills: ["İlgili vakalar", "Vaka değişimi", "Akıllı planlayıcı", "Gereklilik takibi", "Fakülte güncellemeleri", "Hasta kayıtları", "Klinik notlar", "Yüklenen görüntüler", "Protokoller", "Yapay zeka rehberliği"],
+    },
+    "value": {
+      progressLabel: "DentBridge'i Tanıdıktan Sonra",
+      sectionLabel: "Bölüm 4",
+      title: "DentBridge'i Tanıdıktan <em>Sonra</em>",
+      intro: "Lütfen aşağıdaki soruları DentBridge’in öğrencilere sunduğu özellikleri inceledikten sonra cevaplayın. Daha fazla bilgi almak isterseniz önceki adıma dönebilir veya öğrenci platformu sayfasını ziyaret edebilirsiniz.",
+      questions: {
+        usefulness: {
+          label: "DentBridge’in öğrencilere neler sunduğunu öğrendikten sonra, bunun diş hekimliği öğrencileri için ne kadar faydalı olabileceğini düşünüyorsunuz?",
+          lowLabel: "Faydalı değil",
+          highLabel: "Çok faydalı",
+        },
+        features: {
+          label: "DentBridge öğrenci özelliklerini inceledikten sonra, sizin için en faydalı olacak özellikler hangileridir?",
+          options: [
+            "İlgili klinik vakalara erişim",
+            "Öğrenciler arası vaka değişimi",
+            "Randevu ve takip için akıllı planlayıcı",
+            "Klinik gereklilik takibi",
+            "Fakülte güncellemeleri ve bildirimleri",
+            "Düzenli hasta bilgileri",
+            "Her hasta için notlar",
+            "Yüklenen görüntü ve radyografilere erişim",
+            "Bölüm bazlı protokoller",
+            "Gelecekte yapay zeka klinik asistanı",
+            "Diğer",
+          ],
+        },
+        reduceDifficulty: {
+          label: "DentBridge'in uygun hasta bulma zorluğunu azaltabileceğini düşünüyor musunuz?",
+          options: ["Evet", "Hayır", "Belki", "Önce denemem gerekir"],
+        },
+      },
+    },
+    "pilot": {
+      progressLabel: "Pilot Katılım",
+      sectionLabel: "Bölüm 5",
+      title: "Pilot <em>Katılım</em>",
+      intro: "İlk DentBridge öğrenci pilotu için şu anda sınırlı sayıda öğrenci seçiyoruz.",
+      questions: {
+        interested: {
+          label: "İlk DentBridge öğrenci pilotuna katılmak ister misiniz?",
+          options: ["Evet, kesinlikle", "Belki, daha fazla bilgi almak istiyorum", "Şu anda değil"],
+        },
+        onboarding: {
+          label: "Seçilirseniz kısa bir başlangıç/oryantasyon oturumuna katılmaya istekli misiniz?",
+          options: ["Evet", "Hayır", "Belki"],
+        },
+        willingFeedback: {
+          label: "Sistemi kullandıktan sonra geri bildirim vermeye istekli misiniz?",
+          options: ["Evet", "Hayır", "Belki"],
+        },
+        shareWillingness: {
+          label: "Hazır kullanıma uygun materyaller sağlanırsa DentBridge'i potansiyel hastalarla paylaşmaya istekli olur musunuz?",
+          options: ["Evet", "Belki", "Hayır"],
+        },
+        contactMe: {
+          label: "Pilot katılımı hakkında sizinle iletişime geçilmesini ister misiniz?",
+          options: ["Evet", "Hayır", "Belki daha sonra"],
+        },
+      },
+    },
+    "research": {
+      progressLabel: "Araştırma ve Onay",
+      sectionLabel: "Bölüm 6",
+      title: "Araştırma ve <em>Onay</em>",
+      intro: "Son sorular ve birkaç kısa onay.",
+      questions: {
+        researchConsent: {
+          label: "Anonim geri bildiriminizin araştırma, geliştirme veya sunum amaçlarıyla kullanılmasını kabul ediyor musunuz?",
+          options: ["Evet", "Hayır", "Daha fazla bilgi istiyorum"],
+        },
+        pilotConfirm: {
+          label: "Lütfen pilot bilgilendirmesini okuduğunuzu ve anladığınızı onaylayın.",
+          hint: "DentBridge şu anda pilot aşamadadır. Klinik kararlar, hasta onayı, vaka ataması ve süpervizyon fakülte sorumluluğundadır. DentBridge teknik/yönetim desteği ise platform erişimi, oryantasyon, teknik sorunlar ve kullanıcı deneyimi iyileştirmelerinden sorumludur.",
+          text: "Okudum ve anladım.",
+          value: "Okudum ve anladım.",
+        },
+      },
+    },
+    "thanks": {
+      progressLabel: "Tamamlandı",
+      title: "Başvurunuz için <em>teşekkürler</em>",
+      paragraphs: [
+        "DentBridge Öğrenci Pilot Başvurusu'nu tamamladığınız için teşekkür ederiz.",
+        "Yanıtlarınız, diş hekimliği öğrencilerinin klinik ihtiyaçlarını daha iyi anlamamıza ve daha düzenli, faydalı ve fakülte destekli bir pilot oluşturmamıza yardımcı olacak.",
+        "Seçilen öğrencilerle oryantasyon detayları ve erişim bilgileri için iletişime geçilecektir.",
+      ],
+      cta: "DentBridge'i Ziyaret Et",
+    },
+  },
+};
+
+/* =====================================================================
+   ICONS
+   ===================================================================== */
+const ICONS = {
+  clock: '<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.6"/><path d="M10 6v4l2.5 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+  shield: '<svg viewBox="0 0 20 20" fill="none"><path d="M10 2L4 4.5v5c0 4 2.5 7 6 8.5 3.5-1.5 6-4.5 6-8.5v-5L10 2z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>',
+  users: '<svg viewBox="0 0 20 20" fill="none"><circle cx="7" cy="7" r="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M3 16c0-2.5 1.8-4.5 4-4.5s4 2 4 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="13.5" cy="8" r="2" stroke="currentColor" stroke-width="1.6"/><path d="M17 15.5c0-2-1.4-3.5-3.5-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+};
+
+/* =====================================================================
+   STATE & RENDERER
+   ===================================================================== */
+const state = {
+  currentStep: 0,
+  responses: {},
+  startedAt: null,
+  lang: "en",
+  isSubmitting: false,
+};
+
+const main = document.getElementById('main');
+const progressFill = document.getElementById('progressFill');
+const progressLabel = document.getElementById('progressLabel');
+const progressCount = document.getElementById('progressCount');
+const btnBack = document.getElementById('btnBack');
+const btnBackLabel = document.getElementById('btnBackLabel');
+const btnNext = document.getElementById('btnNext');
+const btnNextLabel = document.getElementById('btnNextLabel');
+const footerNav = document.getElementById('footerNav');
+const submittingOverlay = document.getElementById('submittingOverlay');
+const submittingStatus = document.getElementById('submittingStatus');
+const langButtons = document.querySelectorAll('[data-lang]');
+
+function escHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function renderLinkedText(s) {
+  const url = "https://dentbridgetr.com/students";
+  return escHtml(s).replace(
+    escHtml(url),
+    `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`
+  );
+}
+
+function tUI(key) {
+  return UI_TEXT[state.lang]?.[key] || UI_TEXT.en[key] || key;
+}
+
+function getOptionValue(opt) {
+  return typeof opt === 'object' && opt !== null ? opt.value : opt;
+}
+
+function getOptionLabel(opt) {
+  return typeof opt === 'object' && opt !== null ? opt.label : opt;
+}
+
+function localizeStep(step) {
+  const langPack = STEP_TRANSLATIONS[state.lang];
+  if (!langPack) return step;
+
+  const translatedStep = langPack[step.id] || {};
+  const localized = { ...step, ...translatedStep };
+
+  if (step.meta) {
+    localized.meta = step.meta.map((item, index) => ({
+      ...item,
+      text: translatedStep.meta?.[index] || item.text,
+    }));
+  }
+
+  if (step.questions) {
+    const translatedQuestions = translatedStep.questions || {};
+    localized.questions = step.questions.map(q => {
+      const translatedQuestion = translatedQuestions[q.id] || {};
+      const localizedQuestion = { ...q, ...translatedQuestion, col: q.col, id: q.id, type: q.type, required: q.required, otherOption: q.otherOption };
+
+      if (q.options) {
+        localizedQuestion.options = q.options.map((opt, index) => ({
+          value: getOptionValue(opt),
+          label: translatedQuestion.options?.[index] || getOptionLabel(opt),
+        }));
+      }
+
+      return localizedQuestion;
+    });
+  }
+
+  return localized;
+}
+
+function getStep(index) {
+  return localizeStep(FORM_STEPS[index]);
+}
+
+function setLanguage(lang) {
+  if (!UI_TEXT[lang] || state.lang === lang) return;
+  saveCurrentStepResponses();
+  state.lang = lang;
+  document.documentElement.lang = lang;
+  document.querySelector('.language-switch')?.setAttribute('aria-label', tUI('language'));
+  langButtons.forEach(btn => {
+    const active = btn.dataset.lang === lang;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
+  showStep(state.currentStep);
+}
+
+function renderStep(step, index) {
+  const wrap = document.createElement('section');
+  wrap.className = 'step';
+  wrap.dataset.step = index;
+
+  if (step.type === 'welcome') {
+    wrap.innerHTML = `
+      <div class="welcome">
+        <div class="welcome-copy">
+          <div class="welcome-eyebrow"><span class="dot"></span>${escHtml(step.eyebrow)}</div>
+          <h1>${step.title}</h1>
+          <p class="welcome-sub">${escHtml(step.subtitle)}</p>
+          <p class="welcome-desc">${escHtml(step.description)}</p>
+        </div>
+        <div class="welcome-meta">
+          ${step.meta.map(m => `
+            <div class="welcome-meta-item">${ICONS[m.icon]}<span>${escHtml(m.text)}</span></div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  else if (step.type === 'info') {
+    wrap.innerHTML = `
+      <div class="info-card">
+        <div class="eyebrow">${escHtml(step.eyebrow)}</div>
+        <h2>${escHtml(step.title)}</h2>
+        ${step.paragraphs.map(p => `<p>${renderLinkedText(p)}</p>`).join('')}
+        ${step.pills ? `<div class="pill-row">${step.pills.map(p => `<span class="info-pill">${escHtml(p)}</span>`).join('')}</div>` : ''}
+      </div>
+    `;
+  }
+
+  else if (step.type === 'questions') {
+    wrap.innerHTML = `
+      ${step.sectionLabel ? `<div class="section-label">${escHtml(step.sectionLabel)}</div>` : ''}
+      <h1 class="step-title">${step.title}</h1>
+      ${step.intro ? `<p class="step-intro">${escHtml(step.intro)}</p>` : ''}
+      <div class="questions"></div>
+    `;
+    const container = wrap.querySelector('.questions');
+    step.questions.forEach(q => container.appendChild(renderQuestion(q)));
+  }
+
+  else if (step.type === 'thanks') {
+    wrap.innerHTML = `
+      <div class="thanks">
+        <div class="thanks-icon">${ICONS.check}</div>
+        <h1>${step.title}</h1>
+        ${step.paragraphs.map(p => `<p>${escHtml(p)}</p>`).join('')}
+        <div class="thanks-actions">
+          <a class="btn btn-primary btn-hero" href="${escHtml(CONFIG.visitUrl)}" target="_blank" rel="noopener">
+            ${escHtml(step.cta)}
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+          ${CONFIG.offerLocalBackup ? `<div class="thanks-debug"><button id="downloadCsvBtn" type="button">${escHtml(tUI('downloadCsv'))}</button></div>` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  return wrap;
+}
+
+function renderQuestion(q) {
+  const el = document.createElement('div');
+  el.className = 'question';
+  el.dataset.qid = q.id;
+
+  const labelHtml = `<label class="q-label" for="${q.id}">${escHtml(q.label)}${q.required ? '<span class="req">*</span>' : ''}</label>`;
+
+  let body = '';
+
+  if (q.type === 'text' || q.type === 'email' || q.type === 'tel') {
+    body = `<input class="input" id="${q.id}" name="${q.id}" type="${q.type}" ${q.required ? 'required' : ''} ${q.placeholder ? `placeholder="${escHtml(q.placeholder)}"` : ''} autocomplete="${q.type === 'email' ? 'email' : q.type === 'tel' ? 'tel' : 'off'}">`;
+  }
+
+  else if (q.type === 'phone') {
+    body = `
+      <div class="phone-grid">
+        <div class="phone-country">
+          <label class="phone-part-label" for="${q.id}_country">${escHtml(q.countryLabel || 'Country Code')}</label>
+          <input class="input" id="${q.id}_country" name="${q.id}_country" type="tel" value="${escHtml(q.countryCode || '+90')}" autocomplete="tel-country-code">
+        </div>
+        <div class="phone-number">
+          <label class="phone-part-label" for="${q.id}_number">${escHtml(q.phoneLabel || 'Phone Number')}</label>
+          <input class="input" id="${q.id}_number" name="${q.id}_number" type="tel" ${q.required ? 'required' : ''} ${q.placeholder ? `placeholder="${escHtml(q.placeholder)}"` : ''} autocomplete="tel-national">
+        </div>
+      </div>
+    `;
+  }
+
+  else if (q.type === 'textarea') {
+    body = `<textarea class="textarea" id="${q.id}" name="${q.id}" ${q.required ? 'required' : ''} ${q.placeholder ? `placeholder="${escHtml(q.placeholder)}"` : ''}></textarea>`;
+  }
+
+  else if (q.type === 'radio') {
+    body = `<div class="options">${q.options.map((opt, i) => `
+      <label class="option">
+        <input type="radio" name="${q.id}" value="${escHtml(getOptionValue(opt))}" data-qid="${q.id}">
+        <span class="indicator"></span>
+        <span class="label">${escHtml(getOptionLabel(opt))}</span>
+      </label>
+    `).join('')}</div>`;
+    if (q.otherOption) {
+      body += `<input class="input other-input" type="text" data-other-for="${q.id}" placeholder="${escHtml(tUI('otherPlaceholder'))}" style="margin-top:10px">`;
+    }
+  }
+
+  else if (q.type === 'checkbox') {
+    body = `<div class="options">${q.options.map((opt, i) => `
+      <label class="option">
+        <input type="checkbox" name="${q.id}" value="${escHtml(getOptionValue(opt))}" data-qid="${q.id}">
+        <span class="indicator square"></span>
+        <span class="label">${escHtml(getOptionLabel(opt))}</span>
+      </label>
+    `).join('')}</div>`;
+    if (q.otherOption) {
+      body += `<input class="input other-input" type="text" data-other-for="${q.id}" placeholder="${escHtml(tUI('otherPlaceholder'))}" style="margin-top:10px">`;
+    }
+  }
+
+  else if (q.type === 'rating') {
+    const scale = q.scale || 5;
+    body = `<div class="rating">${Array.from({length: scale}, (_, i) => i + 1).map(n => `
+      <label class="rating-option">
+        <input type="radio" name="${q.id}" value="${n}" data-qid="${q.id}">
+        <span class="pill">${n}</span>
+      </label>
+    `).join('')}</div>
+    <div class="rating-labels"><span>${escHtml(q.lowLabel || '')}</span><span>${escHtml(q.highLabel || '')}</span></div>`;
+  }
+
+  else if (q.type === 'consent') {
+    body = `
+      <label class="consent">
+        <input type="checkbox" name="${q.id}" value="${escHtml(q.value || q.text || 'I understand')}" data-qid="${q.id}">
+        <span class="indicator square"></span>
+        <span class="label">${escHtml(q.text)}</span>
+      </label>
+    `;
+    const hintHtml = q.hint ? `<p class="q-hint">${escHtml(q.hint)}</p>` : '';
+    el.innerHTML = labelHtml + hintHtml + body + `<div class="q-error">${escHtml(tUI('confirmationRequired'))}</div>`;
+    return el;
+  }
+
+  el.innerHTML = labelHtml + body + `<div class="q-error">${escHtml(tUI('required'))}</div>`;
+
+  // Wire up "Other" reveal
+  const otherInput = el.querySelector(`[data-other-for="${q.id}"]`);
+  if (otherInput) {
+    el.querySelectorAll(`input[name="${q.id}"]`).forEach(inp => {
+      inp.addEventListener('change', () => {
+        const isOtherSelected = q.type === 'checkbox'
+          ? Array.from(el.querySelectorAll(`input[name="${q.id}"]:checked`)).some(c => c.value === q.otherOption)
+          : el.querySelector(`input[name="${q.id}"]:checked`)?.value === q.otherOption;
+        otherInput.classList.toggle('show', isOtherSelected);
+        if (!isOtherSelected) otherInput.value = '';
+      });
+    });
+  }
+
+  return el;
+}
+
+/* =====================================================================
+   STEP NAVIGATION
+   ===================================================================== */
+function showStep(index) {
+  // Save current responses before leaving (if we're on a questions step)
+  if (state.currentStep !== index) saveCurrentStepResponses();
+
+  state.currentStep = index;
+  const stepDef = getStep(index);
+
+  // Render
+  main.innerHTML = '';
+  const stepEl = renderStep(stepDef, index);
+  main.appendChild(stepEl);
+  requestAnimationFrame(() => stepEl.classList.add('active'));
+
+  // Restore prior responses for this step
+  restoreStepResponses(stepDef);
+
+  // Update progress
+  const total = FORM_STEPS.length - 1; // exclude welcome from count? we'll count all but it looks nicer 1-of-N including thanks
+  const displayTotal = FORM_STEPS.length;
+  const fillPct = Math.round((index / (displayTotal - 1)) * 100);
+  progressFill.style.width = fillPct + '%';
+  progressLabel.textContent = stepDef.progressLabel;
+  progressCount.textContent = `${tUI('step')} ${index + 1} ${tUI('of')} ${displayTotal}`;
+  btnBackLabel.textContent = tUI('back');
+
+  // Update nav
+  btnBack.style.display = (index > 0 && stepDef.type !== 'thanks') ? 'inline-flex' : 'none';
+
+  if (stepDef.type === 'welcome') {
+    btnNextLabel.textContent = stepDef.cta || tUI('continue');
+    footerNav.style.display = '';
+  } else if (stepDef.type === 'thanks') {
+    footerNav.style.display = 'none';
+    // attach CSV download handler if present
+    const csvBtn = document.getElementById('downloadCsvBtn');
+    if (csvBtn) csvBtn.addEventListener('click', downloadCsv);
+  } else if (FORM_STEPS[index + 1]?.type === 'thanks') {
+    // The step right before "thanks" is the final input step
+    btnNextLabel.textContent = tUI('submit');
+    footerNav.style.display = '';
+  } else {
+    btnNextLabel.textContent = tUI('continue');
+    footerNav.style.display = '';
+  }
+
+  // Scroll to top of step
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function saveCurrentStepResponses() {
+  const stepDef = getStep(state.currentStep);
+  if (!stepDef || stepDef.type !== 'questions') return;
+  stepDef.questions.forEach(q => {
+    const val = readQuestionValue(q);
+    if (val !== undefined) state.responses[q.id] = val;
+  });
+}
+
+function readQuestionValue(q) {
+  const qEl = main.querySelector(`.question[data-qid="${q.id}"]`);
+  if (!qEl) return undefined;
+
+  if (q.type === 'text' || q.type === 'email' || q.type === 'tel' || q.type === 'textarea') {
+    return qEl.querySelector(`[name="${q.id}"]`)?.value.trim() || '';
+  }
+
+  if (q.type === 'phone') {
+    const country = qEl.querySelector(`[name="${q.id}_country"]`)?.value.trim() || q.countryCode || '+90';
+    const number = qEl.querySelector(`[name="${q.id}_number"]`)?.value.trim() || '';
+    return number ? `${country} ${number}`.trim() : '';
+  }
+
+  if (q.type === 'radio') {
+    const checked = qEl.querySelector(`input[name="${q.id}"]:checked`);
+    let val = checked ? checked.value : '';
+    if (q.otherOption && val === q.otherOption) {
+      const other = qEl.querySelector(`[data-other-for="${q.id}"]`)?.value.trim();
+      if (other) val = `${q.otherOption}: ${other}`;
+    }
+    return val;
+  }
+
+  if (q.type === 'checkbox') {
+    const checked = Array.from(qEl.querySelectorAll(`input[name="${q.id}"]:checked`)).map(c => c.value);
+    let arr = checked.slice();
+    if (q.otherOption && arr.includes(q.otherOption)) {
+      const other = qEl.querySelector(`[data-other-for="${q.id}"]`)?.value.trim();
+      if (other) arr = arr.map(v => v === q.otherOption ? `${q.otherOption}: ${other}` : v);
+    }
+    return arr.join(' | ');
+  }
+
+  if (q.type === 'rating') {
+    const checked = qEl.querySelector(`input[name="${q.id}"]:checked`);
+    return checked ? checked.value : '';
+  }
+
+  if (q.type === 'consent') {
+    const input = qEl.querySelector(`input[name="${q.id}"]`);
+    return input?.checked ? input.value : '';
+  }
+
+  return undefined;
+}
+
+function restoreStepResponses(stepDef) {
+  if (stepDef.type !== 'questions') return;
+  stepDef.questions.forEach(q => {
+    const val = state.responses[q.id];
+    if (val === undefined || val === '') return;
+    const qEl = main.querySelector(`.question[data-qid="${q.id}"]`);
+    if (!qEl) return;
+
+    if (q.type === 'text' || q.type === 'email' || q.type === 'tel' || q.type === 'textarea') {
+      const inp = qEl.querySelector(`[name="${q.id}"]`);
+      if (inp) inp.value = val;
+    } else if (q.type === 'phone') {
+      const match = val.match(/^(\+\d+)\s*(.*)$/);
+      const country = qEl.querySelector(`[name="${q.id}_country"]`);
+      const number = qEl.querySelector(`[name="${q.id}_number"]`);
+      if (country) country.value = match?.[1] || q.countryCode || '+90';
+      if (number) number.value = match ? match[2] : val;
+    } else if (q.type === 'radio') {
+      // Handle "Other: ..." case
+      let base = val;
+      let otherText = '';
+      if (q.otherOption && val.startsWith(q.otherOption + ':')) {
+        base = q.otherOption;
+        otherText = val.slice((q.otherOption + ':').length).trim();
+      }
+      const inp = qEl.querySelector(`input[name="${q.id}"][value="${CSS.escape(base)}"]`);
+      if (inp) {
+        inp.checked = true;
+        if (otherText) {
+          const oi = qEl.querySelector(`[data-other-for="${q.id}"]`);
+          if (oi) { oi.value = otherText; oi.classList.add('show'); }
+        }
+      }
+    } else if (q.type === 'checkbox') {
+      const values = val.split(' | ');
+      let otherText = '';
+      values.forEach(v => {
+        let base = v;
+        if (q.otherOption && v.startsWith(q.otherOption + ':')) {
+          base = q.otherOption;
+          otherText = v.slice((q.otherOption + ':').length).trim();
+        }
+        const inp = qEl.querySelector(`input[name="${q.id}"][value="${CSS.escape(base)}"]`);
+        if (inp) inp.checked = true;
+      });
+      if (otherText) {
+        const oi = qEl.querySelector(`[data-other-for="${q.id}"]`);
+        if (oi) { oi.value = otherText; oi.classList.add('show'); }
+      }
+    } else if (q.type === 'rating') {
+      const inp = qEl.querySelector(`input[name="${q.id}"][value="${val}"]`);
+      if (inp) inp.checked = true;
+    } else if (q.type === 'consent') {
+      const inp = qEl.querySelector(`input[name="${q.id}"]`);
+      if (inp) inp.checked = Boolean(val);
+    }
+  });
+}
+
+function validateCurrentStep() {
+  const stepDef = getStep(state.currentStep);
+  if (stepDef.type !== 'questions') return true;
+
+  let firstErrorEl = null;
+  let valid = true;
+
+  stepDef.questions.forEach(q => {
+    const qEl = main.querySelector(`.question[data-qid="${q.id}"]`);
+    if (!qEl) return;
+    qEl.classList.remove('error');
+
+    if (!q.required) return;
+
+    const val = readQuestionValue(q);
+    let isEmpty = false;
+
+    if (q.type === 'checkbox') {
+      isEmpty = !val || val.length === 0;
+    } else if (val === '' || val === undefined || val === null) {
+      isEmpty = true;
+    }
+
+    // Email format
+    if (!isEmpty && q.type === 'email') {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+        isEmpty = true;
+        qEl.querySelector('.q-error').textContent = tUI('invalidEmail');
+      } else {
+        qEl.querySelector('.q-error').textContent = tUI('required');
+      }
+    } else if (q.type !== 'consent') {
+      const errEl = qEl.querySelector('.q-error');
+      if (errEl) errEl.textContent = tUI('required');
+    }
+
+    if (isEmpty) {
+      valid = false;
+      qEl.classList.add('error');
+      if (!firstErrorEl) firstErrorEl = qEl;
+    }
+  });
+
+  if (firstErrorEl) {
+    firstErrorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  return valid;
+}
+
+/* =====================================================================
+   SUBMISSION
+   ===================================================================== */
+function buildSubmissionPayload() {
+  const payload = {
+    submittedAt: new Date().toISOString(),
+    startedAt: state.startedAt,
+    userAgent: navigator.userAgent,
+    locale: navigator.language || '',
+    answers: {},
+    columns: {},
+  };
+
+  FORM_STEPS.forEach(step => {
+    if (step.type !== 'questions') return;
+    step.questions.forEach(q => {
+      const val = state.responses[q.id];
+      const columnName = q.col || q.id;
+      payload.answers[q.id] = val == null ? '' : val;
+      payload.columns[columnName] = val == null ? '' : val;
+
+      if (q.id === 'phone') {
+        payload.columns['Phone / WhatsApp'] = val == null ? '' : val;
+      }
+    });
+  });
+
+  return payload;
+}
+
+function submitForm() {
+  if (state.isSubmitting) return;
+  state.isSubmitting = true;
+  btnNext.disabled = true;
+  btnNextLabel.textContent = tUI('submitting');
+  submittingStatus.textContent = tUI('submitting');
+
+  // Save the final step before submitting
+  saveCurrentStepResponses();
+
+  const payload = buildSubmissionPayload();
+
+  submittingOverlay.classList.add('show');
+
+  if (CONFIG.googleScriptUrl) {
+    // Fire-and-forget: no-cors responses are opaque, so we do not block the
+    // thank-you screen while Apps Script finishes writing to Google Sheets.
+    fetch(CONFIG.googleScriptUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload),
+    })
+      .catch(err => {
+        console.warn('Submission to Google Sheet failed:', err);
+      });
+  }
+
+  // Always keep a local backup as JSON in sessionStorage for safety
+  try {
+    sessionStorage.setItem('dentbridge_last_submission', JSON.stringify(payload));
+  } catch (e) { /* ignore */ }
+
+  // Advance quickly regardless — we don't want the student stuck if Apps
+  // Script is slow. The CSV download fallback remains available on thank-you.
+  setTimeout(() => {
+    submittingOverlay.classList.remove('show');
+    showStep(FORM_STEPS.length - 1);
+  }, 350);
+}
+
+function downloadCsv() {
+  const payload = buildSubmissionPayload();
+  const rows = [];
+  const headers = ['submittedAt', ...Object.keys(payload.columns)];
+  const values = [payload.submittedAt, ...Object.values(payload.columns)];
+  rows.push(headers.map(csvEscape).join(','));
+  rows.push(values.map(csvEscape).join(','));
+  const csv = rows.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `dentbridge-application-${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function csvEscape(v) {
+  const s = String(v == null ? '' : v);
+  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+/* =====================================================================
+   EVENTS
+   ===================================================================== */
+btnNext.addEventListener('click', () => {
+  const stepDef = getStep(state.currentStep);
+
+  if (stepDef.type === 'welcome' && !state.startedAt) {
+    state.startedAt = new Date().toISOString();
+  }
+
+  // Validate (only for question steps)
+  if (stepDef.type === 'questions' && !validateCurrentStep()) return;
+
+  saveCurrentStepResponses();
+
+  // If the next step is the thank-you step, submit instead of advancing
+  if (FORM_STEPS[state.currentStep + 1]?.type === 'thanks') {
+    submitForm();
+    return;
+  }
+
+  if (state.currentStep < FORM_STEPS.length - 1) {
+    showStep(state.currentStep + 1);
+  }
+});
+
+btnBack.addEventListener('click', () => {
+  if (state.currentStep > 0) {
+    saveCurrentStepResponses();
+    showStep(state.currentStep - 1);
+  }
+});
+
+langButtons.forEach(btn => {
+  btn.addEventListener('click', () => setLanguage(btn.dataset.lang));
+});
+
+// Optional: warn before accidentally leaving with partial data
+window.addEventListener('beforeunload', (e) => {
+  const hasAnswers = Object.keys(state.responses).length > 0;
+  const isThanks = FORM_STEPS[state.currentStep]?.type === 'thanks';
+  if (hasAnswers && !isThanks) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+// Initial render
+showStep(0);
+</script>
+
+</body>
+</html>
