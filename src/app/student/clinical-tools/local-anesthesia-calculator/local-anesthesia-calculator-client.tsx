@@ -8,8 +8,10 @@ import {
   ArrowLeft,
   Calculator,
   CheckCircle2,
+  ClipboardList,
   Info,
   Scale,
+  ShieldCheck,
   Syringe,
 } from 'lucide-react'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
@@ -153,7 +155,7 @@ export function LocalAnesthesiaCalculatorClient() {
         </div>
       </header>
 
-      <section className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <section className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <Link
           href="/student/dashboard"
           className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-slate-400 transition hover:text-slate-800"
@@ -175,10 +177,10 @@ export function LocalAnesthesiaCalculatorClient() {
           </p>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
+        <div className="grid gap-4 lg:grid-cols-[0.82fr_1.18fr] lg:items-start lg:gap-6">
           <form
             onSubmit={handleSubmit}
-            className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:rounded-2xl sm:p-6"
+            className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:rounded-2xl sm:p-6 lg:sticky lg:top-24"
           >
             <div className="space-y-4">
               <div>
@@ -253,20 +255,20 @@ export function LocalAnesthesiaCalculatorClient() {
             </div>
           </form>
 
-          <div className="space-y-4">
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:rounded-2xl sm:p-6">
-              <div className="mb-4 flex items-center gap-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+          <div className="space-y-4 lg:space-y-5">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:rounded-2xl sm:p-6 lg:sticky lg:top-24 lg:z-10">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-white">
                   <Syringe className="h-4 w-4" />
                 </div>
-                <h2 className="text-sm font-bold text-slate-900">
+                <h2 className="text-base font-bold text-slate-950">
                   {t('student.clinicalTools.localAnesthesia.resultTitle')}
                 </h2>
               </div>
 
               {result ? (
                 <div className="space-y-3">
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 sm:px-5 sm:py-4">
                     <p className="text-xs font-semibold text-slate-500">
                       {t('student.clinicalTools.localAnesthesia.maximumRecommendedLimit')}
                     </p>
@@ -314,11 +316,33 @@ export function LocalAnesthesiaCalculatorClient() {
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                    <p className="text-xs font-semibold text-slate-500">
+                  <div className="flex gap-2 rounded-xl border border-emerald-100 bg-emerald-50 p-3 text-xs font-semibold leading-relaxed text-emerald-800">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+                    <p>{t('student.clinicalTools.localAnesthesia.useLowestEffectiveDose')}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-6 text-center">
+                  <Calculator className="mx-auto h-6 w-6 text-slate-300" />
+                  <p className="mt-2 text-sm font-medium text-slate-500">
+                    {t('student.clinicalTools.localAnesthesia.calculate')}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {result && (
+              <>
+                <div className="rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm sm:rounded-2xl sm:px-5">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
+                      <Calculator className="h-4 w-4" />
+                    </div>
+                    <p className="text-base font-bold text-slate-950">
                       {t('student.clinicalTools.localAnesthesia.calculationExplanationTitle')}
                     </p>
-                    <div className="mt-3 space-y-2 text-xs text-slate-600">
+                  </div>
+                  <div className="mt-4 space-y-2 text-xs text-slate-600">
                       <div className="rounded-lg bg-slate-50 px-3 py-2">
                         <p className="font-semibold text-slate-800">
                           {t('student.clinicalTools.localAnesthesia.weightBasedLimit')}
@@ -363,84 +387,86 @@ export function LocalAnesthesiaCalculatorClient() {
                           {formatOneDecimal(result.maxCartridges)}
                         </p>
                       </div>
-                    </div>
-                    <p className="mt-3 text-xs leading-relaxed text-slate-500">
-                      {t('student.clinicalTools.localAnesthesia.calculationBasis')}
-                    </p>
                   </div>
-
-                  <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                    <p className="text-xs font-semibold text-slate-500">
-                      {t('student.clinicalTools.localAnesthesia.whatThisMeansTitle')}
-                    </p>
-                    <p className="mt-1.5 text-sm leading-relaxed text-slate-700">
-                      {t('student.clinicalTools.localAnesthesia.whatThisMeansText')}
-                    </p>
-                  </div>
-
-                  <div className="flex gap-2 rounded-xl border border-emerald-100 bg-emerald-50 p-3 text-xs font-semibold leading-relaxed text-emerald-800">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-                    <p>{t('student.clinicalTools.localAnesthesia.useLowestEffectiveDose')}</p>
-                  </div>
-
-                  <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                    <p className="text-xs font-semibold text-slate-500">
-                      {t('student.clinicalTools.localAnesthesia.dentalSafetyNotesTitle')}
-                    </p>
-                    <ul className="mt-2 space-y-1.5 text-sm leading-relaxed text-slate-700">
-                      {[
-                        'aspirate',
-                        'injectSlowly',
-                        'monitorPatient',
-                        'multipleAnesthetics',
-                        'vasoconstrictor',
-                      ].map((key) => (
-                        <li key={key} className="flex gap-2">
-                          <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-slate-400" />
-                          <span>{t(`student.clinicalTools.localAnesthesia.safetyNotes.${key}`)}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-                    <p className="text-xs font-bold text-amber-900">
-                      {t('student.clinicalTools.localAnesthesia.toxicityWarningTitle')}
-                    </p>
-                    <p className="mt-1.5 text-sm leading-relaxed text-amber-900">
-                      {t('student.clinicalTools.localAnesthesia.toxicityWarningText')}
-                    </p>
-                    <div className="mt-3 grid gap-1.5 sm:grid-cols-2">
-                      {[
-                        'metallicTaste',
-                        'perioralNumbness',
-                        'dizziness',
-                        'tinnitus',
-                        'confusion',
-                        'muscleTwitching',
-                        'seizure',
-                        'lossOfConsciousness',
-                        'cardiovascularSymptoms',
-                      ].map((key) => (
-                        <div key={key} className="rounded-lg bg-white/60 px-2.5 py-1.5 text-xs font-semibold text-amber-950">
-                          {t(`student.clinicalTools.localAnesthesia.toxicitySigns.${key}`)}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-6 text-center">
-                  <Calculator className="mx-auto h-6 w-6 text-slate-300" />
-                  <p className="mt-2 text-sm font-medium text-slate-500">
-                    {t('student.clinicalTools.localAnesthesia.calculate')}
+                  <p className="mt-3 text-xs leading-relaxed text-slate-500">
+                    {t('student.clinicalTools.localAnesthesia.calculationBasis')}
                   </p>
                 </div>
-              )}
-            </div>
+
+                <div className="rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm sm:rounded-2xl sm:px-5">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
+                      <Info className="h-4 w-4" />
+                    </div>
+                    <p className="text-base font-bold text-slate-950">
+                      {t('student.clinicalTools.localAnesthesia.whatThisMeansTitle')}
+                    </p>
+                  </div>
+                  <p className="mt-3 text-sm leading-relaxed text-slate-700">
+                    {t('student.clinicalTools.localAnesthesia.whatThisMeansText')}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm sm:rounded-2xl sm:px-5">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
+                      <CheckCircle2 className="h-4 w-4" />
+                    </div>
+                    <p className="text-base font-bold text-slate-950">
+                      {t('student.clinicalTools.localAnesthesia.dentalSafetyNotesTitle')}
+                    </p>
+                  </div>
+                  <ul className="mt-3 grid gap-2 text-sm leading-relaxed text-slate-700 sm:grid-cols-2">
+                    {[
+                      'aspirate',
+                      'injectSlowly',
+                      'monitorPatient',
+                      'multipleAnesthetics',
+                      'vasoconstrictor',
+                    ].map((key) => (
+                      <li key={key} className="flex gap-2 rounded-lg bg-slate-50 px-3 py-2">
+                        <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-emerald-500" />
+                        <span>{t(`student.clinicalTools.localAnesthesia.safetyNotes.${key}`)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 shadow-sm sm:rounded-2xl sm:px-5">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-800">
+                      <AlertCircle className="h-4 w-4" />
+                    </div>
+                    <p className="text-base font-bold text-amber-950">
+                      {t('student.clinicalTools.localAnesthesia.toxicityWarningTitle')}
+                    </p>
+                  </div>
+                  <p className="mt-3 text-sm leading-relaxed text-amber-900">
+                    {t('student.clinicalTools.localAnesthesia.toxicityWarningText')}
+                  </p>
+                  <div className="mt-3 grid gap-1.5 sm:grid-cols-3">
+                    {[
+                      'metallicTaste',
+                      'perioralNumbness',
+                      'dizziness',
+                      'tinnitus',
+                      'confusion',
+                      'muscleTwitching',
+                      'seizure',
+                      'lossOfConsciousness',
+                      'cardiovascularSymptoms',
+                    ].map((key) => (
+                      <div key={key} className="rounded-lg bg-white/70 px-2.5 py-1.5 text-xs font-semibold text-amber-950">
+                        {t(`student.clinicalTools.localAnesthesia.toxicitySigns.${key}`)}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
 
             <div className="flex gap-2 rounded-xl border border-slate-200 bg-white p-3 text-xs leading-relaxed text-slate-700 sm:rounded-2xl sm:p-4">
-              <Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
+              <ClipboardList className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
               <div>
                 <p className="font-bold text-slate-900">
                   {t('student.clinicalTools.localAnesthesia.patientReminderTitle')}
@@ -466,7 +492,7 @@ export function LocalAnesthesiaCalculatorClient() {
             </div>
 
             <div className="flex gap-2 rounded-xl border border-slate-200 bg-white p-3 text-xs leading-relaxed text-slate-700 sm:rounded-2xl sm:p-4">
-              <Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
+              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
               <div>
                 <p className="font-bold text-slate-900">
                   {t('student.clinicalTools.localAnesthesia.legalDisclaimerTitle')}
