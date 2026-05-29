@@ -992,11 +992,45 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
         resultTitle: 'Sonuç',
         bmiValue: 'VKİ değeri',
         category: 'Kategori',
+        referenceRange: 'Referans aralığı',
+        whatThisMeans: 'Bu ne anlama gelir',
+        dentalRelevance: 'Diş hekimliği açısından önemi',
+        dentalRelevanceText:
+          'VKİ, öğrencilerin tıbbi öykü alırken genel sağlık riskini değerlendirmesine yardımcı olabilir; ancak sağlık durumunu tanılamak için tek başına kullanılmamalıdır.',
+        generalPatientAdvice: 'Genel hasta önerisi',
         underweight: 'Düşük kilolu',
         normalWeight: 'Normal kilo',
         overweight: 'Fazla kilolu',
         obesity: 'Obezite',
+        ranges: {
+          underweight: '< 18.5',
+          normalWeight: '18.5–24.9',
+          overweight: '25.0–29.9',
+          obesity: '≥ 30.0',
+        },
+        meanings: {
+          underweight:
+            'VKİ sağlıklı yetişkin aralığının altındadır. Bu durum düşük vücut ağırlığını veya olası beslenme riskini gösterebilir.',
+          normalWeight:
+            'VKİ sağlıklı yetişkin aralığındadır. Dengeli beslenmenin ve düzenli fiziksel aktivitenin sürdürülmesi teşvik edilmelidir.',
+          overweight:
+            'VKİ sağlıklı yetişkin aralığının üzerindedir. Bu durum metabolik ve kardiyovasküler durumlar açısından artmış riskle ilişkili olabilir.',
+          obesity:
+            'VKİ obezite aralığındadır. Bu durum diyabet, kardiyovasküler hastalık, hipertansiyon ve diğer sistemik durumlar açısından daha yüksek riskle ilişkili olabilir.',
+        },
+        advice: {
+          underweight:
+            'Klinik açıdan uygunsa hastaya beslenme ve genel sağlığı hakkında bir hekim veya diyetisyenle görüşmesi önerilebilir.',
+          normalWeight:
+            'Hastanın sağlıklı beslenme alışkanlıklarını, düzenli fiziksel aktiviteyi ve rutin tıbbi/diş kontrollerini sürdürmesi teşvik edilmelidir.',
+          overweight:
+            'Sağlıklı yaşam tarzı değişiklikleri, dengeli beslenme, düzenli fiziksel aktivite ve gerekirse tıbbi takip teşvik edilmelidir.',
+          obesity:
+            'Kilo yönetimi ve sistemik risk değerlendirmesi için tıbbi takip önerilmelidir. Kademeli yaşam tarzı değişiklikleri ve profesyonel destek teşvik edilmelidir.',
+        },
         note: 'VKİ bir tarama aracıdır ve klinik değerlendirmenin yerini almaz.',
+        limitationNote:
+          'VKİ bir tarama aracıdır. Vücut yağını doğrudan ölçmez; kas kütlesi, yaş, cinsiyet, etnik köken veya bel çevresini hesaba katmaz.',
         validationError: 'VKİ hesaplamak için geçerli ağırlık ve boy girin.',
       },
     },

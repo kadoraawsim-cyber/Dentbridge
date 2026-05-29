@@ -662,11 +662,35 @@ export type TranslationShape = {
         resultTitle: string
         bmiValue: string
         category: string
+        referenceRange: string
+        whatThisMeans: string
+        dentalRelevance: string
+        dentalRelevanceText: string
+        generalPatientAdvice: string
         underweight: string
         normalWeight: string
         overweight: string
         obesity: string
+        ranges: {
+          underweight: string
+          normalWeight: string
+          overweight: string
+          obesity: string
+        }
+        meanings: {
+          underweight: string
+          normalWeight: string
+          overweight: string
+          obesity: string
+        }
+        advice: {
+          underweight: string
+          normalWeight: string
+          overweight: string
+          obesity: string
+        }
         note: string
+        limitationNote: string
         validationError: string
       }
     }
@@ -2020,11 +2044,45 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
         resultTitle: 'Result',
         bmiValue: 'BMI value',
         category: 'Category',
+        referenceRange: 'Reference range',
+        whatThisMeans: 'What this means',
+        dentalRelevance: 'Dental relevance',
+        dentalRelevanceText:
+          'BMI can help students consider general health risk during medical history taking, but it should not be used alone to diagnose health status.',
+        generalPatientAdvice: 'General patient advice',
         underweight: 'Underweight',
         normalWeight: 'Normal weight',
         overweight: 'Overweight',
         obesity: 'Obesity',
+        ranges: {
+          underweight: '< 18.5',
+          normalWeight: '18.5–24.9',
+          overweight: '25.0–29.9',
+          obesity: '≥ 30.0',
+        },
+        meanings: {
+          underweight:
+            'BMI is below the healthy adult range. This may indicate low body weight or possible nutritional risk.',
+          normalWeight:
+            'BMI is within the healthy adult range. Encourage maintaining balanced nutrition and regular physical activity.',
+          overweight:
+            'BMI is above the healthy adult range. This may be associated with increased risk of metabolic and cardiovascular conditions.',
+          obesity:
+            'BMI is in the obesity range. This may be associated with higher risk of diabetes, cardiovascular disease, hypertension, and other systemic conditions.',
+        },
+        advice: {
+          underweight:
+            'Advise the patient to discuss nutrition and general health with a physician or dietitian if clinically relevant.',
+          normalWeight:
+            'Encourage the patient to maintain healthy eating habits, regular physical activity, and routine medical/dental check-ups.',
+          overweight:
+            'Encourage healthy lifestyle changes, balanced nutrition, regular physical activity, and medical follow-up if needed.',
+          obesity:
+            'Recommend medical follow-up for weight management and systemic risk assessment. Encourage gradual lifestyle changes and professional support.',
+        },
         note: 'BMI is a screening tool and does not replace clinical assessment.',
+        limitationNote:
+          'BMI is a screening tool. It does not directly measure body fat and does not account for muscle mass, age, sex, ethnicity, or waist circumference.',
         validationError: 'Enter a valid weight and height to calculate BMI.',
       },
     },

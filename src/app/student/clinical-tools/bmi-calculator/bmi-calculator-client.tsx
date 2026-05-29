@@ -206,6 +206,44 @@ export function BmiCalculatorClient() {
                       {t(`student.clinicalTools.bmi.${result.category}`)}
                     </p>
                   </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                    <p className="text-xs font-semibold text-slate-500">
+                      {t('student.clinicalTools.bmi.referenceRange')}
+                    </p>
+                    <p className="mt-1 text-sm font-bold text-slate-900">
+                      {t(`student.clinicalTools.bmi.ranges.${result.category}`)}
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                      <p className="text-xs font-semibold text-slate-500">
+                        {t('student.clinicalTools.bmi.whatThisMeans')}
+                      </p>
+                      <p className="mt-1.5 text-sm leading-relaxed text-slate-700">
+                        {t(`student.clinicalTools.bmi.meanings.${result.category}`)}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                      <p className="text-xs font-semibold text-slate-500">
+                        {t('student.clinicalTools.bmi.dentalRelevance')}
+                      </p>
+                      <p className="mt-1.5 text-sm leading-relaxed text-slate-700">
+                        {t('student.clinicalTools.bmi.dentalRelevanceText')}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                      <p className="text-xs font-semibold text-slate-500">
+                        {t('student.clinicalTools.bmi.generalPatientAdvice')}
+                      </p>
+                      <p className="mt-1.5 text-sm leading-relaxed text-slate-700">
+                        {t(`student.clinicalTools.bmi.advice.${result.category}`)}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-6 text-center">
@@ -219,7 +257,7 @@ export function BmiCalculatorClient() {
 
             <div className="flex gap-2 rounded-xl border border-blue-100 bg-blue-50 p-3 text-xs leading-relaxed text-blue-800 sm:rounded-2xl sm:p-4">
               <Info className="mt-0.5 h-4 w-4 shrink-0" />
-              <p>{t('student.clinicalTools.bmi.note')}</p>
+              <p>{t('student.clinicalTools.bmi.limitationNote')}</p>
             </div>
           </div>
         </div>
