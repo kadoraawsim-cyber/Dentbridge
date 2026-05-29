@@ -22,6 +22,7 @@ import {
   Activity,
   ChevronDown,
   CalendarDays,
+  ExternalLink,
 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
@@ -1704,6 +1705,73 @@ export function DashboardClient({
           </div>
 
           <div className="w-full min-w-0 order-1 xl:order-2 space-y-3 sm:space-y-5 xl:w-[320px] xl:shrink-0">
+            <Link
+              href="/student/planner"
+              className="flex w-full items-center justify-between rounded-xl sm:rounded-2xl border border-slate-200 bg-white p-3 sm:p-4 shadow-sm"
+            >
+              <div className="flex min-w-0 items-center gap-2.5 sm:gap-3.5">
+                <div className="flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-indigo-50 text-indigo-700">
+                  <CalendarDays className="h-4 w-4 sm:h-5 sm:w-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-xs sm:text-sm font-semibold text-slate-900">
+                    {t('student.nav.planner')}
+                  </p>
+                </div>
+              </div>
+            </Link>
+
+            <div className="w-full rounded-xl sm:rounded-2xl border border-slate-200 bg-white p-3 sm:p-4 shadow-sm">
+              <div className="mb-3 flex min-w-0 items-center gap-2.5 sm:gap-3.5">
+                <div className="flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-cyan-50 text-cyan-700">
+                  <Activity className="h-4 w-4 sm:h-5 sm:w-5" />
+                </div>
+                <p className="min-w-0 truncate text-xs sm:text-sm font-semibold text-slate-900">
+                  {t('student.dashboard.clinicalTools')}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <p className="text-sm font-semibold text-slate-900">
+                    {t('student.dashboard.periodontalChartOnline')}
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                    {t('student.dashboard.periodontalChartDescription')}
+                  </p>
+                  <a
+                    href="https://www.periodontalchart-online.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 sm:w-auto"
+                  >
+                    {t('student.dashboard.openTool')}
+                    <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                  </a>
+                </div>
+
+                {[
+                  t('student.dashboard.toothNumberingChart'),
+                  t('student.dashboard.bmiCalculator'),
+                  t('student.dashboard.localAnesthesiaCalculator'),
+                  t('student.dashboard.medicalHistoryForm'),
+                  t('student.dashboard.clinicalGuidelines'),
+                ].map((toolName) => (
+                  <div
+                    key={toolName}
+                    className="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2"
+                  >
+                    <span className="min-w-0 truncate text-xs font-semibold text-slate-700">
+                      {toolName}
+                    </span>
+                    <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
+                      {t('student.dashboard.comingSoon')}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <h2 className="truncate text-lg sm:text-xl font-bold tracking-tight text-slate-900">
               {t('student.dashboard.quickActions')}
             </h2>

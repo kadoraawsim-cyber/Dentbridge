@@ -467,6 +467,16 @@ export type TranslationShape = {
       tradeCases: string
       clinicalRequirements: string
       caseLogComingSoon: string
+      clinicalTools: string
+      periodontalChartOnline: string
+      periodontalChartDescription: string
+      openTool: string
+      toothNumberingChart: string
+      bmiCalculator: string
+      localAnesthesiaCalculator: string
+      medicalHistoryForm: string
+      clinicalGuidelines: string
+      comingSoon: string
       requestPendingReview: string
       requestsPendingReview: string
       pendingRequestsDesc: string
@@ -1790,6 +1800,17 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       tradeCases: 'Trade cases with peers',
       clinicalRequirements: 'Clinical Requirements',
       caseLogComingSoon: 'Case log \u2014 coming soon',
+      clinicalTools: 'Clinical Tools',
+      periodontalChartOnline: 'Periodontal Chart Online',
+      periodontalChartDescription:
+        'Professional periodontal charting tool used for periodontal examinations.',
+      openTool: 'Open Tool',
+      toothNumberingChart: 'Tooth Numbering Chart',
+      bmiCalculator: 'BMI Calculator',
+      localAnesthesiaCalculator: 'Local Anesthesia Calculator',
+      medicalHistoryForm: 'Medical History Form',
+      clinicalGuidelines: 'Clinical Guidelines',
+      comingSoon: 'Coming soon',
       requestPendingReview: '1 request pending review',
       requestsPendingReview: 'requests pending review',
       pendingRequestsDesc: 'Faculty will review your requests and send a decision. No action needed on your end.',
