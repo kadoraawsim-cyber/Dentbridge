@@ -693,6 +693,76 @@ export type TranslationShape = {
         limitationNote: string
         validationError: string
       }
+      localAnesthesia: {
+        backToDashboard: string
+        eyebrow: string
+        title: string
+        description: string
+        patientWeightLabel: string
+        patientWeightPlaceholder: string
+        anestheticLabel: string
+        volumeLabel: string
+        calculate: string
+        resultTitle: string
+        selectedAnesthetic: string
+        cartridgeVolume: string
+        maximumRecommendedLimit: string
+        mgPerCartridge: string
+        approximateMaxCartridges: string
+        calculationExplanationTitle: string
+        weightBasedLimit: string
+        weightBasedFormula: string
+        absoluteMaximumLimit: string
+        absoluteMaximumFormula: string
+        finalLimit: string
+        finalLimitFormula: string
+        cartridgesFormula: string
+        calculationBasis: string
+        whatThisMeansTitle: string
+        whatThisMeansText: string
+        useLowestEffectiveDose: string
+        dentalSafetyNotesTitle: string
+        safetyNotes: {
+          aspirate: string
+          injectSlowly: string
+          monitorPatient: string
+          multipleAnesthetics: string
+          vasoconstrictor: string
+        }
+        toxicityWarningTitle: string
+        toxicityWarningText: string
+        toxicitySigns: {
+          metallicTaste: string
+          perioralNumbness: string
+          dizziness: string
+          tinnitus: string
+          confusion: string
+          muscleTwitching: string
+          seizure: string
+          lossOfConsciousness: string
+          cardiovascularSymptoms: string
+        }
+        patientReminderTitle: string
+        patientReminderText: string
+        educationalWarningTitle: string
+        educationalWarningText: string
+        clinicalLimitationTitle: string
+        clinicalLimitationText: string
+        legalDisclaimerTitle: string
+        legalDisclaimerText: string
+        emptyWeightError: string
+        positiveWeightError: string
+        realisticWeightError: string
+        unitKg: string
+        unitMg: string
+        unitMl: string
+        anesthetics: {
+          lidocaineVaso: string
+          articaineEpinephrine: string
+          mepivacaine: string
+          prilocaine: string
+        }
+      }
     }
   }
 
@@ -2084,6 +2154,84 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
         limitationNote:
           'BMI is a screening tool. It does not directly measure body fat and does not account for muscle mass, age, sex, ethnicity, or waist circumference.',
         validationError: 'Enter a valid weight and height to calculate BMI.',
+      },
+      localAnesthesia: {
+        backToDashboard: 'Back to Dashboard',
+        eyebrow: 'Clinical Tools',
+        title: 'Local Anesthesia Calculator',
+        description:
+          'Estimate the maximum recommended local anesthetic limit and approximate cartridge count for educational planning.',
+        patientWeightLabel: 'Patient weight (kg)',
+        patientWeightPlaceholder: 'e.g. 70',
+        anestheticLabel: 'Local anesthetic',
+        volumeLabel: 'Cartridge / ampule volume',
+        calculate: 'Calculate',
+        resultTitle: 'Result Summary',
+        selectedAnesthetic: 'Selected anesthetic',
+        cartridgeVolume: 'Cartridge / ampule volume',
+        maximumRecommendedLimit: 'Maximum recommended limit',
+        mgPerCartridge: 'mg per cartridge / ampule',
+        approximateMaxCartridges: 'Approximate maximum cartridges',
+        calculationExplanationTitle: 'Calculation Explanation',
+        weightBasedLimit: 'Weight-based limit',
+        weightBasedFormula: 'patient weight x mg/kg limit',
+        absoluteMaximumLimit: 'Absolute maximum limit',
+        absoluteMaximumFormula: 'drug-specific maximum',
+        finalLimit: 'Final limit',
+        finalLimitFormula: 'lower of the two values',
+        cartridgesFormula: 'final limit / mg per cartridge or ampule',
+        calculationBasis:
+          'Based on the lower value between weight-based dose and absolute maximum dose.',
+        whatThisMeansTitle: 'What this means',
+        whatThisMeansText:
+          'This result shows the calculated maximum recommended limit for the selected local anesthetic. It is a ceiling value, not a target dose. In clinical practice, students should use the lowest effective dose and confirm with faculty before administration.',
+        useLowestEffectiveDose: 'Use the lowest effective dose.',
+        dentalSafetyNotesTitle: 'Dental Safety Notes',
+        safetyNotes: {
+          aspirate: 'Aspirate before injection.',
+          injectSlowly: 'Inject slowly.',
+          monitorPatient: 'Monitor the patient during and after administration.',
+          multipleAnesthetics: 'Be cautious when using multiple anesthetics in the same appointment.',
+          vasoconstrictor: 'Consider vasoconstrictor limits separately when relevant.',
+        },
+        toxicityWarningTitle: 'Possible Toxicity Warning Signs',
+        toxicityWarningText:
+          'Stop and call faculty immediately if the patient develops possible signs of local anesthetic systemic toxicity.',
+        toxicitySigns: {
+          metallicTaste: 'Metallic taste',
+          perioralNumbness: 'Perioral numbness',
+          dizziness: 'Dizziness',
+          tinnitus: 'Tinnitus',
+          confusion: 'Confusion',
+          muscleTwitching: 'Muscle twitching',
+          seizure: 'Seizure',
+          lossOfConsciousness: 'Loss of consciousness',
+          cardiovascularSymptoms: 'Cardiovascular symptoms',
+        },
+        patientReminderTitle: 'Patient-Specific Reminder',
+        patientReminderText:
+          'Before using local anesthesia, review the patient’s medical history, allergies, current medications, pregnancy status, previous anesthesia reactions, and supervising faculty instructions.',
+        educationalWarningTitle: 'Educational support only',
+        educationalWarningText:
+          'This calculator is for educational support only. Always confirm the dose with the supervising dentist/faculty member and the official drug label before administration.',
+        clinicalLimitationTitle: 'Clinical limitations',
+        clinicalLimitationText:
+          'Dose limits may require adjustment in children, elderly patients, pregnancy, liver disease, kidney disease, cardiovascular disease, low body weight, drug interactions, allergy, methemoglobinemia risk, or when multiple anesthetics are combined.',
+        legalDisclaimerTitle: 'Legal / Safety Disclaimer',
+        legalDisclaimerText:
+          'This calculator is for educational support only. It does not replace clinical judgment, faculty supervision, institutional protocols, or official drug labeling.',
+        emptyWeightError: 'Enter patient weight to calculate the dose limit.',
+        positiveWeightError: 'Patient weight must be greater than 0 kg.',
+        realisticWeightError: 'Enter a realistic patient weight between 5 kg and 300 kg.',
+        unitKg: 'kg',
+        unitMg: 'mg',
+        unitMl: 'mL',
+        anesthetics: {
+          lidocaineVaso: 'Lidocaine 2% + vasoconstrictor',
+          articaineEpinephrine: 'Articaine 4% + epinephrine',
+          mepivacaine: 'Mepivacaine 3%',
+          prilocaine: 'Prilocaine 4%',
+        },
       },
     },
   },

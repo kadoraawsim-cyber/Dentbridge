@@ -1764,8 +1764,27 @@ export function DashboardClient({
                   </Link>
                 </div>
 
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <div className="flex min-w-0 items-start gap-2.5">
+                    <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                      <Syringe className="h-3.5 w-3.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-slate-900">
+                        {t('student.dashboard.localAnesthesiaCalculator')}
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    href="/student/clinical-tools/local-anesthesia-calculator"
+                    className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 sm:w-auto"
+                  >
+                    {t('student.dashboard.openTool')}
+                    <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+                  </Link>
+                </div>
+
                 {[
-                  { label: t('student.dashboard.localAnesthesiaCalculator'), Icon: Syringe },
                   { label: t('student.dashboard.medicalHistoryForm'), Icon: ClipboardList },
                   { label: t('student.dashboard.clinicalGuidelines'), Icon: BookOpen },
                 ].map(({ label, Icon }) => (
