@@ -648,6 +648,28 @@ export type TranslationShape = {
       managedFromCaseCard: string
       pastAppointment: string
     }
+    clinicalTools: {
+      bmi: {
+        backToDashboard: string
+        eyebrow: string
+        title: string
+        description: string
+        weightLabel: string
+        weightPlaceholder: string
+        heightLabel: string
+        heightPlaceholder: string
+        calculate: string
+        resultTitle: string
+        bmiValue: string
+        category: string
+        underweight: string
+        normalWeight: string
+        overweight: string
+        obesity: string
+        note: string
+        validationError: string
+      }
+    }
   }
 
   // ── Faculty / Admin portal ─────────────────────────────────────────────────
@@ -1983,6 +2005,28 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       noActivePatients: 'No active patients available to link right now.',
       managedFromCaseCard: 'Managed from case card',
       pastAppointment: 'Past appointment',
+    },
+    clinicalTools: {
+      bmi: {
+        backToDashboard: 'Back to Dashboard',
+        eyebrow: 'Clinical Tools',
+        title: 'BMI Calculator',
+        description: 'Calculate body mass index using weight in kilograms and height in centimeters.',
+        weightLabel: 'Weight (kg)',
+        weightPlaceholder: 'e.g. 70',
+        heightLabel: 'Height (cm)',
+        heightPlaceholder: 'e.g. 175',
+        calculate: 'Calculate',
+        resultTitle: 'Result',
+        bmiValue: 'BMI value',
+        category: 'Category',
+        underweight: 'Underweight',
+        normalWeight: 'Normal weight',
+        overweight: 'Overweight',
+        obesity: 'Obesity',
+        note: 'BMI is a screening tool and does not replace clinical assessment.',
+        validationError: 'Enter a valid weight and height to calculate BMI.',
+      },
     },
   },
 
