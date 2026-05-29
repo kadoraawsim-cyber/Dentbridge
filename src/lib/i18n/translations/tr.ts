@@ -798,7 +798,6 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
       periodontalChartDescription:
         'Periodontal muayenelerde kullanılan profesyonel periodontal charting aracı.',
       openTool: 'Aracı Aç',
-      toothNumberingChart: 'Diş Numaralandırma Tablosu',
       bmiCalculator: 'VKİ Hesaplayıcı',
       localAnesthesiaCalculator: 'Lokal Anestezi Hesaplayıcı',
       medicalHistoryForm: 'Tıbbi Geçmiş Formu',

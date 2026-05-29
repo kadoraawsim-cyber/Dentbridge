@@ -471,7 +471,6 @@ export type TranslationShape = {
       periodontalChartOnline: string
       periodontalChartDescription: string
       openTool: string
-      toothNumberingChart: string
       bmiCalculator: string
       localAnesthesiaCalculator: string
       medicalHistoryForm: string
@@ -1805,7 +1804,6 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       periodontalChartDescription:
         'Professional periodontal charting tool used for periodontal examinations.',
       openTool: 'Open Tool',
-      toothNumberingChart: 'Tooth Numbering Chart',
       bmiCalculator: 'BMI Calculator',
       localAnesthesiaCalculator: 'Local Anesthesia Calculator',
       medicalHistoryForm: 'Medical History Form',
