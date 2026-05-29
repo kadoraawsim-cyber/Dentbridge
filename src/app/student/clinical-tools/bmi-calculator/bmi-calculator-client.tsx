@@ -3,9 +3,10 @@
 import { FormEvent, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Activity, ArrowLeft, Calculator, CheckCircle2, Info, Ruler, Scale } from 'lucide-react'
+import { Activity, Calculator, CheckCircle2, Info, Ruler, Scale } from 'lucide-react'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import { useI18n } from '@/lib/i18n'
+import { BackToDashboardLink } from '../BackToDashboardLink'
 
 type BmiCategory = 'underweight' | 'normalWeight' | 'overweight' | 'obesity'
 
@@ -92,13 +93,7 @@ export function BmiCalculatorClient() {
       </header>
 
       <section className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        <Link
-          href="/student/dashboard"
-          className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-slate-400 transition hover:text-slate-800"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {t('student.clinicalTools.bmi.backToDashboard')}
-        </Link>
+        <BackToDashboardLink label={t('student.clinicalTools.bmi.backToDashboard')} />
 
         <div className="mb-5 sm:mb-6">
           <div className="inline-flex items-center gap-2 rounded-full border border-cyan-100 bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-700">

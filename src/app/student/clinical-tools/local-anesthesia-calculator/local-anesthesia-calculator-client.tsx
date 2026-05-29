@@ -5,7 +5,6 @@ import Image from 'next/image'
 import Link from 'next/link'
 import {
   AlertCircle,
-  ArrowLeft,
   Calculator,
   CheckCircle2,
   ClipboardList,
@@ -16,6 +15,7 @@ import {
 } from 'lucide-react'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import { useI18n } from '@/lib/i18n'
+import { BackToDashboardLink } from '../BackToDashboardLink'
 
 type AnestheticId = 'lidocaineVaso' | 'articaineEpinephrine' | 'mepivacaine' | 'prilocaine'
 
@@ -156,13 +156,7 @@ export function LocalAnesthesiaCalculatorClient() {
       </header>
 
       <section className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        <Link
-          href="/student/dashboard"
-          className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-slate-400 transition hover:text-slate-800"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {t('student.clinicalTools.localAnesthesia.backToDashboard')}
-        </Link>
+        <BackToDashboardLink label={t('student.clinicalTools.localAnesthesia.backToDashboard')} />
 
         <div className="mb-5 sm:mb-6">
           <div className="inline-flex items-center gap-2 rounded-full border border-cyan-100 bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-700">
@@ -180,7 +174,7 @@ export function LocalAnesthesiaCalculatorClient() {
         <div className="grid gap-4 lg:grid-cols-[0.82fr_1.18fr] lg:items-start lg:gap-6">
           <form
             onSubmit={handleSubmit}
-            className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:rounded-2xl sm:p-6 lg:sticky lg:top-24"
+            className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:rounded-2xl sm:p-6"
           >
             <div className="space-y-4">
               <div>
@@ -256,7 +250,7 @@ export function LocalAnesthesiaCalculatorClient() {
           </form>
 
           <div className="space-y-4 lg:space-y-5">
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:rounded-2xl sm:p-6 lg:sticky lg:top-24 lg:z-10">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:rounded-2xl sm:p-6">
               <div className="mb-4 flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-white">
                   <Syringe className="h-4 w-4" />
