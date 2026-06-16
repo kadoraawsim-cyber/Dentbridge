@@ -4,6 +4,59 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
+import { useI18n, type Locale } from '@/lib/i18n'
+
+type MessageKey = 'emailRequired' | 'notFound' | 'generic' | null
+
+const copy: Record<
+  Locale,
+  {
+    backHome: string
+    title: string
+    description: string
+    emailLabel: string
+    submit: string
+    submitting: string
+    studentLogin: string
+    facultyLogin: string
+    emailRequired: string
+    notFound: string
+    success: string
+    generic: string
+  }
+> = {
+  en: {
+    backHome: 'Back to home',
+    title: 'Reset your password',
+    description: 'Enter your DentBridge account email to receive a password reset link.',
+    emailLabel: 'Email',
+    submit: 'Send reset link',
+    submitting: 'Sending...',
+    studentLogin: 'Back to student login',
+    facultyLogin: 'Back to faculty login',
+    emailRequired: 'Please enter your email address.',
+    notFound:
+      'No DentBridge account was found for this email. Please check the email address and try again.',
+    success: 'A password reset link has been sent to this email.',
+    generic: 'Something went wrong. Please try again.',
+  },
+  tr: {
+    backHome: 'Ana sayfaya dön',
+    title: 'Şifrenizi sıfırlayın',
+    description:
+      'Şifre sıfırlama bağlantısı almak için DentBridge hesabınıza ait e-posta adresini girin.',
+    emailLabel: 'E-posta',
+    submit: 'Sıfırlama bağlantısı gönder',
+    submitting: 'Gönderiliyor...',
+    studentLogin: 'Öğrenci girişine dön',
+    facultyLogin: 'Akademik girişe dön',
+    emailRequired: 'Lütfen e-posta adresinizi girin.',
+    notFound:
+      'Bu e-posta adresiyle kayıtlı bir DentBridge hesabı bulunamadı. Lütfen e-posta adresini kontrol edip tekrar deneyin.',
+    success: 'Şifre sıfırlama bağlantısı bu e-posta adresine gönderildi.',
+    generic: 'Bir hata oluştu. Lütfen tekrar deneyin.',
+  },
+}
 
 function getResetRedirectUrl() {
   const { hostname, origin } = window.location
@@ -16,40 +69,38 @@ function getResetRedirectUrl() {
 }
 
 export default function ForgotPasswordPage() {
+  const { locale } = useI18n()
+  const ui = copy[locale]
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
-  const [successMessage, setSuccessMessage] = useState('')
-  const [errorMessage, setErrorMessage] = useState('')
+  const [success, setSuccess] = useState(false)
+  const [errorKey, setErrorKey] = useState<MessageKey>(null)
 
   async function emailExistsInDentBridge(normalizedEmail: string) {
-    const [facultyResult, studentResult] = await Promise.all([
-      supabase
-        .from('faculty_profiles')
-        .select('id')
-        .eq('email', normalizedEmail)
-        .limit(1),
-      supabase
-        .from('student_profiles')
-        .select('id')
-        .eq('email', normalizedEmail)
-        .limit(1),
-    ])
+    const response = await fetch('/api/auth/check-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email: normalizedEmail }),
+    })
 
-    if (facultyResult.error || studentResult.error) {
-      throw new Error('profile_lookup_failed')
+    if (!response.ok) {
+      throw new Error('email_check_failed')
     }
 
-    return Boolean((facultyResult.data ?? []).length || (studentResult.data ?? []).length)
+    const result = (await response.json()) as { exists?: boolean }
+    return result.exists === true
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setErrorMessage('')
-    setSuccessMessage('')
+    setErrorKey(null)
+    setSuccess(false)
 
     const normalizedEmail = email.trim().toLowerCase()
     if (!normalizedEmail) {
-      setErrorMessage('Email is required.')
+      setErrorKey('emailRequired')
       return
     }
 
@@ -60,15 +111,13 @@ export default function ForgotPasswordPage() {
       accountExists = await emailExistsInDentBridge(normalizedEmail)
     } catch {
       setLoading(false)
-      setErrorMessage('Unable to check this email right now. Please try again.')
+      setErrorKey('generic')
       return
     }
 
     if (!accountExists) {
       setLoading(false)
-      setErrorMessage(
-        'No DentBridge account was found for this email. Please check the email address and try again.'
-      )
+      setErrorKey('notFound')
       return
     }
 
@@ -79,11 +128,11 @@ export default function ForgotPasswordPage() {
     setLoading(false)
 
     if (error) {
-      setErrorMessage('Unable to send a reset link right now. Please try again.')
+      setErrorKey('generic')
       return
     }
 
-    setSuccessMessage('A password reset link has been sent to this email.')
+    setSuccess(true)
   }
 
   return (
@@ -91,21 +140,21 @@ export default function ForgotPasswordPage() {
       <div className="mx-auto max-w-md">
         <div className="mb-8 flex items-center justify-between gap-4">
           <Link href="/" className="text-sm text-slate-500 hover:text-slate-900">
-            Back to home
+            {ui.backHome}
           </Link>
           <LanguageSwitcher />
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-          <h1 className="text-2xl font-bold">Reset your password</h1>
+          <h1 className="text-2xl font-bold">{ui.title}</h1>
           <p className="mt-2 text-sm leading-relaxed text-slate-500">
-            Enter your DentBridge account email to receive a Supabase password reset link.
+            {ui.description}
           </p>
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <div>
               <label className="mb-2 block text-sm font-medium text-slate-700">
-                Email
+                {ui.emailLabel}
               </label>
               <input
                 type="email"
@@ -118,15 +167,15 @@ export default function ForgotPasswordPage() {
               />
             </div>
 
-            {errorMessage && (
+            {errorKey && (
               <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                {errorMessage}
+                {ui[errorKey]}
               </div>
             )}
 
-            {successMessage && (
+            {success && (
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                {successMessage}
+                {ui.success}
               </div>
             )}
 
@@ -138,17 +187,17 @@ export default function ForgotPasswordPage() {
               {loading && (
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
               )}
-              {loading ? 'Sending...' : 'Send reset link'}
+              {loading ? ui.submitting : ui.submit}
             </button>
           </form>
 
           <div className="mt-6 border-t border-slate-100 pt-5 text-sm text-slate-500">
             <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-x-4">
               <Link href="/student/login" className="text-teal-600 hover:underline">
-                Back to student login
+                {ui.studentLogin}
               </Link>
               <Link href="/admin/login" className="text-teal-600 hover:underline">
-                Back to faculty login
+                {ui.facultyLogin}
               </Link>
             </div>
           </div>
