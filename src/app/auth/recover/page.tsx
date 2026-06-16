@@ -69,7 +69,7 @@ function RecoverContent() {
                   </p>
                 </div>
                 <Link
-                  href="/auth/forgot-password"
+                  href="/forgot-password"
                   className="block w-full rounded-xl border border-slate-200 px-5 py-3 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                 >
                   {t('auth.recover.tryAgain')}

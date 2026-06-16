@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import {
@@ -10,6 +10,8 @@ import {
   ChevronRight,
   Download,
   LogOut,
+  ChevronDown,
+  KeyRound,
   Clock,
   Inbox,
   Activity,
@@ -103,6 +105,8 @@ export function DashboardClient({ initialRequests, adminEmail, currentRole }: Pr
   const [facultyInviteLoading, setFacultyInviteLoading] = useState(false)
   const [facultyInviteMessage, setFacultyInviteMessage] = useState('')
   const [facultyInviteError, setFacultyInviteError] = useState('')
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false)
+  const profileMenuRef = useRef<HTMLDivElement | null>(null)
 
   function relativeTime(iso: string | null): string {
     if (!iso) return '\u2014'
@@ -264,6 +268,19 @@ export function DashboardClient({ initialRequests, adminEmail, currentRole }: Pr
     await supabase.auth.signOut()
     window.location.href = '/admin/login'
   }
+
+  useEffect(() => {
+    if (!profileMenuOpen) return
+
+    function handlePointerDown(event: MouseEvent) {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setProfileMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    return () => document.removeEventListener('mousedown', handlePointerDown)
+  }, [profileMenuOpen])
 
   async function handleInviteStudent(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -474,14 +491,40 @@ export function DashboardClient({ initialRequests, adminEmail, currentRole }: Pr
               </div>
             )}
             <LanguageSwitcher />
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
-            >
-              <LogOut className="h-3.5 w-3.5 shrink-0" />
-              <span className="hidden sm:inline">{t('admin.shared.signOut')}</span>
-            </button>
+            <div ref={profileMenuRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setProfileMenuOpen((prev) => !prev)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+                aria-expanded={profileMenuOpen}
+                aria-label="Open account menu"
+              >
+                <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-teal-500" />
+                <span className="hidden sm:inline">Account</span>
+                <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+              </button>
+
+              {profileMenuOpen && (
+                <div className="absolute right-0 top-full z-20 mt-2 w-52 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+                  <Link
+                    href="/change-password"
+                    onClick={() => setProfileMenuOpen(false)}
+                    className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
+                  >
+                    <KeyRound className="h-4 w-4 text-slate-400" />
+                    Change Password
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleSignOut}
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
+                  >
+                    <LogOut className="h-4 w-4 text-slate-400" />
+                    {t('admin.shared.signOut')}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>

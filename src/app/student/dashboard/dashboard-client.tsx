@@ -26,6 +26,7 @@ import {
   Scale,
   Syringe,
   ClipboardList,
+  KeyRound,
 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
@@ -654,18 +655,25 @@ export function DashboardClient({
                     <CalendarDays className="h-4 w-4 text-slate-400" />
                     {t('student.nav.planner')}
                   </Link>
+                  <Link
+                    href="/change-password"
+                    onClick={() => setProfileMenuOpen(false)}
+                    className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
+                  >
+                    <KeyRound className="h-4 w-4 text-slate-400" />
+                    Change Password
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleSignOut}
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
+                  >
+                    <LogOut className="h-4 w-4 text-slate-400" />
+                    {t('student.nav.signOut')}
+                  </button>
                 </div>
               )}
             </div>
-
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className="hidden items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 sm:inline-flex"
-            >
-              <LogOut className="h-3.5 w-3.5 shrink-0" />
-              {t('student.nav.signOut')}
-            </button>
           </div>
         </div>
       </header>

@@ -154,7 +154,7 @@ export default function StudentLoginPage() {
             </div>
 
             <div className="flex justify-end">
-              <Link href="/auth/forgot-password" className="text-sm font-medium text-teal-600 hover:underline">
+              <Link href="/forgot-password" className="text-sm font-medium text-teal-600 hover:underline">
                 {t('auth.forgotPassword.linkLabel')}
               </Link>
             </div>

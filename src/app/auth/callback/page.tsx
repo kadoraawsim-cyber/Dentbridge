@@ -46,7 +46,7 @@ export default function AuthCallbackPage() {
       }
 
       if (authFlowType === 'recovery') {
-        router.replace('/auth/reset-password')
+        router.replace('/auth/update-password')
         return
       }
 
