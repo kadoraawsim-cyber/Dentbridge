@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
-import { inviteUserWithRole } from '@/lib/auth-invitations'
+import { InviteExistingUserError, inviteUserWithRole } from '@/lib/auth-invitations'
 import { isAdminRole } from '@/lib/roles'
 
 const INVITE_REDIRECT_TO = 'https://dentbridgetr.com/auth/callback'
@@ -44,6 +44,16 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result)
   } catch (error) {
+    if (error instanceof InviteExistingUserError) {
+      return NextResponse.json(
+        {
+          code: error.code,
+          error: 'Existing student account found. Send an account setup recovery link instead.',
+        },
+        { status: 409 }
+      )
+    }
+
     const message = error instanceof Error ? error.message : 'Failed to send invitation.'
     return NextResponse.json({ error: message }, { status: 400 })
   }

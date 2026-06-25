@@ -6,6 +6,45 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { isStudentRole } from '@/lib/roles'
 
+async function establishRecoverySessionFromUrl() {
+  const searchParams = new URLSearchParams(window.location.search)
+  const hashParams = new URLSearchParams(window.location.hash.substring(1))
+  const code = searchParams.get('code')
+  const tokenHash = searchParams.get('token_hash')
+  const type = searchParams.get('type') || hashParams.get('type')
+  const accessToken = hashParams.get('access_token')
+  const refreshToken = hashParams.get('refresh_token')
+  const linkError = searchParams.get('error_description') || hashParams.get('error_description')
+  const isRecoveryType = !type || type === 'recovery'
+
+  if (linkError) {
+    return false
+  }
+
+  if (code && isRecoveryType) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    return !error
+  }
+
+  if (accessToken && refreshToken && isRecoveryType) {
+    const { error } = await supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    })
+    return !error
+  }
+
+  if (tokenHash && type === 'recovery') {
+    const { error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: 'recovery',
+    })
+    return !error
+  }
+
+  return true
+}
+
 export default function StudentSetPasswordPage() {
   const router = useRouter()
 
@@ -20,12 +59,20 @@ export default function StudentSetPasswordPage() {
 
   useEffect(() => {
     async function checkSession() {
+      const recoveryReady = await establishRecoverySessionFromUrl()
+
+      if (!recoveryReady) {
+        setError('Invalid or expired student account setup link.')
+        setChecking(false)
+        return
+      }
+
       const {
         data: { user },
       } = await supabase.auth.getUser()
 
       if (!user || !isStudentRole(user.app_metadata?.role)) {
-        setError('Invalid or expired student invitation link.')
+        setError('Invalid or expired student account setup link.')
       }
 
       setChecking(false)

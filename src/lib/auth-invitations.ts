@@ -17,12 +17,29 @@ export interface InviteUserWithRoleResult {
   redirectTo: string
 }
 
+export class InviteExistingUserError extends Error {
+  code = 'USER_ALREADY_EXISTS' as const
+
+  constructor(message = 'A user with this email address has already been registered.') {
+    super(message)
+    this.name = 'InviteExistingUserError'
+  }
+}
+
 function normalizeEmail(value: string) {
   return value.trim().toLowerCase()
 }
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+}
+
+function isExistingUserInviteError(message: string) {
+  const normalized = message.toLowerCase()
+  return (
+    normalized.includes('already') &&
+    (normalized.includes('registered') || normalized.includes('exists'))
+  )
 }
 
 export async function inviteUserWithRole({
@@ -59,6 +76,10 @@ export async function inviteUserWithRole({
   )
 
   if (inviteError) {
+    if (isExistingUserInviteError(inviteError.message)) {
+      throw new InviteExistingUserError(inviteError.message)
+    }
+
     throw new Error(inviteError.message)
   }
 

@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import { useI18n, type Locale } from '@/lib/i18n'
+import { getAppRole } from '@/lib/roles'
 
 type ErrorKey =
   | 'invalidLink'
@@ -82,6 +84,7 @@ const copy: Record<
 }
 
 export default function UpdatePasswordPage() {
+  const router = useRouter()
   const { locale } = useI18n()
   const ui = copy[locale]
   const [newPassword, setNewPassword] = useState('')
@@ -206,6 +209,24 @@ export default function UpdatePasswordPage() {
     setNewPassword('')
     setConfirmPassword('')
     setSuccess(true)
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (getAppRole(user?.app_metadata?.role) === 'student' && user?.id) {
+      const { data: profile } = await supabase
+        .from('student_profiles')
+        .select('full_name, phone')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      if (!profile?.full_name?.trim() || !profile.phone?.trim()) {
+        window.setTimeout(() => {
+          router.replace('/auth/set-password/student')
+        }, 1200)
+      }
+    }
   }
 
   return (
