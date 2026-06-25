@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { type ChangeEvent, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import InstallBanner from '@/components/InstallBanner'
@@ -27,6 +27,8 @@ import {
   Syringe,
   ClipboardList,
   KeyRound,
+  Camera,
+  Trash2,
 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
@@ -108,6 +110,168 @@ const EMPTY_PROGRESS_FORM: ProgressFormValues = {
   nextAppointmentTime: '',
 }
 
+const STUDENT_AVATAR_DB_NAME = 'dentbridge-student-avatar'
+const STUDENT_AVATAR_STORE_NAME = 'avatars'
+const STUDENT_AVATAR_MAX_BYTES = 2 * 1024 * 1024
+const STUDENT_AVATAR_SIZE = 256
+
+function getStudentAvatarKey(email: string) {
+  return `student-avatar:${email.trim().toLowerCase()}`
+}
+
+function openStudentAvatarDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    if (typeof indexedDB === 'undefined') {
+      reject(new Error('IndexedDB is not available.'))
+      return
+    }
+
+    const request = indexedDB.open(STUDENT_AVATAR_DB_NAME, 1)
+
+    request.onupgradeneeded = () => {
+      const db = request.result
+      if (!db.objectStoreNames.contains(STUDENT_AVATAR_STORE_NAME)) {
+        db.createObjectStore(STUDENT_AVATAR_STORE_NAME)
+      }
+    }
+
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(request.error ?? new Error('Unable to open avatar storage.'))
+  })
+}
+
+async function getStoredStudentAvatar(key: string): Promise<Blob | null> {
+  const db = await openStudentAvatarDb()
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STUDENT_AVATAR_STORE_NAME, 'readonly')
+    const request = transaction.objectStore(STUDENT_AVATAR_STORE_NAME).get(key)
+
+    request.onsuccess = () => {
+      const result = request.result
+      resolve(result instanceof Blob ? result : null)
+    }
+    request.onerror = () => reject(request.error ?? new Error('Unable to read avatar.'))
+    transaction.oncomplete = () => db.close()
+    transaction.onerror = () => {
+      db.close()
+      reject(transaction.error ?? new Error('Unable to read avatar.'))
+    }
+  })
+}
+
+async function saveStoredStudentAvatar(key: string, blob: Blob): Promise<void> {
+  const db = await openStudentAvatarDb()
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STUDENT_AVATAR_STORE_NAME, 'readwrite')
+    transaction.objectStore(STUDENT_AVATAR_STORE_NAME).put(blob, key)
+
+    transaction.oncomplete = () => {
+      db.close()
+      resolve()
+    }
+    transaction.onerror = () => {
+      db.close()
+      reject(transaction.error ?? new Error('Unable to save avatar.'))
+    }
+  })
+}
+
+async function deleteStoredStudentAvatar(key: string): Promise<void> {
+  const db = await openStudentAvatarDb()
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STUDENT_AVATAR_STORE_NAME, 'readwrite')
+    transaction.objectStore(STUDENT_AVATAR_STORE_NAME).delete(key)
+
+    transaction.oncomplete = () => {
+      db.close()
+      resolve()
+    }
+    transaction.onerror = () => {
+      db.close()
+      reject(transaction.error ?? new Error('Unable to remove avatar.'))
+    }
+  })
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob | null> {
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => resolve(blob), type, quality)
+  })
+}
+
+function loadImageFromFile(file: File): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file)
+    const image = new Image()
+
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl)
+      resolve(image)
+    }
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      reject(new Error('Unable to read this image.'))
+    }
+    image.src = objectUrl
+  })
+}
+
+async function resizeStudentAvatar(file: File): Promise<Blob> {
+  if (!file.type.startsWith('image/')) {
+    throw new Error('Please choose an image file.')
+  }
+
+  if (file.size > STUDENT_AVATAR_MAX_BYTES) {
+    throw new Error('Please choose an image smaller than 2 MB.')
+  }
+
+  const image = await loadImageFromFile(file)
+  const sourceSize = Math.min(image.naturalWidth, image.naturalHeight)
+
+  if (!sourceSize) {
+    throw new Error('This image could not be used.')
+  }
+
+  const canvas = document.createElement('canvas')
+  canvas.width = STUDENT_AVATAR_SIZE
+  canvas.height = STUDENT_AVATAR_SIZE
+
+  const context = canvas.getContext('2d')
+  if (!context) {
+    throw new Error('Image processing is not available in this browser.')
+  }
+
+  const sourceX = Math.max(0, (image.naturalWidth - sourceSize) / 2)
+  const sourceY = Math.max(0, (image.naturalHeight - sourceSize) / 2)
+
+  context.drawImage(
+    image,
+    sourceX,
+    sourceY,
+    sourceSize,
+    sourceSize,
+    0,
+    0,
+    STUDENT_AVATAR_SIZE,
+    STUDENT_AVATAR_SIZE
+  )
+
+  const webpBlob = await canvasToBlob(canvas, 'image/webp', 0.86)
+  if (webpBlob?.type === 'image/webp') {
+    return webpBlob
+  }
+
+  const jpegBlob = await canvasToBlob(canvas, 'image/jpeg', 0.86)
+  if (jpegBlob) {
+    return jpegBlob
+  }
+
+  throw new Error('Unable to prepare this image.')
+}
+
 function getUrgencyBadgeClass(urgency: string) {
   switch ((urgency || '').toLowerCase()) {
     case 'high':
@@ -186,7 +350,12 @@ export function DashboardClient({
     mode: ProgressComposerMode
   } | null>(null)
   const [progressForm, setProgressForm] = useState<ProgressFormValues>(EMPTY_PROGRESS_FORM)
+  const [avatarUrl, setAvatarUrl] = useState('')
+  const [avatarError, setAvatarError] = useState('')
+  const [avatarSaving, setAvatarSaving] = useState(false)
   const profileMenuRef = useRef<HTMLDivElement | null>(null)
+  const avatarInputRef = useRef<HTMLInputElement | null>(null)
+  const avatarObjectUrlRef = useRef('')
 
   const ui =
     locale === 'tr'
@@ -210,6 +379,9 @@ export function DashboardClient({
           pendingSummary: 'Bekleyen İstekler',
           pendingSummaryDesc: 'Fakülte onayı bekleyen talepleriniz',
           initialRequest: 'İlk talep:',
+          changePhoto: 'Fotoğrafı değiştir',
+          removePhoto: 'Fotoğrafı kaldır',
+          photoSaving: 'Kaydediliyor...',
         }
       : {
           nextAction: 'Next Action',
@@ -231,6 +403,9 @@ export function DashboardClient({
           pendingSummary: 'Pending Requests',
           pendingSummaryDesc: 'Requests still waiting for faculty review',
           initialRequest: 'Initial request:',
+          changePhoto: 'Change photo',
+          removePhoto: 'Remove photo',
+          photoSaving: 'Saving...',
         }
 
   function tTreatment(v: string): string {
@@ -272,6 +447,94 @@ export function DashboardClient({
       case 'low': return t('request.urgencyLow').toUpperCase()
       default: return (v || 'Unknown').toUpperCase()
     }
+  }
+
+  const avatarStorageKey = getStudentAvatarKey(studentEmail)
+
+  function replaceAvatarUrl(blob: Blob | null) {
+    if (avatarObjectUrlRef.current) {
+      URL.revokeObjectURL(avatarObjectUrlRef.current)
+      avatarObjectUrlRef.current = ''
+    }
+
+    if (!blob) {
+      setAvatarUrl('')
+      return
+    }
+
+    const nextUrl = URL.createObjectURL(blob)
+    avatarObjectUrlRef.current = nextUrl
+    setAvatarUrl(nextUrl)
+  }
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadLocalAvatar() {
+      try {
+        const storedAvatar = await getStoredStudentAvatar(avatarStorageKey)
+        if (!cancelled) {
+          replaceAvatarUrl(storedAvatar)
+        }
+      } catch {
+        if (!cancelled) {
+          replaceAvatarUrl(null)
+        }
+      }
+    }
+
+    void loadLocalAvatar()
+
+    return () => {
+      cancelled = true
+      if (avatarObjectUrlRef.current) {
+        URL.revokeObjectURL(avatarObjectUrlRef.current)
+        avatarObjectUrlRef.current = ''
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [avatarStorageKey])
+
+  async function handleAvatarFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    setAvatarError('')
+
+    if (!file) {
+      return
+    }
+
+    setAvatarSaving(true)
+
+    try {
+      const resizedAvatar = await resizeStudentAvatar(file)
+      await saveStoredStudentAvatar(avatarStorageKey, resizedAvatar)
+      replaceAvatarUrl(resizedAvatar)
+    } catch (error) {
+      setAvatarError(error instanceof Error ? error.message : 'Unable to save this photo.')
+      replaceAvatarUrl(null)
+    } finally {
+      setAvatarSaving(false)
+    }
+  }
+
+  async function handleRemoveAvatar() {
+    setAvatarError('')
+    setAvatarSaving(true)
+
+    try {
+      await deleteStoredStudentAvatar(avatarStorageKey)
+    } catch {
+      // Removal is local-only. Even if IndexedDB fails, the visible avatar can still fall back.
+    } finally {
+      replaceAvatarUrl(null)
+      setAvatarSaving(false)
+    }
+  }
+
+  function handleAvatarImageError() {
+    setAvatarError('')
+    replaceAvatarUrl(null)
   }
 
   async function handleSignOut() {
@@ -633,14 +896,34 @@ export function DashboardClient({
             )}
 
             <div ref={profileMenuRef} className="relative">
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarFileChange}
+              />
               <button
                 type="button"
                 onClick={() => setProfileMenuOpen((prev) => !prev)}
                 className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white p-1 pr-2 text-slate-700 shadow-sm transition hover:bg-slate-50"
                 aria-expanded={profileMenuOpen}
               >
-                <span className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-[10px] sm:text-xs font-bold text-white ring-2 ring-slate-100">
-                  {studentInitials}
+                <span
+                  className={`flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center overflow-hidden rounded-full text-[10px] sm:text-xs font-bold ring-2 ring-slate-100 ${
+                    avatarUrl ? 'bg-slate-100 text-slate-900' : 'bg-slate-900 text-white'
+                  }`}
+                >
+                  {avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt=""
+                      className="h-full w-full object-cover"
+                      onError={handleAvatarImageError}
+                    />
+                  ) : (
+                    studentInitials
+                  )}
                 </span>
                 <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
               </button>
@@ -665,6 +948,29 @@ export function DashboardClient({
                   </Link>
                   <button
                     type="button"
+                    onClick={() => avatarInputRef.current?.click()}
+                    disabled={avatarSaving}
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Camera className="h-4 w-4 text-slate-400" />
+                    {avatarSaving ? ui.photoSaving : ui.changePhoto}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRemoveAvatar}
+                    disabled={avatarSaving || !avatarUrl}
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Trash2 className="h-4 w-4 text-slate-400" />
+                    {ui.removePhoto}
+                  </button>
+                  {avatarError && (
+                    <div className="mx-3 my-1 rounded-lg border border-red-100 bg-red-50 px-2 py-1.5 text-xs leading-relaxed text-red-700">
+                      {avatarError}
+                    </div>
+                  )}
+                  <button
+                    type="button"
                     onClick={handleSignOut}
                     className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
                   >
@@ -684,8 +990,21 @@ export function DashboardClient({
         <div className="mb-4 sm:mb-8 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-8">
             <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
-              <div className="flex h-10 w-10 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-xl sm:rounded-2xl bg-slate-900 text-sm sm:text-xl font-bold text-white shadow-sm">
-                {studentInitials}
+              <div
+                className={`flex h-10 w-10 sm:h-14 sm:w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl sm:rounded-2xl text-sm sm:text-xl font-bold shadow-sm ${
+                  avatarUrl ? 'bg-slate-100 text-slate-900' : 'bg-slate-900 text-white'
+                }`}
+              >
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt=""
+                    className="h-full w-full object-cover"
+                    onError={handleAvatarImageError}
+                  />
+                ) : (
+                  studentInitials
+                )}
               </div>
 
               <div className="min-w-0 flex-1">
