@@ -55,10 +55,6 @@ export default async function StudentDashboardPage() {
   const { count: urgentPoolCaseCount } = urgentPoolCasesResult
   const { data: myRequests } = myRequestsResult
 
-  if (!studentProfile?.full_name?.trim() || !studentProfile.phone?.trim()) {
-    redirect('/auth/set-password/student')
-  }
-
   const approvedCaseIds = (myRequests ?? [])
     .filter((r) => r.status === 'approved')
     .map((r) => r.case_id)

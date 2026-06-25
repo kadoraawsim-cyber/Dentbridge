@@ -48,9 +48,6 @@ type BulkInviteStatus =
   | 'failed'
   | 'skipped_duplicate'
   | 'invalid_email'
-  | 'existing_user'
-  | 'recovery_sending'
-  | 'recovery_sent'
 
 type BulkRunState = 'idle' | 'sending' | 'paused' | 'stopped' | 'complete'
 
@@ -93,10 +90,6 @@ const bulkInviteCopy = {
     sending: 'Sending',
     sent: 'Sent',
     failed: 'Failed',
-    existingUser: 'Existing user',
-    recoverySending: 'Sending setup link',
-    recoverySent: 'Setup link sent',
-    resendSetup: 'Send setup link',
     duplicate: 'Skipped duplicate',
     invalid: 'Invalid email',
     line: 'Line',
@@ -114,7 +107,6 @@ const bulkInviteCopy = {
     copied: 'Report copied.',
     rateLimited:
       'A rate-limit response was received. The queue has been paused so you can resume safely later.',
-    recoverySentMessage: 'Account setup recovery link sent.',
     restored: 'Previous bulk invite progress was restored from this browser.',
     nextInvitePrefix: 'Next invite after',
   },
@@ -136,10 +128,6 @@ const bulkInviteCopy = {
     sending: 'Gönderiliyor',
     sent: 'Gönderildi',
     failed: 'Başarısız',
-    existingUser: 'Mevcut kullanıcı',
-    recoverySending: 'Kurulum bağlantısı gönderiliyor',
-    recoverySent: 'Kurulum bağlantısı gönderildi',
-    resendSetup: 'Kurulum bağlantısı gönder',
     duplicate: 'Tekrar atlandı',
     invalid: 'Geçersiz e-posta',
     line: 'Satır',
@@ -157,7 +145,6 @@ const bulkInviteCopy = {
     copied: 'Rapor kopyalandı.',
     rateLimited:
       'Hız sınırı yanıtı alındı. Daha sonra güvenle sürdürebilmeniz için kuyruk duraklatıldı.',
-    recoverySentMessage: 'Hesap kurulum kurtarma bağlantısı gönderildi.',
     restored: 'Önceki toplu davet ilerlemesi bu tarayıcıdan geri yüklendi.',
     nextInvitePrefix: 'Sonraki davet zamanı',
   },
@@ -201,12 +188,6 @@ function getBulkStatusBadgeClass(status: BulkInviteStatus) {
       return 'border-emerald-200 bg-emerald-50 text-emerald-700'
     case 'failed':
       return 'border-red-200 bg-red-50 text-red-700'
-    case 'existing_user':
-      return 'border-indigo-200 bg-indigo-50 text-indigo-700'
-    case 'recovery_sending':
-      return 'border-blue-200 bg-blue-50 text-blue-700'
-    case 'recovery_sent':
-      return 'border-teal-200 bg-teal-50 text-teal-700'
     case 'skipped_duplicate':
       return 'border-amber-200 bg-amber-50 text-amber-800'
     case 'invalid_email':
@@ -470,12 +451,6 @@ export function DashboardClient({ initialRequests, adminEmail, currentRole }: Pr
         return bulkCopy.sent
       case 'failed':
         return bulkCopy.failed
-      case 'existing_user':
-        return bulkCopy.existingUser
-      case 'recovery_sending':
-        return bulkCopy.recoverySending
-      case 'recovery_sent':
-        return bulkCopy.recoverySent
       case 'skipped_duplicate':
         return bulkCopy.duplicate
       case 'invalid_email':
@@ -549,27 +524,11 @@ export function DashboardClient({ initialRequests, adminEmail, currentRole }: Pr
         }),
       })
 
-      const result = (await response.json()) as { code?: string; error?: string }
+      const result = (await response.json()) as { error?: string }
       const finishedAt = new Date().toISOString()
 
       if (!response.ok) {
         const message = result.error || t('admin.dashboard.inviteStudentErrorGeneric')
-
-        if (response.status === 409 && result.code === 'USER_ALREADY_EXISTS') {
-          updateBulkRows((current) =>
-            current.map((item, index) =>
-              index === rowIndex
-                ? {
-                    ...item,
-                    status: 'existing_user',
-                    errorMessage: message,
-                    timestamp: finishedAt,
-                  }
-                : item
-            )
-          )
-          return 'failed'
-        }
 
         if (isRateLimitMessage(message)) {
           updateBulkRows((current) =>
@@ -727,86 +686,6 @@ export function DashboardClient({ initialRequests, adminEmail, currentRole }: Pr
     setBulkMessage(bulkCopy.stopped)
   }
 
-  async function handleSendSetupRecoveryLink(rowId: string) {
-    const row = bulkRowsRef.current.find((item) => item.id === rowId)
-    if (!row?.email) return
-
-    const startedAt = new Date().toISOString()
-
-    updateBulkRows((current) =>
-      current.map((item) =>
-        item.id === rowId
-          ? {
-              ...item,
-              status: 'recovery_sending',
-              errorMessage: '',
-              timestamp: startedAt,
-            }
-          : item
-      )
-    )
-
-    try {
-      const response = await fetch('/api/admin/invitations/students/recovery', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: row.email,
-        }),
-      })
-
-      const result = (await response.json()) as { error?: string }
-      const finishedAt = new Date().toISOString()
-
-      if (!response.ok) {
-        updateBulkRows((current) =>
-          current.map((item) =>
-            item.id === rowId
-              ? {
-                  ...item,
-                  status: 'existing_user',
-                  errorMessage: result.error || t('admin.dashboard.inviteStudentErrorGeneric'),
-                  timestamp: finishedAt,
-                }
-              : item
-          )
-        )
-        return
-      }
-
-      updateBulkRows((current) =>
-        current.map((item) =>
-          item.id === rowId
-            ? {
-                ...item,
-                status: 'recovery_sent',
-                errorMessage: bulkCopy.recoverySentMessage,
-                timestamp: finishedAt,
-              }
-            : item
-        )
-      )
-    } catch (error) {
-      const message = error instanceof Error ? error.message : t('admin.dashboard.inviteStudentErrorGeneric')
-      const finishedAt = new Date().toISOString()
-
-      updateBulkRows((current) =>
-        current.map((item) =>
-          item.id === rowId
-            ? {
-                ...item,
-                status: 'existing_user',
-                errorMessage: message,
-                timestamp: finishedAt,
-              }
-            : item
-        )
-      )
-    }
-  }
-
   async function handleCopyBulkReport() {
     if (bulkRows.length === 0) return
 
@@ -909,8 +788,6 @@ export function DashboardClient({ initialRequests, adminEmail, currentRole }: Pr
         .length,
       sent: bulkRows.filter((row) => row.status === 'sent').length,
       failed: bulkRows.filter((row) => row.status === 'failed').length,
-      existing: bulkRows.filter((row) => row.status === 'existing_user').length,
-      recoverySent: bulkRows.filter((row) => row.status === 'recovery_sent').length,
       duplicate: bulkRows.filter((row) => row.status === 'skipped_duplicate').length,
       invalid: bulkRows.filter((row) => row.status === 'invalid_email').length,
     }),
@@ -1493,7 +1370,7 @@ export function DashboardClient({ initialRequests, adminEmail, currentRole }: Pr
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4 lg:min-w-[640px] xl:grid-cols-7">
+              <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-5 lg:min-w-[520px]">
                 <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                   <p className="font-semibold text-slate-500">{bulkCopy.pending}</p>
                   <p className="mt-1 text-lg font-bold text-slate-900">{bulkSummary.pending}</p>
@@ -1505,14 +1382,6 @@ export function DashboardClient({ initialRequests, adminEmail, currentRole }: Pr
                 <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2">
                   <p className="font-semibold text-red-700">{bulkCopy.failed}</p>
                   <p className="mt-1 text-lg font-bold text-red-800">{bulkSummary.failed}</p>
-                </div>
-                <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2">
-                  <p className="font-semibold text-indigo-700">{bulkCopy.existingUser}</p>
-                  <p className="mt-1 text-lg font-bold text-indigo-800">{bulkSummary.existing}</p>
-                </div>
-                <div className="rounded-lg border border-teal-200 bg-teal-50 px-3 py-2">
-                  <p className="font-semibold text-teal-700">{bulkCopy.recoverySent}</p>
-                  <p className="mt-1 text-lg font-bold text-teal-800">{bulkSummary.recoverySent}</p>
                 </div>
                 <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
                   <p className="font-semibold text-amber-800">{bulkCopy.duplicate}</p>
@@ -1631,7 +1500,7 @@ export function DashboardClient({ initialRequests, adminEmail, currentRole }: Pr
 
               <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200">
                 <div className="max-h-[28rem] overflow-auto">
-                  <table className="w-full min-w-[820px] border-collapse text-left text-sm">
+                  <table className="w-full min-w-[720px] border-collapse text-left text-sm">
                     <thead className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500">
                       <tr>
                         <th className="px-4 py-3 font-semibold">{bulkCopy.line}</th>
@@ -1639,13 +1508,12 @@ export function DashboardClient({ initialRequests, adminEmail, currentRole }: Pr
                         <th className="px-4 py-3 font-semibold">{bulkCopy.status}</th>
                         <th className="px-4 py-3 font-semibold">{bulkCopy.timestamp}</th>
                         <th className="px-4 py-3 font-semibold">{bulkCopy.message}</th>
-                        <th className="px-4 py-3 font-semibold"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 bg-white">
                       {bulkRows.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">
+                          <td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-500">
                             {bulkCopy.nothingToPreview}
                           </td>
                         </tr>
@@ -1674,21 +1542,6 @@ export function DashboardClient({ initialRequests, adminEmail, currentRole }: Pr
                               <span className="line-clamp-3 break-words">
                                 {row.errorMessage || '-'}
                               </span>
-                            </td>
-                            <td className="px-4 py-3 align-top">
-                              {(row.status === 'existing_user' ||
-                                row.status === 'recovery_sending') && (
-                                <button
-                                  type="button"
-                                  onClick={() => void handleSendSetupRecoveryLink(row.id)}
-                                  disabled={row.status === 'recovery_sending'}
-                                  className="inline-flex whitespace-nowrap rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                  {row.status === 'recovery_sending'
-                                    ? bulkCopy.recoverySending
-                                    : bulkCopy.resendSetup}
-                                </button>
-                              )}
                             </td>
                           </tr>
                         ))
