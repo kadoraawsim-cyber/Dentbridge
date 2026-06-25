@@ -360,6 +360,7 @@ export function DashboardClient({
   const ui =
     locale === 'tr'
       ? {
+          heroHeading: 'Klinik panelinize hoş geldiniz',
           nextAction: 'Sonraki Adım',
           nothingUrgent: 'Şu anda acil bir işlem gerekmiyor.',
           contactPatient: 'Hastayla iletişime geç',
@@ -393,6 +394,7 @@ export function DashboardClient({
           photoSaving: 'Kaydediliyor...',
         }
       : {
+          heroHeading: 'Welcome to your clinical dashboard',
           nextAction: 'Next Action',
           nothingUrgent: 'No urgent action is required right now.',
           contactPatient: 'Contact patient',
@@ -1042,7 +1044,7 @@ export function DashboardClient({
 
               <div className="min-w-0 flex-1">
                 <h1 className="truncate text-lg sm:text-2xl font-bold tracking-tight text-slate-900">
-                  {t('student.dashboard.welcomeBack')}
+                  {ui.heroHeading}
                 </h1>
 
                 {displayName && (
