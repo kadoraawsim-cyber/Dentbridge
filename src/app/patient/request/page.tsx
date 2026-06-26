@@ -1218,7 +1218,14 @@ export default function PatientRequestPage() {
                     className="mt-0.5 sm:mt-1 h-4 w-4 shrink-0 rounded border-slate-300"
                   />
                   <span className="text-xs sm:text-sm text-slate-700 leading-relaxed">
-                    {t('request.consentLabel')} *
+                    {t('request.consentLabelBeforeLink')}
+                    <Link
+                      href="/personal-data-protection-law"
+                      className="font-semibold text-teal-700 underline-offset-2 hover:underline"
+                    >
+                      {t('request.consentLabelLink')}
+                    </Link>
+                    {t('request.consentLabelAfterLink')} *
                   </span>
                 </label>
 
@@ -1227,7 +1234,14 @@ export default function PatientRequestPage() {
                   <Link href="/privacy" className="font-semibold text-teal-700 underline-offset-2 hover:underline">
                     {locale === 'tr' ? 'Gizlilik Politikası' : 'Privacy Policy'}
                   </Link>
-                  {locale === 'tr' ? ' inceleyin.' : ' for details.'}
+                  {locale === 'tr' ? ' ve ' : ' and '}
+                  <Link
+                    href="/personal-data-protection-law"
+                    className="font-semibold text-teal-700 underline-offset-2 hover:underline"
+                  >
+                    {t('footer.personalDataProtection')}
+                  </Link>
+                  {locale === 'tr' ? ' sayfasını inceleyin.' : ' page for details.'}
                 </p>
               </section>
 
@@ -1305,6 +1319,16 @@ export default function PatientRequestPage() {
               <li>
                 <Link href="/privacy" className="hover:text-white">
                   {t('footer.privacyPolicy')}
+                </Link>
+              </li>
+              <li>
+                <Link href="/terms" className="hover:text-white">
+                  {t('footer.termsOfUse')}
+                </Link>
+              </li>
+              <li>
+                <Link href="/personal-data-protection-law" className="hover:text-white">
+                  {t('footer.personalDataProtection')}
                 </Link>
               </li>
               <li>

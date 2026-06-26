@@ -23,6 +23,8 @@ function shouldShowPatientChat(pathname: string) {
     pathname === '/patients' ||
     pathname === '/faq' ||
     pathname === '/privacy' ||
+    pathname === '/terms' ||
+    pathname === '/personal-data-protection-law' ||
     pathname.startsWith('/patient/')
   )
 }
@@ -78,6 +80,14 @@ function getPatientChatPageContext(
       page: 'privacy',
       visibleActions: [requestTreatmentLabel, statusLabel],
     },
+    terms: {
+      page: 'terms',
+      visibleActions: [requestTreatmentLabel, statusLabel],
+    },
+    'personal-data-protection-law': {
+      page: 'personal-data-protection-law',
+      visibleActions: [requestTreatmentLabel, statusLabel],
+    },
   }
 
 if (pathname === '/' || pathname === '/patients') {
@@ -98,6 +108,14 @@ if (pathname === '/' || pathname === '/patients') {
 
   if (pathname === '/privacy') {
     return byPage.privacy
+  }
+
+  if (pathname === '/terms') {
+    return byPage.terms
+  }
+
+  if (pathname === '/personal-data-protection-law') {
+    return byPage['personal-data-protection-law']
   }
 
   return null
@@ -367,6 +385,12 @@ export default function PublicPatientChatWidget() {
                     ))}
                   </div>
                 </div>
+              )}
+
+              {showStarters && (
+                <p className="rounded-2xl border border-slate-200 bg-white/80 px-3 py-2.5 text-[11px] leading-5 text-slate-500 shadow-sm shadow-slate-100/60">
+                  {t('patientChat.disclaimer')}
+                </p>
               )}
             </div>
 

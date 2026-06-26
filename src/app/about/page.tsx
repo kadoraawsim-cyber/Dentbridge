@@ -288,6 +288,16 @@ export default function AboutPage() {
                 </Link>
               </li>
               <li>
+                <Link href="/terms" className="transition hover:text-white">
+                  {t('footer.termsOfUse')}
+                </Link>
+              </li>
+              <li>
+                <Link href="/personal-data-protection-law" className="transition hover:text-white">
+                  {t('footer.personalDataProtection')}
+                </Link>
+              </li>
+              <li>
                 <Link href="/faq" className="transition hover:text-white">
                   {t('footer.faq')}
                 </Link>

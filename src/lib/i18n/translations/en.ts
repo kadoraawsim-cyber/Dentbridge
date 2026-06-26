@@ -210,6 +210,9 @@ export type TranslationShape = {
     uploadSelectedLabel: string
     consentInfo: string
     consentLabel: string
+    consentLabelBeforeLink: string
+    consentLabelLink: string
+    consentLabelAfterLink: string
     errorRequiredFields: string
     errorConsent: string
     errorFileSize: string
@@ -283,6 +286,7 @@ export type TranslationShape = {
     close: string
     loadingReply: string
     errorFallback: string
+    disclaimer: string
   }
 
   auth: {
@@ -1186,6 +1190,8 @@ export type TranslationShape = {
     checkStatus: string
     aboutDentBridge: string
     privacyPolicy: string
+    termsOfUse: string
+    personalDataProtection: string
     forStudents: string
     studentPortal: string
     facultyPortal: string
@@ -1321,6 +1327,7 @@ export type TranslationShape = {
       notes: { title: string; body: string }
       images: { title: string; body: string }
       protocols: { title: string; body: string }
+      clinicalCompass: { title: string; body: string }
       aiAssistant: { title: string; body: string }
     }
     differenceEyebrow: string
@@ -1411,7 +1418,7 @@ export const en: TranslationShape = {
     audiencePatientButton: 'I’m a Patient',
     audienceStudentTitle: 'For Dental Students',
     audienceStudentText:
-      'Looking for clinical cases? Discover how DentBridge helps you manage cases, requirements, and your clinical workflow.',
+      'Looking for clinical cases? Discover how DentBridge helps you manage cases, planning, and your supervised clinical workflow.',
     audienceStudentButton: 'I’m a Student',
     patientHeroBadge: 'Faculty-Supervised Access to Care',
     patientHeroTitle: 'Affordable Supervised Dental Care',
@@ -1425,9 +1432,9 @@ export const en: TranslationShape = {
     step2Title: '2. Faculty Review',
     step2Desc:
       'Your request is reviewed by faculty to understand your case and identify the most appropriate clinical path.',
-    step3Title: '3. Smart Matching',
+    step3Title: '3. Faculty-Guided Matching',
     step3Desc:
-      'Your case is matched to the right department and the most suitable student based on your treatment needs.',
+      'Your case is reviewed for the right department and may be shared with a suitable supervised student based on your treatment needs.',
     step4Title: '4. Contact & Scheduling',
     step4Desc: 'You are contacted to arrange the next step and schedule your appointment.',
     step5Title: '5. Supervised Treatment',
@@ -1436,7 +1443,7 @@ export const en: TranslationShape = {
     whyTitle: 'Why Choose University-Supervised Care?',
     whyCareTitle: 'Affordable Care',
     whyCareDesc:
-      'Receive quality dental care in a supervised academic environment designed to make treatment more accessible.',
+      'Receive supervised dental care in an academic environment designed to make treatment more accessible.',
     whyOversightTitle: 'The Right Care Starts with the Right Match',
     whyOversightDesc:
       'Your case is carefully reviewed and assigned to the most suitable department, so you don’t waste time in the wrong place.',
@@ -1449,10 +1456,10 @@ export const en: TranslationShape = {
     whyDigitalTitle: 'Modern Clinical Environment',
     whyDigitalDesc:
       'Benefit from organized academic workflows, contemporary facilities, and supervised treatment planning.',
-    whyImageCaptionTitle: 'EXCLUSIVE ACADEMIC PARTNERSHIP',
+    whyImageCaptionTitle: 'Currently piloted in a supervised academic setting',
     whyImageCaptionDesc:
-      'Benefiting from the academic excellence and advanced clinical resources of our partner dental hospital.',
-    activePartnerStripEyebrow: 'Our exclusive partner',
+      'Built around supervised academic clinical coordination and faculty-reviewed patient requests.',
+    activePartnerStripEyebrow: 'Currently piloted in a supervised academic setting',
     activePartnerStripTitle: 'Istinye University Faculty of Dentistry',
     activePartnerStripMessage:
       'Now accepting patient requests through Istinye University Faculty of Dentistry in Istanbul.',
@@ -1648,9 +1655,13 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     uploadSubtitle: 'JPG, JPEG, PNG, or PDF up to 10 MB',
     uploadSelectedLabel: 'Selected file:',
     consentInfo:
-      'Consent: I understand that this platform matches me with senior dental students who provide treatment under the supervision of qualified faculty members.',
+      'Consent: I understand that my request will be submitted for academic clinical review. Submitting this form does not guarantee treatment. My case may be reviewed by authorized faculty or administrative users, and eligible cases may be shared with supervised senior dental students for clinical coordination. Treatment decisions are made under faculty supervision. Any uploaded files or images may be reviewed only for clinical coordination purposes. This platform must not be used for emergencies.',
     consentLabel:
       'I understand and agree to submit my treatment request for academic review.',
+    consentLabelBeforeLink: 'I have read and understood the ',
+    consentLabelLink: 'KVKK / Personal Data Protection clarification text',
+    consentLabelAfterLink:
+      ' and I consent to the processing of my submitted information for academic clinical review and supervised case coordination.',
     errorRequiredFields: 'Please complete all required fields.',
     errorConsent: 'Please confirm consent before submitting.',
     errorFileSize: 'File size must be 10 MB or less.',
@@ -1726,6 +1737,8 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     close: 'Close',
     loadingReply: 'Preparing a reply…',
     errorFallback: 'Unable to send your message right now. Please try again.',
+    disclaimer:
+      'Bridgey is an informational assistant for general guidance about the DentBridge request process. It does not provide diagnosis, treatment planning, medical advice, or emergency support. All clinical decisions must be made by qualified faculty and healthcare professionals.',
   },
 
   auth: {
@@ -2213,13 +2226,13 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
           'Before using local anesthesia, review the patient’s medical history, allergies, current medications, pregnancy status, previous anesthesia reactions, and supervising faculty instructions.',
         educationalWarningTitle: 'Educational support only',
         educationalWarningText:
-          'This calculator is for educational support only. Always confirm the dose with the supervising dentist/faculty member and the official drug label before administration.',
+          'This calculator is for educational support only. Always confirm the dose with the supervising dentist/faculty member and the manufacturer drug label before administration.',
         clinicalLimitationTitle: 'Clinical limitations',
         clinicalLimitationText:
           'Dose limits may require adjustment in children, elderly patients, pregnancy, liver disease, kidney disease, cardiovascular disease, low body weight, drug interactions, allergy, methemoglobinemia risk, or when multiple anesthetics are combined.',
         legalDisclaimerTitle: 'Legal / Safety Disclaimer',
         legalDisclaimerText:
-          'This calculator is for educational support only. It does not replace clinical judgment, faculty supervision, institutional protocols, or official drug labeling.',
+          'This calculator is for educational support only. It does not replace clinical judgment, faculty supervision, institutional protocols, or manufacturer drug labeling.',
         emptyWeightError: 'Enter patient weight to calculate the dose limit.',
         positiveWeightError: 'Patient weight must be greater than 0 kg.',
         realisticWeightError: 'Enter a realistic patient weight between 5 kg and 300 kg.',
@@ -2664,6 +2677,8 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     checkStatus: 'Check Request Status',
     aboutDentBridge: 'About DentBridge',
     privacyPolicy: 'Privacy Policy',
+    termsOfUse: 'Terms of Use',
+    personalDataProtection: 'Personal Data Protection',
     forStudents: 'For Students',
     studentPortal: 'Student Portal',
     facultyPortal: 'Faculty Portal',
@@ -2671,7 +2686,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     affordableCareInfo: 'Affordable Care Information',
     faq: 'FAQ',
     clinicalRequirements: 'Clinical Requirements',
-    universityPilot: 'University-supported pilot platform',
+    universityPilot: 'Supervised academic pilot platform',
     email: 'Email: Dentbridge.tr@gmail.com',
     instagram: 'Instagram: @Dentbridge.tr',
     whatsappSupport: 'WhatsApp: WhatsApp support available',
@@ -2783,7 +2798,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     eyebrow: 'For dental students',
     heroTitle: 'Get Real Clinical Cases.\nManage Them Like a Professional.',
     heroSubtitle:
-      'DentBridge connects patients with dental students under full academic supervision — while giving you a smart system to manage your entire clinical workflow in one place.',
+      'DentBridge connects patients with dental students under faculty supervision while giving you a structured system to manage your clinical workflow in one place.',
     accessCta: 'How access works',
     dashboardCta: 'Go to student dashboard',
     heroStats: {
@@ -2800,7 +2815,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     valueItems: {
       cases: 'Access to relevant clinical cases',
       chaos: 'Less chaos, less manual work',
-      control: 'Full control over your treatments',
+      control: 'Structured tracking for your treatments',
       experience: 'A more organized, professional clinical experience',
     },
     workflowEyebrow: 'How it works',
@@ -2820,12 +2835,12 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       'DentBridge doesn’t just bring you cases — it helps you manage everything around them.',
     smartSystemTitle: 'A Smart System That Organizes Your Clinical Life',
     smartSystemBody:
-      'From case exchange to records, notes, appointments, requirements, and faculty updates, the platform keeps the moving parts of clinical years in one structured place.',
+      'From active case records, notes, appointments, and faculty-supervised updates to planned future add-ons, the platform keeps the moving parts of clinical years in one structured place.',
     features: {
       exchange: {
-        title: 'Case Exchange',
+        title: 'Case Exchange (Coming soon)',
         body:
-          'Easily exchange cases with other students in a structured and approved system without losing progress on your requirements.',
+          'Planned as a future workflow for structured student case exchange with faculty approval before any swap takes effect.',
       },
       planner: {
         title: 'Smart Planner',
@@ -2833,14 +2848,14 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
           'Manage appointments, track treatments, and stay on schedule so nothing falls through the cracks.',
       },
       requirements: {
-        title: 'Clinical Requirements — Automatically Updated',
+        title: 'Clinical Requirements Tracking (Planned)',
         body:
-          'Track your clinical requirements in real time based on the cases you actually complete.',
+          'Automatic clinical requirements tracking is planned as a future add-on and is not part of the current core workflow.',
       },
       messaging: {
-        title: 'Advanced Messaging System',
+        title: 'Messaging Updates (Planned)',
         body:
-          'Receive updates from the faculty and the platform directly to your phone — in real time.',
+          'Real-time phone updates and advanced messaging are under development for a future communication workflow.',
       },
       records: {
         title: 'Organized Patient Records',
@@ -2862,10 +2877,15 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
         body:
           'Access structured clinical protocols and guidelines based on the department you’re working in.',
       },
-      aiAssistant: {
-        title: 'Coming Soon: AI Clinical Assistant',
+      clinicalCompass: {
+        title: 'Clinical Compass (Coming soon)',
         body:
-          'A smart assistant that supports you during treatments with tips and guidance tailored to your case.',
+          'A structured educational knowledge base designed to support students with clinical communication, patient education, emergency guidance, and faculty-aligned learning content. It is a supportive learning add-on and does not replace faculty supervision or clinical judgment.',
+      },
+      aiAssistant: {
+        title: 'Student AI Assistant (Coming soon)',
+        body:
+          'Designed as a future supportive add-on for the student experience. It will not replace faculty supervision, clinical judgment, or treatment decisions.',
       },
     },
     differenceEyebrow: 'Why DentBridge is different',

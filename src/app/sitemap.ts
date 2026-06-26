@@ -10,6 +10,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/patient/request',
     '/patient/status',
     '/privacy',
+    '/terms',
+    '/personal-data-protection-law',
     '/faq',
     '/students',
   ]

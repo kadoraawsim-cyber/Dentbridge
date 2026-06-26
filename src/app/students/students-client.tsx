@@ -52,6 +52,7 @@ const platformFeatures = [
   { key: 'notes', icon: MessageSquareText },
   { key: 'images', icon: FileImage },
   { key: 'protocols', icon: BookOpenCheck },
+  { key: 'clinicalCompass', icon: BookOpenCheck },
   { key: 'aiAssistant', icon: Sparkles },
 ] as const
 

@@ -254,7 +254,7 @@ function buildInstructions(pageContext: PatientChatPageContext | null) {
     'If asked about privacy, answer only in a brief public-facing way consistent with the public site and do not add legal claims beyond that scope.',
     'If asked about who will provide treatment, explain it in a concise public way without making unsupported claims.',
     'If asked whether the patient needs to know the correct department, reassure them briefly and explain that they can describe their situation in simple words and the clinic or faculty team will handle the rest.',
-    'If asked whether treatment can be done at other universities, say that Istinye University and Istinye Dental Hospital are currently the exclusive partner in the current DentBridge flow, and that additional universities may join in the future, so this option is planned to become available later.',
+    'If asked whether treatment can be done at other universities, say that DentBridge is currently piloted in a supervised academic setting with the participating clinical setting shown on the public site, and that additional universities may join in the future.',
     'If the patient seems unsure or nervous, reassure them briefly and help them move forward easily.',
     'Use simple and natural phrases such as "It is very simple" or "It is okay if you are not sure" when helpful.',
     'If the patient asks vague questions such as "I need help", "What can you help me with?", or "What else?", respond helpfully and briefly list the main things you can help with, such as starting a request, understanding the form, what happens next, checking status, uploading photos, and common public questions.',

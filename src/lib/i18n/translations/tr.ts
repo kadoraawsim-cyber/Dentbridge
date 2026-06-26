@@ -52,7 +52,7 @@ export const tr: TranslationShape = {
     audiencePatientButton: 'Hastayım',
     audienceStudentTitle: 'Diş Hekimliği Öğrencileri İçin',
     audienceStudentText:
-      'Klinik vaka mı arıyorsunuz? DentBridge’in vakaları, gereklilikleri ve klinik iş akışınızı yönetmenize nasıl yardımcı olduğunu keşfedin.',
+      'Klinik vaka mı arıyorsunuz? DentBridge’in vakaları, planlamayı ve denetimli klinik iş akışınızı yönetmenize nasıl yardımcı olduğunu keşfedin.',
     audienceStudentButton: 'Öğrenciyim',
     patientHeroBadge: 'Fakülte Denetiminde Bakıma Erişim',
     patientHeroTitle: 'Uygun Fiyatlı Denetimli Diş Bakımı',
@@ -65,8 +65,9 @@ export const tr: TranslationShape = {
     step1Desc: 'Diş şikayetinizi ve temel tedavi ihtiyacınızı anlatan kısa bir form doldurun.',
     step2Title: '2. Fakülte İncelemesi',
     step2Desc: 'Talebiniz, vakanızı anlamak ve en uygun klinik yolu belirlemek için fakülte tarafından incelenir.',
-    step3Title: '3. Akıllı Eşleştirme',
-    step3Desc: 'Vakanız, tedavi ihtiyacınıza göre doğru bölüm ve en uygun öğrenciyle eşleştirilir.',
+    step3Title: '3. Fakülte Yönlendirmeli Eşleştirme',
+    step3Desc:
+      'Vakanız doğru bölüm için değerlendirilir ve tedavi ihtiyacınıza göre gözetim altındaki uygun bir öğrenciyle paylaşılabilir.',
     step4Title: '4. İletişim ve Randevu',
     step4Desc: 'Bir sonraki adımı planlamak ve randevunuzu oluşturmak için sizinle iletişime geçilir.',
     step5Title: '5. Denetimli Tedavi',
@@ -75,7 +76,7 @@ export const tr: TranslationShape = {
     whyTitle: 'Neden Üniversite Denetimli Bakımı Tercih Etmelisiniz?',
     whyCareTitle: 'Uygun Fiyatlı Bakım',
     whyCareDesc:
-      'Tedaviyi daha erişilebilir hale getirmek için tasarlanmış, denetimli akademik bir ortamda kaliteli diş bakımı alın.',
+      'Tedaviyi daha erişilebilir hale getirmek için tasarlanmış, denetimli akademik bir ortamda diş hekimliği bakımı alın.',
     whyOversightTitle: 'Doğru Tedavi, Doğru Eşleşmeyle Başlar',
     whyOversightDesc:
       'Vakanız dikkatlice değerlendirilir ve en uygun bölüme yönlendirilir, böylece zaman kaybetmeden doğru tedavi süreci başlar.',
@@ -88,10 +89,10 @@ export const tr: TranslationShape = {
     whyDigitalTitle: 'Modern Klinik Ortam',
     whyDigitalDesc:
       'Düzenli akademik iş akışlarından, çağdaş tesislerden ve denetimli tedavi planlamasından yararlanın.',
-    whyImageCaptionTitle: 'ÖZEL AKADEMİK İŞ BİRLİĞİ',
+    whyImageCaptionTitle: 'Şu anda denetimli akademik bir ortamda pilot aşamadadır.',
     whyImageCaptionDesc:
-      'Partner diş hastanemizin akademik mükemmelliğinden ve gelişmiş klinik kaynaklarından yararlanarak.',
-    activePartnerStripEyebrow: 'Özel partnerimiz',
+      'Denetimli akademik klinik koordinasyon ve fakülte tarafından incelenen hasta başvuruları etrafında tasarlanmıştır.',
+    activePartnerStripEyebrow: 'Şu anda denetimli akademik bir ortamda pilot aşamadadır.',
     activePartnerStripTitle: 'İstinye Üniversitesi Diş Hekimliği Fakültesi',
     activePartnerStripMessage:
       'Hasta başvuruları şu anda İstanbul’daki İstinye Üniversitesi Diş Hekimliği Fakültesi üzerinden kabul edilmektedir.',
@@ -288,9 +289,13 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
     uploadSubtitle: 'JPG, JPEG, PNG veya PDF, en fazla 10 MB',
     uploadSelectedLabel: 'Seçilen dosya:',
     consentInfo:
-      'Onay: Bu platformun beni, nitelikli öğretim üyelerinin denetimi altında tedavi sunan kıdemli diş hekimliği öğrencileriyle eşleştirdiğini anlıyorum.',
+      'Onay: Talebimin akademik klinik değerlendirme için gönderileceğini anlıyorum. Bu formu göndermek tedavi kabulünü garanti etmez. Vakam yetkili fakülte üyeleri veya idari kullanıcılar tarafından incelenebilir ve uygun vakalar klinik koordinasyon amacıyla gözetim altındaki son sınıf diş hekimliği öğrencileriyle paylaşılabilir. Tedavi kararları fakülte gözetimi altında verilir. Yüklenen dosyalar veya görüntüler yalnızca klinik koordinasyon amacıyla incelenebilir. Bu platform acil durumlar için kullanılmamalıdır.',
     consentLabel:
       'Tedavi talebimi akademik inceleme için göndermeyi anladığımı ve kabul ettiğimi onaylıyorum.',
+    consentLabelBeforeLink: '',
+    consentLabelLink: 'KVKK / Kişisel Verilerin Korunması aydınlatma metnini',
+    consentLabelAfterLink:
+      ' okudum ve anladım; gönderdiğim bilgilerin akademik klinik değerlendirme ve denetimli vaka koordinasyonu amacıyla işlenmesine onay veriyorum.',
     errorRequiredFields: 'Lütfen tüm zorunlu alanları doldurun.',
     errorConsent: 'Lütfen göndermeden önce onay kutusunu işaretleyin.',
     errorFileSize: 'Dosya boyutu 10 MB veya daha az olmalıdır.',
@@ -367,6 +372,8 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
     close: 'Kapat',
     loadingReply: 'Yanıt hazırlanıyor…',
     errorFallback: 'Mesajınız şu anda gönderilemedi. Lütfen tekrar deneyin.',
+    disclaimer:
+      'Bridgey, DentBridge başvuru süreci hakkında genel bilgilendirme sağlayan bir asistandır. Tanı, tedavi planlaması, tıbbi tavsiye veya acil durum desteği sağlamaz. Tüm klinik kararlar yetkili fakülte üyeleri ve sağlık profesyonelleri tarafından verilmelidir.',
   },
 
   auth: {
@@ -442,6 +449,8 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
     checkStatus: 'Talep Durumunu Kontrol Et',
     aboutDentBridge: 'DentBridge Hakkında',
     privacyPolicy: 'Gizlilik Politikası',
+    termsOfUse: 'Kullanım Koşulları',
+    personalDataProtection: 'Kişisel Verilerin Korunması',
     forStudents: 'Öğrenciler İçin',
     studentPortal: 'Öğrenci Portalı',
     facultyPortal: 'Fakülte Portalı',
@@ -449,7 +458,7 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
     affordableCareInfo: 'Uygun Fiyatlı Bakım Bilgileri',
     faq: 'SSS',
     clinicalRequirements: 'Klinik Gereksinimler',
-    universityPilot: 'Üniversite destekli pilot platform',
+    universityPilot: 'Denetimli akademik pilot platform',
     email: 'E-posta: Dentbridge.tr@gmail.com',
     instagram: 'Instagram: @Dentbridge.tr',
     whatsappSupport: 'WhatsApp: WhatsApp desteği mevcuttur',
@@ -561,7 +570,7 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
     eyebrow: 'Diş hekimliği öğrencileri için',
     heroTitle: 'Gerçek Klinik Vakalar Alın.\nOnları Profesyonel Gibi Yönetin.',
     heroSubtitle:
-      'DentBridge, hastaları tam akademik denetim altında diş hekimliği öğrencileriyle buluşturur — aynı zamanda tüm klinik sürecinizi tek bir yerden yönetmeniz için akıllı bir sistem sunar.',
+      'DentBridge, hastaları fakülte gözetimi altındaki diş hekimliği öğrencileriyle buluştururken klinik iş akışınızı tek yerde yönetmeniz için yapılandırılmış bir sistem sunar.',
     accessCta: 'Erişim nasıl çalışır',
     dashboardCta: 'Öğrenci paneline git',
     heroStats: {
@@ -578,7 +587,7 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
     valueItems: {
       cases: 'İlgili klinik vakalara erişim',
       chaos: 'Daha az karmaşa, daha az manuel takip',
-      control: 'Tedavileriniz üzerinde tam kontrol',
+      control: 'Tedavileriniz için yapılandırılmış takip',
       experience: 'Daha düzenli ve profesyonel bir klinik deneyim',
     },
     workflowEyebrow: 'Nasıl çalışır?',
@@ -599,12 +608,12 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
       'DentBridge sadece size vaka getirmez — vakalarla ilgili tüm süreci yönetmenize yardımcı olur.',
     smartSystemTitle: 'Klinik Hayatınızı Düzenleyen Akıllı Bir Sistem',
     smartSystemBody:
-      'Vaka değişiminden kayıtlara, notlara, randevulara, klinik gerekliliklere ve fakülte güncellemelerine kadar klinik yılların tüm hareketli parçalarını tek düzenli yerde toplar.',
+      'Aktif vaka kayıtlarından notlara, randevulara ve fakülte gözetimli güncellemelere; gelecekte eklenecek destekleyici özelliklere kadar klinik yılların hareketli parçalarını tek düzenli yerde toplar.',
     features: {
       exchange: {
-        title: 'Case Exchange',
+        title: 'Vaka Değişimi (Yakında)',
         body:
-          'Vakaları diğer öğrencilerle düzenli ve onaylı bir sistem içinde değiştirme imkânı sunar; klinik gerekliliklerinizdeki ilerlemenizi kaybetmeden.',
+          'Herhangi bir değişim yürürlüğe girmeden önce fakülte onayı gerektiren, yapılandırılmış öğrenci vaka değişimi için gelecekte planlanan bir iş akışıdır.',
       },
       planner: {
         title: 'Akıllı Planner',
@@ -612,14 +621,14 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
           'Randevularınızı yönetin, tedavilerinizi takip edin ve hiçbir adımı kaçırmadan planlı kalın.',
       },
       requirements: {
-        title: 'Otomatik Güncellenen Klinik Gereklilikler',
+        title: 'Klinik Gereklilik Takibi (Planlanmaktadır)',
         body:
-          'Gerçekten tamamladığınız vakalara göre klinik gerekliliklerinizi anlık olarak takip edin.',
+          'Otomatik klinik gereklilik takibi gelecekte eklenecek destekleyici bir özellik olarak planlanmaktadır ve mevcut temel iş akışının parçası değildir.',
       },
       messaging: {
-        title: 'Gelişmiş Bildirim Sistemi',
+        title: 'Mesajlaşma Güncellemeleri (Planlanmaktadır)',
         body:
-          'Fakülteden ve platformdan gelen güncellemeleri doğrudan telefonunuza, anlık olarak alın.',
+          'Gerçek zamanlı telefon güncellemeleri ve gelişmiş mesajlaşma, gelecekteki iletişim iş akışı için geliştirme aşamasındadır.',
       },
       records: {
         title: 'Düzenli Hasta Kayıtları',
@@ -641,10 +650,15 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
         body:
           'Çalıştığınız bölüme göre yapılandırılmış klinik protokollere ve yönergelere erişin.',
       },
-      aiAssistant: {
-        title: 'Yakında: AI Klinik Asistan',
+      clinicalCompass: {
+        title: 'Clinical Compass (Yakında)',
         body:
-          'Yaptığınız tedaviye ve vakaya göre size ipuçları ve yönlendirme sağlayacak akıllı bir asistan.',
+          'Öğrencileri klinik iletişim, hasta bilgilendirme, acil durum yönlendirmeleri ve fakülteyle uyumlu eğitim içerikleriyle desteklemek için tasarlanan yapılandırılmış bir eğitim bilgi tabanıdır. Destekleyici bir öğrenme eklentisidir ve fakülte gözetiminin veya klinik kararların yerine geçmez.',
+      },
+      aiAssistant: {
+        title: 'Öğrenci AI Asistanı (Yakında)',
+        body:
+          'Öğrenci deneyimi için gelecekte eklenecek destekleyici bir özellik olarak tasarlanmıştır. Fakülte gözetiminin, klinik kararların veya tedavi kararlarının yerine geçmez.',
       },
     },
     differenceEyebrow: 'DentBridge neden farklı?',
@@ -1091,13 +1105,13 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
           'Lokal anestezi kullanmadan önce hastanın tıbbi öyküsünü, alerjilerini, mevcut ilaçlarını, gebelik durumunu, önceki anestezi reaksiyonlarını ve sorumlu fakülte talimatlarını gözden geçirin.',
         educationalWarningTitle: 'Yalnızca eğitim desteği',
         educationalWarningText:
-          'Bu hesaplayıcı yalnızca eğitim amaçlı destek içindir. Uygulamadan önce dozu her zaman sorumlu diş hekimi/öğretim üyesi ve resmi ilaç etiketi ile doğrulayın.',
+          'Bu hesaplayıcı yalnızca eğitim amaçlı destek içindir. Uygulamadan önce dozu her zaman sorumlu diş hekimi/öğretim üyesi ve üretici ilaç etiketi ile doğrulayın.',
         clinicalLimitationTitle: 'Klinik sınırlamalar',
         clinicalLimitationText:
           'Çocuklarda, yaşlı hastalarda, gebelikte, karaciğer hastalığında, böbrek hastalığında, kardiyovasküler hastalıkta, düşük vücut ağırlığında, ilaç etkileşimlerinde, alerjide, methemoglobinemi riskinde veya birden fazla anestezik birlikte kullanıldığında doz sınırlarının ayarlanması gerekebilir.',
         legalDisclaimerTitle: 'Yasal / Güvenlik Uyarısı',
         legalDisclaimerText:
-          'Bu hesaplayıcı yalnızca eğitim amaçlı destek içindir. Klinik kararın, fakülte gözetiminin, kurumsal protokollerin veya resmi ilaç etiketlerinin yerini almaz.',
+          'Bu hesaplayıcı yalnızca eğitim amaçlı destek içindir. Klinik kararın, fakülte gözetiminin, kurumsal protokollerin veya üretici ilaç etiketlerinin yerini almaz.',
         emptyWeightError: 'Doz sınırını hesaplamak için hasta ağırlığını girin.',
         positiveWeightError: 'Hasta ağırlığı 0 kg’dan büyük olmalıdır.',
         realisticWeightError: '5 kg ile 300 kg arasında gerçekçi bir hasta ağırlığı girin.',

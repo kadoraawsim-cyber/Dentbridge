@@ -4,6 +4,8 @@ export const PUBLIC_PATIENT_PAGE_IDS = [
   'patient-status',
   'faq',
   'privacy',
+  'terms',
+  'personal-data-protection-law',
 ] as const
 
 export type PublicPatientPageId = (typeof PUBLIC_PATIENT_PAGE_IDS)[number]
@@ -57,9 +59,9 @@ export const patientSiteContext = {
     'What kinds of cases can be submitted.',
     'Whether treatment can be done at other universities.',
   ],
-  exclusivePartner: {
+  academicPilot: {
     current:
-      'Istinye University and Istinye Dental Hospital are the current exclusive partner in the current DentBridge flow.',
+      'DentBridge is currently piloted in a supervised academic setting with the current participating clinical setting shown on the public site.',
     future:
       'Additional universities may join later.',
   },
@@ -89,6 +91,16 @@ export const patientSiteContext = {
         'On the privacy page, keep privacy answers brief, public-facing, and aligned with the visible site flow.',
       actions: ['Request Treatment', 'Check Treatment Status'],
     },
+    terms: {
+      priority:
+        'On the terms page, keep answers brief, public-facing, and aligned with the visible terms and request flow.',
+      actions: ['Request Treatment', 'Check Treatment Status'],
+    },
+    'personal-data-protection-law': {
+      priority:
+        'On the personal data protection page, keep answers brief, public-facing, and aligned with the visible KVKK clarification text.',
+      actions: ['Request Treatment', 'Check Treatment Status'],
+    },
   } satisfies Record<PublicPatientPageId, { priority: string; actions: string[] }>,
 } as const
 
@@ -106,7 +118,7 @@ export function buildPatientSiteContextPrompt(pageContext?: PatientChatPageConte
     `Public status flow: ${patientSiteContext.publicStatusFlow.join(' ')}`,
     `Public guidance: ${patientSiteContext.publicGuidance.join(' ')}`,
     `Approved public FAQ topics: ${patientSiteContext.approvedPublicFaqTopics.join(' ')}`,
-    `Exclusive partner note: ${patientSiteContext.exclusivePartner.current} ${patientSiteContext.exclusivePartner.future}`,
+    `Academic pilot note: ${patientSiteContext.academicPilot.current} ${patientSiteContext.academicPilot.future}`,
     pageDetails ? `Current page context: ${pageContext?.page}. ${pageDetails.priority}` : null,
     visibleActions ? `Visible public actions on this page: ${visibleActions}.` : null,
   ]

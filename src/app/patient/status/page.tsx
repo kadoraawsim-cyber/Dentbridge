@@ -668,6 +668,16 @@ export default function PatientStatusPage() {
                 </Link>
               </li>
               <li>
+                <Link href="/terms" className="hover:text-white">
+                  {t('footer.termsOfUse')}
+                </Link>
+              </li>
+              <li>
+                <Link href="/personal-data-protection-law" className="hover:text-white">
+                  {t('footer.personalDataProtection')}
+                </Link>
+              </li>
+              <li>
                 <Link href="/faq" className="hover:text-white">
                   {t('footer.faq')}
                 </Link>
