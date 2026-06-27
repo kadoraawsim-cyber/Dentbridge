@@ -152,7 +152,8 @@ type PatientRequestDraft = {
   medicalCondition: string
   medicalConditionDetails: string
   hasTouchedMedicalCondition: boolean
-  consent: boolean
+  kvkkAcknowledgement: boolean
+  explicitConsent: boolean
 }
 
 function parsePatientRequestDraft(value: string | null): PatientRequestDraft | null {
@@ -161,7 +162,7 @@ function parsePatientRequestDraft(value: string | null): PatientRequestDraft | n
   }
 
   try {
-    const parsed = JSON.parse(value) as Partial<PatientRequestDraft> | null
+    const parsed = JSON.parse(value) as (Partial<PatientRequestDraft> & { consent?: unknown }) | null
 
     if (!parsed || typeof parsed !== 'object') {
       return null
@@ -191,7 +192,14 @@ function parsePatientRequestDraft(value: string | null): PatientRequestDraft | n
         typeof parsed.hasTouchedMedicalCondition === 'boolean'
           ? parsed.hasTouchedMedicalCondition
           : typeof parsed.medicalCondition === 'string' && parsed.medicalCondition !== 'None',
-      consent: typeof parsed.consent === 'boolean' ? parsed.consent : false,
+      kvkkAcknowledgement:
+        typeof parsed.kvkkAcknowledgement === 'boolean' ? parsed.kvkkAcknowledgement : false,
+      explicitConsent:
+        typeof parsed.explicitConsent === 'boolean'
+          ? parsed.explicitConsent
+          : typeof parsed.consent === 'boolean'
+            ? parsed.consent
+            : false,
     }
   } catch {
     return null
@@ -279,7 +287,8 @@ export default function PatientRequestPage() {
   const [medicalCondition, setMedicalCondition] = useState('')
   const [medicalConditionDetails, setMedicalConditionDetails] = useState('')
   const [hasTouchedMedicalCondition, setHasTouchedMedicalCondition] = useState(false)
-  const [consent, setConsent] = useState(false)
+  const [kvkkAcknowledgement, setKvkkAcknowledgement] = useState(false)
+  const [explicitConsent, setExplicitConsent] = useState(false)
   const [attachment, setAttachment] = useState<File | null>(null)
 
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -320,15 +329,16 @@ export default function PatientRequestPage() {
       {
         key: 'consent',
         label: t('request.sectionConsent'),
-        completed: consent,
+        completed: kvkkAcknowledgement && explicitConsent,
       },
     ],
     [
       age,
       complaintText,
-      consent,
+      explicitConsent,
       fullName,
       gender,
+      kvkkAcknowledgement,
       medicalCondition,
       medicalConditionDetails,
       painScore,
@@ -353,15 +363,17 @@ export default function PatientRequestPage() {
       Boolean(symptomDuration),
       hasTouchedMedicalCondition && Boolean(medicalCondition),
       medicalCondition !== '' && (medicalCondition !== 'Other' || Boolean(medicalConditionDetails.trim())),
-      consent,
+      kvkkAcknowledgement,
+      explicitConsent,
     ],
     [
       age,
       complaintText,
-      consent,
+      explicitConsent,
       fullName,
       gender,
       hasTouchedMedicalCondition,
+      kvkkAcknowledgement,
       medicalCondition,
       medicalConditionDetails,
       painScore,
@@ -407,7 +419,8 @@ export default function PatientRequestPage() {
       setMedicalCondition(savedDraft.medicalCondition)
       setMedicalConditionDetails(savedDraft.medicalConditionDetails)
       setHasTouchedMedicalCondition(savedDraft.hasTouchedMedicalCondition)
-      setConsent(savedDraft.consent)
+      setKvkkAcknowledgement(savedDraft.kvkkAcknowledgement)
+      setExplicitConsent(savedDraft.explicitConsent)
     } else if (window.sessionStorage.getItem(PATIENT_REQUEST_DRAFT_KEY)) {
       window.sessionStorage.removeItem(PATIENT_REQUEST_DRAFT_KEY)
     }
@@ -448,7 +461,8 @@ export default function PatientRequestPage() {
       medicalCondition,
       medicalConditionDetails,
       hasTouchedMedicalCondition,
-      consent,
+      kvkkAcknowledgement,
+      explicitConsent,
     }
 
     try {
@@ -460,12 +474,13 @@ export default function PatientRequestPage() {
     age,
     bestContactTime,
     complaintText,
-    consent,
+    explicitConsent,
     contactMethod,
     fullName,
     gender,
     hasRestoredDraft,
     hasTouchedMedicalCondition,
+    kvkkAcknowledgement,
     medicalCondition,
     medicalConditionDetails,
     painScore,
@@ -544,7 +559,8 @@ export default function PatientRequestPage() {
     setTreatmentType('')
     setComplaintText('')
     setPreferredDays('')
-    setConsent(false)
+    setKvkkAcknowledgement(false)
+    setExplicitConsent(false)
     setAttachment(null)
     setRestoredStepIndex(null)
   }
@@ -624,7 +640,7 @@ export default function PatientRequestPage() {
       return
     }
 
-    if (!consent) {
+    if (!kvkkAcknowledgement || !explicitConsent) {
       setErrorMessage(t('request.errorConsent'))
       return
     }
@@ -687,7 +703,7 @@ export default function PatientRequestPage() {
           contact_method: contactMethod || null,
           best_contact_time: bestContactTime || null,
           medical_condition: medicalConditionValue,
-          consent,
+          consent: kvkkAcknowledgement && explicitConsent,
           consent_accepted_at: new Date().toISOString(),
           consent_version: CONSENT_VERSION,
           attachment_path: attachmentPath,
@@ -1210,24 +1226,40 @@ export default function PatientRequestPage() {
                   </div>
                 </div>
 
-                <label className="mt-4 flex items-start gap-2.5 sm:gap-3">
-                  <input
-                    type="checkbox"
-                    checked={consent}
-                    onChange={(e) => setConsent(e.target.checked)}
-                    className="mt-0.5 sm:mt-1 h-4 w-4 shrink-0 rounded border-slate-300"
-                  />
-                  <span className="text-xs sm:text-sm text-slate-700 leading-relaxed">
-                    {t('request.consentLabelBeforeLink')}
-                    <Link
-                      href="/personal-data-protection-law"
-                      className="font-semibold text-teal-700 underline-offset-2 hover:underline"
-                    >
-                      {t('request.consentLabelLink')}
-                    </Link>
-                    {t('request.consentLabelAfterLink')} *
-                  </span>
-                </label>
+                <div className="mt-4 space-y-3">
+                  <label className="flex items-start gap-2.5 sm:gap-3">
+                    <input
+                      type="checkbox"
+                      required
+                      checked={kvkkAcknowledgement}
+                      onChange={(e) => setKvkkAcknowledgement(e.target.checked)}
+                      className="mt-0.5 sm:mt-1 h-4 w-4 shrink-0 rounded border-slate-300"
+                    />
+                    <span className="text-xs sm:text-sm text-slate-700 leading-relaxed">
+                      {t('request.kvkkAcknowledgementBeforeLink')}
+                      <Link
+                        href="/personal-data-protection-law"
+                        className="font-semibold text-teal-700 underline-offset-2 hover:underline"
+                      >
+                        {t('request.kvkkAcknowledgementLink')}
+                      </Link>
+                      {t('request.kvkkAcknowledgementAfterLink')} *
+                    </span>
+                  </label>
+
+                  <label className="flex items-start gap-2.5 sm:gap-3">
+                    <input
+                      type="checkbox"
+                      required
+                      checked={explicitConsent}
+                      onChange={(e) => setExplicitConsent(e.target.checked)}
+                      className="mt-0.5 sm:mt-1 h-4 w-4 shrink-0 rounded border-slate-300"
+                    />
+                    <span className="text-xs sm:text-sm text-slate-700 leading-relaxed">
+                      {t('request.explicitConsentLabel')} *
+                    </span>
+                  </label>
+                </div>
 
                 <p className="mt-3 text-[11px] sm:text-xs text-slate-500">
                   {locale === 'tr' ? 'Detaylar için ' : 'Read our '}

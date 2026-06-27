@@ -210,9 +210,10 @@ export type TranslationShape = {
     uploadSelectedLabel: string
     consentInfo: string
     consentLabel: string
-    consentLabelBeforeLink: string
-    consentLabelLink: string
-    consentLabelAfterLink: string
+    kvkkAcknowledgementBeforeLink: string
+    kvkkAcknowledgementLink: string
+    kvkkAcknowledgementAfterLink: string
+    explicitConsentLabel: string
     errorRequiredFields: string
     errorConsent: string
     errorFileSize: string
@@ -1655,15 +1656,16 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     uploadSubtitle: 'JPG, JPEG, PNG, or PDF up to 10 MB',
     uploadSelectedLabel: 'Selected file:',
     consentInfo:
-      'Consent: I understand that my request will be submitted for academic clinical review. Submitting this form does not guarantee treatment. My case may be reviewed by authorized faculty or administrative users, and eligible cases may be shared with supervised senior dental students for clinical coordination. Treatment decisions are made under faculty supervision. Any uploaded files or images may be reviewed only for clinical coordination purposes. This platform must not be used for emergencies.',
+      'Consent: I understand that my request will be submitted for academic clinical review. Submitting this form does not guarantee treatment, appointment, diagnosis, or acceptance. Eligible cases may be reviewed by authorized faculty members or authorized administrative personnel. Suitable cases may be considered for supervised coordination with senior dental students under faculty supervision. Treatment decisions remain under qualified faculty or clinical supervision. This platform must not be used for emergencies.',
     consentLabel:
       'I understand and agree to submit my treatment request for academic review.',
-    consentLabelBeforeLink: 'I have read and understood the ',
-    consentLabelLink: 'KVKK / Personal Data Protection clarification text',
-    consentLabelAfterLink:
-      ' and I consent to the processing of my submitted information for academic clinical review and supervised case coordination.',
+    kvkkAcknowledgementBeforeLink: 'I have read and understood the ',
+    kvkkAcknowledgementLink: 'KVKK / Personal Data Protection Clarification Text',
+    kvkkAcknowledgementAfterLink: '.',
+    explicitConsentLabel:
+      'I explicitly consent to the processing of my submitted dental and health-related information for academic clinical review and, if my request is considered suitable, supervised coordination with senior dental students under faculty supervision.',
     errorRequiredFields: 'Please complete all required fields.',
-    errorConsent: 'Please confirm consent before submitting.',
+    errorConsent: 'Please confirm both required consent checkboxes before submitting.',
     errorFileSize: 'File size must be 10 MB or less.',
     cancel: 'Cancel',
     submit: 'Submit Treatment Request',

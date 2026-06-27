@@ -289,15 +289,16 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
     uploadSubtitle: 'JPG, JPEG, PNG veya PDF, en fazla 10 MB',
     uploadSelectedLabel: 'Seçilen dosya:',
     consentInfo:
-      'Onay: Talebimin akademik klinik değerlendirme için gönderileceğini anlıyorum. Bu formu göndermek tedavi kabulünü garanti etmez. Vakam yetkili fakülte üyeleri veya idari kullanıcılar tarafından incelenebilir ve uygun vakalar klinik koordinasyon amacıyla gözetim altındaki son sınıf diş hekimliği öğrencileriyle paylaşılabilir. Tedavi kararları fakülte gözetimi altında verilir. Yüklenen dosyalar veya görüntüler yalnızca klinik koordinasyon amacıyla incelenebilir. Bu platform acil durumlar için kullanılmamalıdır.',
+      'Onay: Talebimin akademik klinik değerlendirme için gönderileceğini anlıyorum. Bu formu göndermek tedavi, randevu, tanı veya kabul garantisi vermez. Uygun vakalar yetkili fakülte üyeleri veya yetkilendirilmiş idari personel tarafından incelenebilir. Uygun görülen vakalar fakülte denetimi altında kıdemli diş hekimliği öğrencileriyle denetimli koordinasyon kapsamında değerlendirilebilir. Tedavi kararları yetkili fakülte veya klinik gözetim altında verilir. Bu platform acil durumlar için kullanılmamalıdır.',
     consentLabel:
       'Tedavi talebimi akademik inceleme için göndermeyi anladığımı ve kabul ettiğimi onaylıyorum.',
-    consentLabelBeforeLink: '',
-    consentLabelLink: 'KVKK / Kişisel Verilerin Korunması aydınlatma metnini',
-    consentLabelAfterLink:
-      ' okudum ve anladım; gönderdiğim bilgilerin akademik klinik değerlendirme ve denetimli vaka koordinasyonu amacıyla işlenmesine onay veriyorum.',
+    kvkkAcknowledgementBeforeLink: '',
+    kvkkAcknowledgementLink: 'KVKK / Kişisel Verilerin Korunması Aydınlatma Metni’ni',
+    kvkkAcknowledgementAfterLink: ' okudum ve anladım.',
+    explicitConsentLabel:
+      'Gönderdiğim dental ve sağlıkla ilgili bilgilerin akademik klinik değerlendirme amacıyla işlenmesine ve talebimin uygun görülmesi halinde fakülte denetimi altında kıdemli diş hekimliği öğrencileriyle denetimli koordinasyon kapsamında paylaşılmasına açık rıza veriyorum.',
     errorRequiredFields: 'Lütfen tüm zorunlu alanları doldurun.',
-    errorConsent: 'Lütfen göndermeden önce onay kutusunu işaretleyin.',
+    errorConsent: 'Lütfen göndermeden önce iki zorunlu onay kutusunu da işaretleyin.',
     errorFileSize: 'Dosya boyutu 10 MB veya daha az olmalıdır.',
     cancel: 'İptal',
     submit: 'Tedavi Talebi Gönder',
