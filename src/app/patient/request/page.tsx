@@ -1262,18 +1262,18 @@ export default function PatientRequestPage() {
                 </div>
 
                 <p className="mt-3 text-[11px] sm:text-xs text-slate-500">
-                  {locale === 'tr' ? 'Detaylar için ' : 'Read our '}
+                  {t('request.consentLegalLinksIntro')}
                   <Link href="/privacy" className="font-semibold text-teal-700 underline-offset-2 hover:underline">
-                    {locale === 'tr' ? 'Gizlilik Politikası' : 'Privacy Policy'}
+                    {t('request.consentLegalLinksPrivacy')}
                   </Link>
-                  {locale === 'tr' ? ' ve ' : ' and '}
+                  {t('request.consentLegalLinksBetween')}
                   <Link
                     href="/personal-data-protection-law"
                     className="font-semibold text-teal-700 underline-offset-2 hover:underline"
                   >
-                    {t('footer.personalDataProtection')}
+                    {t('request.consentLegalLinksKvkk')}
                   </Link>
-                  {locale === 'tr' ? ' sayfasını inceleyin.' : ' page for details.'}
+                  {t('request.consentLegalLinksEnding')}
                 </p>
               </section>
 

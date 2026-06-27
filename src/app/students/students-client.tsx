@@ -56,11 +56,13 @@ const platformFeatures = [
   { key: 'aiAssistant', icon: Sparkles },
 ] as const
 
+const developmentFeatureKeys = new Set<string>(['clinicalCompass', 'aiAssistant'])
+
 const HOW_IT_WORKS_ID = 'how-it-works'
 const HOW_IT_WORKS_HASH = `#${HOW_IT_WORKS_ID}`
 
 export default function StudentsPageClient() {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
 
   function handleHowItWorksClick(event: MouseEvent<HTMLAnchorElement>) {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
@@ -256,20 +258,29 @@ export default function StudentsPageClient() {
             <div className="rounded-3xl border border-[#C8A96A]/20 bg-white/[0.06] p-5 shadow-[0_24px_70px_-44px_rgba(200,169,106,0.45)]">
               <p className="text-xl font-bold text-white">{t('studentsPage.smartSystemTitle')}</p>
               <p className="mt-3 text-sm leading-7 text-slate-300">{t('studentsPage.smartSystemBody')}</p>
+              <p className="mt-3 text-sm leading-7 text-slate-300">{t('studentsPage.smartSystemPrivacyNote')}</p>
             </div>
           </div>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {platformFeatures.map((feature) => {
               const Icon = feature.icon
+              const isInDevelopment = developmentFeatureKeys.has(feature.key)
               return (
                 <article key={feature.key} className="dentbridge-card rounded-2xl border border-white/10 bg-white/[0.06] p-5 shadow-sm">
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#C8A96A]/10 text-[#C8A96A] ring-1 ring-[#C8A96A]/25">
                     <Icon className="h-5 w-5" />
                   </div>
-                  <h3 className="mt-4 text-base font-bold text-white">
-                    {t(`studentsPage.features.${feature.key}.title`)}
-                  </h3>
+                  <div className="mt-4 flex items-start justify-between gap-3">
+                    <h3 className="text-base font-bold text-white">
+                      {t(`studentsPage.features.${feature.key}.title`)}
+                    </h3>
+                    {isInDevelopment && (
+                      <span className="shrink-0 rounded-full border border-[#C8A96A]/25 bg-[#C8A96A]/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#E8D7A8]">
+                        {locale === 'tr' ? 'Geliştiriliyor' : 'In development'}
+                      </span>
+                    )}
+                  </div>
                   <p className="mt-2 text-sm leading-7 text-slate-300">
                     {t(`studentsPage.features.${feature.key}.body`)}
                   </p>

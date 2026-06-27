@@ -2,19 +2,38 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Loader2, Minus, SendHorizontal } from 'lucide-react'
+import { Info, Loader2, Maximize2, Minimize2, Minus, SendHorizontal, X } from 'lucide-react'
 import type { PatientChatPageContext, PublicPatientPageId } from '@/lib/chat/patient-site-context'
 import { useI18n } from '@/lib/i18n'
 
 const MAX_CLIENT_MESSAGE_LENGTH = 800
+const RECENT_CONTEXT_MESSAGE_COUNT = 5
 const BRIDGEY_AVATAR_SRC = '/new_avatar_logo-removebg-preview.png'
 const OPEN_PUBLIC_PATIENT_CHAT_EVENT = 'dentbridge:open-patient-chat'
+const APPROVED_PUBLIC_ROUTES = [
+  '/patients',
+  '/patient/request',
+  '/patient/status',
+  '/faq',
+  '/privacy',
+  '/terms',
+  '/personal-data-protection-law',
+] as const
+
+type ApprovedPublicRoute = (typeof APPROVED_PUBLIC_ROUTES)[number]
 
 type ChatMessage = {
   id: string
   role: 'assistant' | 'user'
   content: string
+}
+
+type QuickSuggestion = {
+  label: string
+  type: 'question' | 'route'
+  value: string
 }
 
 function shouldShowPatientChat(pathname: string) {
@@ -31,6 +50,206 @@ function shouldShowPatientChat(pathname: string) {
 
 function createMessageId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+}
+
+function getRecentContextMessages(messages: ChatMessage[], welcomeMessage: string) {
+  return messages
+    .filter((message) => message.content.trim() && message.content !== welcomeMessage)
+    .slice(-RECENT_CONTEXT_MESSAGE_COUNT)
+    .map((message) => ({
+      role: message.role,
+      content: message.content,
+    }))
+}
+
+function isApprovedPublicRoute(value: string): value is ApprovedPublicRoute {
+  return APPROVED_PUBLIC_ROUTES.includes(value as ApprovedPublicRoute)
+}
+
+function renderMessageContent(content: string) {
+  const routePattern = /(\/personal-data-protection-law|\/patient\/request|\/patient\/status|\/patients|\/privacy|\/terms|\/faq)(?=[\s.,!?)]|$)/g
+  const parts = content.split(routePattern)
+
+  return parts.map((part, index) => {
+    if (!isApprovedPublicRoute(part)) {
+      return <span key={`${part}-${index}`}>{part}</span>
+    }
+
+    return (
+      <Link
+        key={`${part}-${index}`}
+        href={part}
+        className="inline-flex rounded-full border border-teal-200/80 bg-teal-50 px-2 py-0.5 text-[12px] font-semibold text-teal-700 transition hover:border-teal-300 hover:bg-teal-100"
+      >
+        {part}
+      </Link>
+    )
+  })
+}
+
+function getLatestMessage(messages: ChatMessage[], role: ChatMessage['role']) {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    if (messages[index]?.role === role) {
+      return messages[index]
+    }
+  }
+
+  return null
+}
+
+function getNormalizedText(value: string) {
+  return value.normalize('NFKC').toLocaleLowerCase('tr')
+}
+
+function isEmergencyChatContext(latestUserText: string, latestAssistantText: string) {
+  const combined = getNormalizedText(`${latestUserText} ${latestAssistantText}`)
+
+  return (
+    combined.includes('urgent or emergency') ||
+    combined.includes('emergency services') ||
+    combined.includes('severe swelling') ||
+    combined.includes('difficulty breathing') ||
+    combined.includes('acil dental') ||
+    combined.includes('acil tıbbi') ||
+    combined.includes('acil tibbi') ||
+    combined.includes('derhal acil')
+  )
+}
+
+function getContextualSuggestions({
+  latestUserText,
+  latestAssistantText,
+  locale,
+}: {
+  latestUserText: string
+  latestAssistantText: string
+  locale: 'en' | 'tr'
+}): QuickSuggestion[] {
+  const combined = getNormalizedText(`${latestUserText} ${latestAssistantText}`)
+  const isTurkish = locale === 'tr'
+
+  if (isEmergencyChatContext(latestUserText, latestAssistantText)) {
+    return []
+  }
+
+  if (
+    combined.includes('/patient/status') ||
+    combined.includes('status') ||
+    combined.includes('durum')
+  ) {
+    return isTurkish
+      ? [
+          { label: 'Talep durumu sayfasını aç', type: 'route', value: '/patient/status' },
+          { label: 'Gönderdikten sonra ne olur?', type: 'question', value: 'Gönderdikten sonra ne olur?' },
+          { label: 'Yanıt ne kadar sürer?', type: 'question', value: 'Yanıt ne kadar sürer?' },
+        ]
+      : [
+          { label: 'Open status page', type: 'route', value: '/patient/status' },
+          { label: 'What happens after submission?', type: 'question', value: 'What happens after submission?' },
+          { label: 'How long does it take?', type: 'question', value: 'How long does it take?' },
+        ]
+  }
+
+  if (
+    combined.includes('/privacy') ||
+    combined.includes('/personal-data-protection-law') ||
+    combined.includes('privacy') ||
+    combined.includes('private') ||
+    combined.includes('kvkk') ||
+    combined.includes('bilgi') ||
+    combined.includes('gizli')
+  ) {
+    return isTurkish
+      ? [
+          { label: 'Gizlilik Politikasını aç', type: 'route', value: '/privacy' },
+          { label: 'KVKK sayfasını aç', type: 'route', value: '/personal-data-protection-law' },
+          { label: 'Bilgilerimi kim görebilir?', type: 'question', value: 'Bilgilerimi kim görebilir?' },
+        ]
+      : [
+          { label: 'Open Privacy Policy', type: 'route', value: '/privacy' },
+          { label: 'Open KVKK page', type: 'route', value: '/personal-data-protection-law' },
+          { label: 'Who can see my information?', type: 'question', value: 'Who can see my information?' },
+        ]
+  }
+
+  if (
+    combined.includes('cost') ||
+    combined.includes('fee') ||
+    combined.includes('price') ||
+    combined.includes('ücret') ||
+    combined.includes('ucret') ||
+    combined.includes('fiyat')
+  ) {
+    return isTurkish
+      ? [
+          { label: 'Tedavi ücreti ne kadar?', type: 'question', value: 'Tedavi ücreti ne kadar?' },
+          { label: 'Tedavi kesin mi?', type: 'question', value: 'Tedavi kesin mi?' },
+          { label: 'Nasıl talep gönderebilirim?', type: 'question', value: 'Nasıl talep gönderebilirim?' },
+        ]
+      : [
+          { label: 'How much is treatment?', type: 'question', value: 'How much is treatment?' },
+          { label: 'Is treatment guaranteed?', type: 'question', value: 'Is treatment guaranteed?' },
+          { label: 'How do I submit a request?', type: 'question', value: 'How do I submit a request?' },
+        ]
+  }
+
+  if (
+    combined.includes('student') ||
+    combined.includes('supervis') ||
+    combined.includes('faculty') ||
+    combined.includes('öğrenci') ||
+    combined.includes('ogrenci') ||
+    combined.includes('denetim') ||
+    combined.includes('gözetim')
+  ) {
+    return isTurkish
+      ? [
+          { label: 'Tedavimi öğrenci mi yapacak?', type: 'question', value: 'Tedavimi öğrenci mi yapacak?' },
+          { label: 'Tedavi denetimli mi?', type: 'question', value: 'Tedavi denetimli mi?' },
+          { label: 'Tedavi kesin mi?', type: 'question', value: 'Tedavi kesin mi?' },
+        ]
+      : [
+          { label: 'Will a student treat me?', type: 'question', value: 'Will a student treat me?' },
+          { label: 'Is treatment supervised?', type: 'question', value: 'Is treatment supervised?' },
+          { label: 'Is treatment guaranteed?', type: 'question', value: 'Is treatment guaranteed?' },
+        ]
+  }
+
+  if (
+    combined.includes('/patient/request') ||
+    combined.includes('request') ||
+    combined.includes('submit') ||
+    combined.includes('apply') ||
+    combined.includes('talep') ||
+    combined.includes('başvuru') ||
+    combined.includes('basvuru')
+  ) {
+    return isTurkish
+      ? [
+          { label: 'Talep formunu aç', type: 'route', value: '/patient/request' },
+          { label: 'Talebimi kontrol edebilir miyim?', type: 'question', value: 'Talebimi kontrol edebilir miyim?' },
+          { label: 'Tedavi kesin mi?', type: 'question', value: 'Tedavi kesin mi?' },
+        ]
+      : [
+          { label: 'Open request form', type: 'route', value: '/patient/request' },
+          { label: 'Can I check my status?', type: 'question', value: 'Can I check my status?' },
+          { label: 'Is treatment guaranteed?', type: 'question', value: 'Is treatment guaranteed?' },
+        ]
+  }
+
+  return isTurkish
+    ? [
+        { label: 'Nasıl talep gönderebilirim?', type: 'question', value: 'Nasıl talep gönderebilirim?' },
+        { label: 'Talebimin durumunu kontrol edebilir miyim?', type: 'question', value: 'Talebimin durumunu kontrol edebilir miyim?' },
+        { label: 'Ücretli mi?', type: 'question', value: 'Ücretli mi?' },
+        { label: 'Bilgilerimi kim görebilir?', type: 'question', value: 'Bilgilerimi kim görebilir?' },
+      ]
+    : [
+        { label: 'How do I request treatment?', type: 'question', value: 'How do I request treatment?' },
+        { label: 'Can I check my status?', type: 'question', value: 'Can I check my status?' },
+        { label: 'Does it cost money?', type: 'question', value: 'Does it cost money?' },
+        { label: 'Who can see my information?', type: 'question', value: 'Who can see my information?' },
+      ]
 }
 
 function BridgeyAvatar({
@@ -90,9 +309,9 @@ function getPatientChatPageContext(
     },
   }
 
-if (pathname === '/' || pathname === '/patients') {
-  return byPage.home
-}
+  if (pathname === '/' || pathname === '/patients') {
+    return byPage.home
+  }
 
   if (pathname === '/patient/request') {
     return byPage['patient-request']
@@ -128,6 +347,8 @@ export default function PublicPatientChatWidget() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [draft, setDraft] = useState('')
   const [isSending, setIsSending] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [isDisclaimerExpanded, setIsDisclaimerExpanded] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
@@ -191,15 +412,46 @@ export default function PublicPatientChatWidget() {
     t('patientChat.starterStatus'),
     t('patientChat.starterPhotos'),
   ]
-  const pageContext = getPatientChatPageContext(pathname, t('nav.requestTreatment'), t('cta.checkStatus'))
+  const pageContext = getPatientChatPageContext(pathname, t('nav.requestTreatment'), t('footer.checkStatus'))
 
   const isDraftEmpty = draft.trim().length === 0
   const showStarters = messages.length <= 1
+  const latestMessage = messages[messages.length - 1] ?? null
+  const latestAssistantMessage = getLatestMessage(messages, 'assistant')
+  const latestUserMessage = getLatestMessage(messages, 'user')
+  const hasUserMessage = Boolean(latestUserMessage)
+  const latestAssistantText = latestAssistantMessage?.content ?? ''
+  const latestUserText = latestUserMessage?.content ?? ''
+  const isEmergencyContext = isEmergencyChatContext(latestUserText, latestAssistantText)
+  const contextualSuggestions =
+    hasUserMessage &&
+    latestAssistantMessage &&
+    latestMessage?.role === 'assistant' &&
+    latestAssistantText !== t('patientChat.welcome') &&
+    !isSending
+      ? getContextualSuggestions({
+          latestUserText,
+          latestAssistantText,
+          locale,
+        }).slice(0, 4)
+      : []
+  const showContextualSuggestions = contextualSuggestions.length > 0
+  const panelHeightClass = isExpanded
+    ? 'h-[min(82svh,44rem)] max-h-[calc(100svh-6rem)] sm:h-[min(84dvh,46rem)] sm:max-h-[calc(100dvh-4rem)]'
+    : 'h-[min(62svh,32rem)] max-h-[calc(100svh-10rem)] sm:h-[min(70dvh,38rem)] sm:max-h-[calc(100dvh-8rem)]'
+  const panelWidth = isExpanded ? 'min(38rem, calc(100vw - 32px))' : 'min(24rem, calc(100vw - 32px))'
 
   function resetConversation() {
     setMessages([])
     setDraft('')
     setErrorMessage('')
+    setIsDisclaimerExpanded(false)
+  }
+
+  function handleSuggestion(suggestion: QuickSuggestion) {
+    if (suggestion.type === 'question') {
+      void submitMessage(suggestion.value)
+    }
   }
 
   async function submitMessage(rawMessage: string) {
@@ -222,6 +474,7 @@ export default function PublicPatientChatWidget() {
     setIsSending(true)
 
     try {
+      const recentMessages = getRecentContextMessages(messages, t('patientChat.welcome'))
       const response = await fetch('/api/chat/patient', {
         method: 'POST',
         headers: {
@@ -230,6 +483,8 @@ export default function PublicPatientChatWidget() {
         },
         body: JSON.stringify({
           message: trimmedMessage,
+          messages: recentMessages,
+          locale,
           pageContext,
         }),
       })
@@ -280,9 +535,9 @@ export default function PublicPatientChatWidget() {
       <div className="fixed bottom-20 right-4 z-50 flex flex-col items-end gap-3 md:bottom-16 md:right-6">
         {isOpen && (
           <section
-            className="bridgey-panel-enter pointer-events-auto flex h-[min(62svh,32rem)] max-h-[calc(100svh-10rem)] flex-col overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_28px_80px_-32px_rgba(15,23,42,0.45)] ring-1 ring-slate-950/5 backdrop-blur sm:h-[min(70dvh,38rem)] sm:max-h-[calc(100dvh-8rem)]"
+            className={`bridgey-panel-enter pointer-events-auto flex ${panelHeightClass} flex-col overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_28px_80px_-32px_rgba(15,23,42,0.45)] ring-1 ring-slate-950/5 backdrop-blur`}
             style={{
-              width: 'min(24rem, calc(100vw - 32px))',
+              width: panelWidth,
             }}
           >
             {/* Header */}
@@ -301,25 +556,52 @@ export default function PublicPatientChatWidget() {
                     <p className="mt-0.5 text-[11px] font-semibold text-emerald-600">
                       {t('patientChat.statusLine')}
                     </p>
-                    <button
-                      type="button"
-                      onClick={resetConversation}
-                      disabled={isSending}
-                      className="mt-2 inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {t('patientChat.newChat')}
-                    </button>
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  aria-label={t('patientChat.close')}
-                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
-                >
-                  <Minus className="h-4 w-4" />
-                </button>
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsExpanded((current) => !current)}
+                    aria-label={isExpanded ? t('patientChat.collapseChat') : t('patientChat.expandChat')}
+                    title={isExpanded ? t('patientChat.collapseChat') : t('patientChat.expandChat')}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+                  >
+                    {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsOpen(false)}
+                    aria-label={t('patientChat.closeChat')}
+                    title={t('patientChat.closeChat')}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-b border-slate-200/70 bg-white px-4 py-2.5 sm:px-5">
+              <div className="rounded-2xl border border-teal-100 bg-teal-50/70 px-3 py-2 text-[11px] leading-5 text-slate-600">
+                <div className="flex items-start gap-2">
+                  <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-teal-600" />
+                  <div className="min-w-0 flex-1">
+                    <p>{t('patientChat.safetyNotice')}</p>
+                    {isDisclaimerExpanded && (
+                      <p className="mt-1 text-slate-500">{t('patientChat.disclaimer')}</p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsDisclaimerExpanded((current) => !current)}
+                    className="shrink-0 rounded-full px-1.5 text-[11px] font-semibold text-teal-700 transition hover:bg-white/70"
+                  >
+                    {isDisclaimerExpanded
+                      ? t('patientChat.safetyShowLess')
+                      : t('patientChat.safetyLearnMore')}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -348,7 +630,7 @@ export default function PublicPatientChatWidget() {
                           : 'rounded-bl-xl border border-slate-200 bg-white text-slate-700'
                       }`}
                     >
-                      <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                      <p className="whitespace-pre-wrap break-words">{renderMessageContent(message.content)}</p>
                     </div>
                   </div>
                 </div>
@@ -359,8 +641,12 @@ export default function PublicPatientChatWidget() {
                   <div className="flex items-start gap-2.5">
                     <BridgeyAvatar sizeClass="h-10 w-10" className="mt-0.5 shrink-0" />
                     <div className="inline-flex items-center gap-2 rounded-3xl rounded-bl-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500 shadow-sm">
-                      <Loader2 className="h-4 w-4 animate-spin text-teal-600" />
-                      {t('patientChat.loadingReply')}
+                      <span className="bridgey-typing-dots" aria-hidden="true">
+                        <span />
+                        <span />
+                        <span />
+                      </span>
+                      <span>{t('patientChat.loadingReply')}</span>
                     </div>
                   </div>
                 </div>
@@ -387,10 +673,50 @@ export default function PublicPatientChatWidget() {
                 </div>
               )}
 
-              {showStarters && (
-                <p className="rounded-2xl border border-slate-200 bg-white/80 px-3 py-2.5 text-[11px] leading-5 text-slate-500 shadow-sm shadow-slate-100/60">
-                  {t('patientChat.disclaimer')}
-                </p>
+              {hasUserMessage && latestAssistantMessage && !isSending && (
+                <div className="rounded-2xl border border-slate-100 bg-white/80 px-3 py-3 shadow-sm shadow-slate-100/60">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <p className="text-[12px] font-medium text-slate-500">
+                      {isEmergencyContext
+                        ? t('patientChat.emergencyNextStep')
+                        : t('patientChat.nextStepPrompt')}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setIsOpen(false)}
+                      className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                      {t('patientChat.closeChat')}
+                    </button>
+                  </div>
+
+                  {showContextualSuggestions && (
+                    <div className="flex flex-wrap gap-2">
+                      {contextualSuggestions.map((suggestion) =>
+                        suggestion.type === 'route' && isApprovedPublicRoute(suggestion.value) ? (
+                          <Link
+                            key={`${suggestion.type}-${suggestion.value}`}
+                            href={suggestion.value}
+                            className="rounded-full border border-slate-200/90 bg-slate-50 px-3 py-2 text-left text-xs font-medium text-slate-600 transition hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700"
+                          >
+                            {suggestion.label}
+                          </Link>
+                        ) : (
+                          <button
+                            key={`${suggestion.type}-${suggestion.value}`}
+                            type="button"
+                            onClick={() => handleSuggestion(suggestion)}
+                            disabled={isSending}
+                            className="rounded-full border border-slate-200/90 bg-slate-50 px-3 py-2 text-left text-xs font-medium text-slate-600 transition hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {suggestion.label}
+                          </button>
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 
@@ -401,6 +727,24 @@ export default function PublicPatientChatWidget() {
                   {errorMessage}
                 </div>
               )}
+
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={resetConversation}
+                  disabled={isSending}
+                  className="inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {t('patientChat.newChat')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium text-slate-500 transition hover:bg-slate-50 hover:text-slate-700"
+                >
+                  {t('patientChat.closeChat')}
+                </button>
+              </div>
 
               <form onSubmit={handleSubmit} className="flex items-end gap-3">
                 <div className="min-w-0 flex-1 rounded-[22px] border border-slate-200 bg-slate-50 px-3 py-2 shadow-inner shadow-slate-100">
@@ -463,6 +807,41 @@ export default function PublicPatientChatWidget() {
           100% {
             opacity: 1;
             transform: translateY(0) scale(1);
+          }
+        }
+
+        .bridgey-typing-dots {
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+        }
+
+        .bridgey-typing-dots span {
+          width: 5px;
+          height: 5px;
+          border-radius: 9999px;
+          background: #0f766e;
+          animation: bridgey-dot 1s ease-in-out infinite;
+        }
+
+        .bridgey-typing-dots span:nth-child(2) {
+          animation-delay: 140ms;
+        }
+
+        .bridgey-typing-dots span:nth-child(3) {
+          animation-delay: 280ms;
+        }
+
+        @keyframes bridgey-dot {
+          0%,
+          80%,
+          100% {
+            opacity: 0.35;
+            transform: translateY(0);
+          }
+          40% {
+            opacity: 1;
+            transform: translateY(-2px);
           }
         }
       `}</style>

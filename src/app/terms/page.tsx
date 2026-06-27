@@ -2,10 +2,9 @@
 
 import type { ReactNode } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
-import { ArrowLeft, ExternalLink, FileText, ShieldCheck } from 'lucide-react'
-import LanguageSwitcher from '@/components/LanguageSwitcher'
-import PublicPatientChatButton from '@/components/PublicPatientChatButton'
+import { ExternalLink, FileText, ShieldCheck } from 'lucide-react'
+import PublicDocumentHeader from '@/components/PublicDocumentHeader'
+import PublicFooter from '@/components/PublicFooter'
 import { useI18n } from '@/lib/i18n'
 
 const KVKK_DATA_SECURITY_EN =
@@ -414,37 +413,7 @@ export default function TermsOfUsePage() {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center gap-3">
-            <Image
-              src="/dentbridge-icon.webp"
-              alt="DentBridge"
-              width={36}
-              height={36}
-              className="h-9 w-9 object-contain"
-            />
-            <div>
-              <p className="text-sm font-bold leading-none text-slate-900">DentBridge</p>
-              <p className="text-[10px] uppercase tracking-wider text-slate-400">
-                {isTr ? 'Kullanım Şartları' : 'Terms of Use'}
-              </p>
-            </div>
-          </Link>
-
-          <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
-            <LanguageSwitcher />
-            <PublicPatientChatButton />
-            <Link
-              href="/patient/request"
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              {isTr ? 'Başvuruya dön' : 'Back to request'}
-            </Link>
-          </div>
-        </div>
-      </header>
+      <PublicDocumentHeader eyebrow={isTr ? 'Kullanım Şartları' : 'Terms of Use'} />
 
       <section className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
         <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -488,6 +457,7 @@ export default function TermsOfUsePage() {
           </div>
         </div>
       </section>
+      <PublicFooter />
     </main>
   )
 }

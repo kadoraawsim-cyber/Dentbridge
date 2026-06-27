@@ -289,14 +289,19 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
     uploadSubtitle: 'JPG, JPEG, PNG veya PDF, en fazla 10 MB',
     uploadSelectedLabel: 'Seçilen dosya:',
     consentInfo:
-      'Onay: Talebimin akademik klinik değerlendirme için gönderileceğini anlıyorum. Bu formu göndermek tedavi, randevu, tanı veya kabul garantisi vermez. Uygun vakalar yetkili fakülte üyeleri veya yetkilendirilmiş idari personel tarafından incelenebilir. Uygun görülen vakalar fakülte denetimi altında kıdemli diş hekimliği öğrencileriyle denetimli koordinasyon kapsamında değerlendirilebilir. Tedavi kararları yetkili fakülte veya klinik gözetim altında verilir. Bu platform acil durumlar için kullanılmamalıdır.',
+      'Göndermeden önce lütfen DentiBridge’in yalnızca akademik klinik koordinasyon amacıyla kullanıldığını unutmayınız. Talep göndermek; tedavi, randevu, teşhis veya kabul garantisi oluşturmaz. Acil dental veya tıbbi durumlar bu form üzerinden iletilmemelidir.',
     consentLabel:
-      'Tedavi talebimi akademik inceleme için göndermeyi anladığımı ve kabul ettiğimi onaylıyorum.',
+      'KVKK / Kişisel Verilerin Korunması Aydınlatma Metni’ni okudum ve anladım.',
     kvkkAcknowledgementBeforeLink: '',
-    kvkkAcknowledgementLink: 'KVKK / Kişisel Verilerin Korunması Aydınlatma Metni’ni',
-    kvkkAcknowledgementAfterLink: ' okudum ve anladım.',
+    kvkkAcknowledgementLink: 'KVKK / Kişisel Verilerin Korunması Aydınlatma Metni',
+    kvkkAcknowledgementAfterLink: '’ni okudum ve anladım.',
     explicitConsentLabel:
       'Gönderdiğim dental ve sağlıkla ilgili bilgilerin akademik klinik değerlendirme amacıyla işlenmesine ve talebimin uygun görülmesi halinde fakülte denetimi altında kıdemli diş hekimliği öğrencileriyle denetimli koordinasyon kapsamında paylaşılmasına açık rıza veriyorum.',
+    consentLegalLinksIntro: 'Detaylar için ',
+    consentLegalLinksPrivacy: 'Gizlilik Politikası',
+    consentLegalLinksBetween: ' ve ',
+    consentLegalLinksKvkk: 'KVKK / Kişisel Verilerin Korunması Aydınlatma Metni',
+    consentLegalLinksEnding: ' sayfalarını okuyunuz.',
     errorRequiredFields: 'Lütfen tüm zorunlu alanları doldurun.',
     errorConsent: 'Lütfen göndermeden önce iki zorunlu onay kutusunu da işaretleyin.',
     errorFileSize: 'Dosya boyutu 10 MB veya daha az olmalıdır.',
@@ -359,8 +364,11 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
     headerTitle: 'Bridgey',
     headerSubtitle: 'DentBridge başvurunuz için yardımcı',
     teaser: 'Yardım ister misiniz?',
-    statusLine: 'Çevrimiçi • 7/24',
+    statusLine: 'Çevrimiçi • bilgilendirme asistanı',
     newChat: 'Yeni sohbet',
+    closeChat: 'Sohbeti kapat',
+    expandChat: 'Sohbeti büyüt',
+    collapseChat: 'Sohbeti küçült',
     welcome: 'Merhaba! Bugün size nasıl yardımcı olabilirim?',
     starterLabel: 'Önerilen sorular',
     starterRequestForm: 'Nasıl başvuru yaparım?',
@@ -371,8 +379,14 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
     send: 'Gönder',
     sending: 'Gönderiliyor…',
     close: 'Kapat',
-    loadingReply: 'Yanıt hazırlanıyor…',
-    errorFallback: 'Mesajınız şu anda gönderilemedi. Lütfen tekrar deneyin.',
+    loadingReply: 'Bridgey sorunuzu değerlendiriyor…',
+    errorFallback: 'Bridgey şu anda yanıt veremedi. Lütfen kısa süre sonra tekrar deneyin.',
+    safetyNotice:
+      'Yalnızca bilgilendirme — tanı, tedavi planı, tıbbi tavsiye veya acil destek sağlamaz.',
+    safetyLearnMore: 'Detay',
+    safetyShowLess: 'Kapat',
+    nextStepPrompt: 'Başka bir konuda yardımcı olabilir miyim?',
+    emergencyNextStep: 'Acil belirtiler varsa lütfen derhal acil yardım alın.',
     disclaimer:
       'Bridgey, DentBridge başvuru süreci hakkında genel bilgilendirme sağlayan bir asistandır. Tanı, tedavi planlaması, tıbbi tavsiye veya acil durum desteği sağlamaz. Tüm klinik kararlar yetkili fakülte üyeleri ve sağlık profesyonelleri tarafından verilmelidir.',
   },
@@ -526,42 +540,66 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
     eyebrow: 'Sık Sorulan Sorular',
     title: 'Hasta SSS',
     description:
-      'Burada DentBridge üzerinden tedavi talebi oluşturma süreciyle ilgili en sık sorulan sorulara net yanıtlar bulabilirsiniz.',
+      'DentBridge üzerinden dental bakım talebi göndermekle ilgili sık sorulan sorulara basit yanıtlar.',
     backToRequest: 'Başvuruya dön',
     items: {
       whatIsDentBridgeQuestion: 'DentBridge nedir?',
       whatIsDentBridgeAnswer:
-        'DentBridge, hastaları akademik denetim altında uygun diş hekimliği öğrenci vakalarıyla buluşturmaya yardımcı olan fakülte destekli bir platformdur. Amaç, bakıma erişimi daha yapılandırılmış, açık ve uygun maliyetli hale getirmektir.',
-      whoWillTreatMeQuestion: 'Bana kim tedavi uygulayacak?',
+        'DentBridge, hastaların akademik bir dental ortama bakım talebi göndermesine yardımcı olur. Uygun vakalar, fakülte denetimi altında kıdemli diş hekimliği öğrencileriyle koordine edilebilir.',
+      isDentBridgeClinicQuestion: 'DentBridge bir diş kliniği midir?',
+      isDentBridgeClinicAnswer:
+        'Hayır. DentBridge bir diş kliniği veya hastane değildir. Taleplerin düzenlenmesine ve uygun akademik klinik iş akışına yönlendirilmesine yardımcı olan dijital bir platformdur.',
+      whoWillReviewRequestQuestion: 'Talebimi kim inceleyecek?',
+      whoWillReviewRequestAnswer:
+        'Talebiniz, bir sonraki adım belirlenmeden önce yetkili öğretim üyeleri veya ilgili akademik klinik ekip tarafından incelenebilir.',
+      whoWillTreatMeQuestion: 'Tedavim bir öğrenci tarafından mı yapılacak?',
       whoWillTreatMeAnswer:
-        'Tedavi, nitelikli fakülte üyelerinin gözetimi altında kıdemli diş hekimliği öğrencileri tarafından sağlanır. Vakalar, hastaları en uygun bölüm ve öğrenci düzeyiyle eşleştirmeye yardımcı olmak için eşleştirme öncesinde incelenir.',
-      isTreatmentSupervisedQuestion: 'Tedavi denetimli mi?',
+        'Vakanız uygun görülürse, tedaviniz kıdemli bir diş hekimliği öğrencisi tarafından gerçekleştirilebilir. Öğrenci tedavileri fakülte denetimi altında yapılır.',
+      isTreatmentSupervisedQuestion: 'Öğrenci tedavisi güvenli midir?',
       isTreatmentSupervisedAnswer:
-        'Evet. DentBridge, denetimli akademik bakım etrafında tasarlanmıştır. Hastalar, fakülte tarafından incelenen bir süreç üzerinden eşleştirilir ve tedavi eğitim amaçlı klinik bir ortamda sağlanır.',
-      howDoIRequestTreatmentQuestion: 'Nasıl tedavi talebi oluşturabilirim?',
-      howDoIRequestTreatmentAnswer:
-        'Çevrim içi form üzerinden tedavi talebi gönderebilirsiniz. Fakülte ekibinin vakanızı inceleyip uygun şekilde yönlendirebilmesi için sizden temel kişisel ve klinik bilgiler istenir.',
-      whatHappensAfterSubmitQuestion: 'Talebimi gönderdikten sonra ne olur?',
+        'Diş hekimliği öğrencileri, yetkili öğretim üyelerinin rehberliği altında çalışır. Amaç, akademik klinik ortamda denetimli bakım sağlamaktır.',
+      treatmentGuaranteeQuestion: 'Talep göndermek tedavi garantisi verir mi?',
+      treatmentGuaranteeAnswer:
+        'Hayır. Talep göndermek tedavi veya randevu garantisi vermez. Talebinizin önce uygunluk açısından incelenmesi gerekir.',
+      whatHappensAfterSubmitQuestion: 'Formu gönderdikten sonra ne olur?',
       whatHappensAfterSubmitAnswer:
-        'Gönderim sonrasında talebiniz incelenir ve uygun bölüme yönlendirilir. Vakanız uygunsa, denetim altında bir öğrenciyle eşleştirilebilir. Ardından bir sonraki adım için sizinle iletişime geçilebilir.',
-      doINeedToKnowDepartmentQuestion: 'Hangi bölüme ihtiyacım olduğunu bilmem gerekiyor mu?',
+        'Talebiniz incelenir. Uygun görülürse, bir sonraki adım için sizinle iletişime geçilebilir. Uygun görülmezse, başka bir klinik veya hizmet üzerinden bakım almanız gerekebilir.',
+      responseTimeQuestion: 'Yanıt almak ne kadar sürer?',
+      responseTimeAnswer:
+        'Yanıt süresi kliniğe, fakülte incelemesine, öğrenci uygunluğuna ve gönderilen talebin türüne göre değişebilir.',
+      doINeedToKnowDepartmentQuestion: 'Hangi tedaviye ihtiyacım olduğunu bilmem gerekiyor mu?',
       doINeedToKnowDepartmentAnswer:
-        'Hayır. Emin değilseniz talep formunda “Emin değilim” seçeneğini seçebilir ve şikayetinizi kendi kelimelerinizle açıklayabilirsiniz. Fakülte inceleme süreci vakayı doğru bölüme yönlendirmeye yardımcı olur.',
-      canIUploadPhotosQuestion: 'Fotoğraf veya röntgen yükleyebilir miyim?',
+        'Hayır. Emin değilseniz, “Emin değilim” seçeneğini seçebilir ve şikayetinizi basit kelimelerle açıklayabilirsiniz.',
+      whatInformationShouldIProvideQuestion: 'Hangi bilgileri vermeliyim?',
+      whatInformationShouldIProvideAnswer:
+        'İletişim bilgilerinizi ve dental şikayetinizi açık bir şekilde paylaşmanız yeterlidir. Bu, inceleme ekibinin talebinizi anlamasına yardımcı olur.',
+      canIUploadPhotosQuestion: 'Fotoğraf veya röntgen yüklemek zorunda mıyım?',
       canIUploadPhotosAnswer:
-        'Evet. Fotoğraf veya röntgen yüklemek isteğe bağlıdır, ancak fakültenin vakanızı daha hızlı ve daha doğru değerlendirmesine yardımcı olabilir.',
-      isMyInformationPrivateQuestion: 'Bilgilerim gizli tutuluyor mu?',
+        'Hayır. Fotoğraf, röntgen veya belge yüklemek isteğe bağlıdır. Yalnızca dental talebinizle ilgili dosyaları yükleyiniz.',
+      isMyInformationPrivateQuestion: 'Bilgilerimi kim görebilir?',
       isMyInformationPrivateAnswer:
-        'Bilgileriniz yalnızca talebinizi değerlendirmek ve tedavi eşleştirme sürecini desteklemek için toplanır. Bilgilerinizin nasıl işlendiğine dair daha fazla bilgi için lütfen Gizlilik Politikamızı okuyun.',
-      howMuchDoesTreatmentCostQuestion: 'Tedavi ne kadar tutar?',
-      howMuchDoesTreatmentCostAnswer:
-        'DentBridge, uygun fiyatlı ve denetimli diş hekimliği bakımını desteklemek için kurulmuştur. Kesin tedavi maliyetleri vakanın türüne, klinik gereksinimlere ve kurumsal sürece bağlı olabilir.',
+        'Bilgileriniz tüm öğrencilere açık değildir. Bilgiler yalnızca talep incelemesi ve vaka koordinasyonu için onaylanmış iş akışında yer alan yetkili kullanıcılar tarafından kullanılır.',
       canICheckStatusQuestion: 'Talebimin durumunu kontrol edebilir miyim?',
       canICheckStatusAnswer:
-        'Evet. Gönderimden sonra talebinizi takip etmek için Talep Durumunu Kontrol Et sayfasını kullanabilirsiniz.',
-      whatKindsOfCasesQuestion: 'Ne tür vakalar gönderebilirim?',
+        'Evet. Talep gönderdikten sonra “Talep Durumunu Kontrol Et” sayfasını kullanarak süreci takip edebilirsiniz.',
+      platformCostQuestion: 'DentBridge’i kullanmak ücretli mi?',
+      platformCostAnswer:
+        'DentBridge üzerinden talep göndermek hasta için bir platform ücreti gerektirmez. Ancak uygulanabilecek tedavi ücretleri; kliniğe, tedavi türüne ve kurumsal sürece bağlıdır.',
+      howMuchDoesTreatmentCostQuestion: 'Tedavi ücreti ne kadardır?',
+      howMuchDoesTreatmentCostAnswer:
+        'Tedavi ücretleri kliniğe, tedavi türüne, kullanılan materyallere ve kurumsal kurallara göre değişebilir. DentBridge tedavi ücretlerini bağımsız olarak belirlemez.',
+      emergencyQuestion: 'DentBridge’i acil durumlar için kullanabilir miyim?',
+      emergencyAnswer:
+        'Hayır. DentBridge acil dental veya tıbbi durumlar için kullanılmamalıdır. Şiddetli ağrı, şişlik, kanama, travma veya nefes almada zorluk varsa derhal acil tıbbi veya dental yardım almalısınız.',
+      whatKindsOfCasesQuestion: 'Hangi tür dental talepleri gönderebilirim?',
       whatKindsOfCasesAnswer:
-        'Muayene, diş taşı temizliği, dolgu, diş çekimi, kanal tedavisi, diş eti tedavisi, protetik ihtiyaçlar, ortodontik sorunlar, pedodonti ve estetik diş hekimliği gibi yaygın diş hekimliği ihtiyaçları için talep oluşturabilirsiniz.',
+        'Konsültasyon, diş temizliği, dolgu, diş çekimi, kanal tedavisi, diş eti tedavisi, protez, ortodonti, çocuk diş hekimliği, estetik diş hekimliği veya diğer dental şikayetlerle ilgili talep gönderebilirsiniz.',
+      canRequestBeRejectedQuestion: 'Talebim reddedilebilir mi?',
+      canRequestBeRejectedAnswer:
+        'Evet. Bazı talepler öğrenci tedavisi için uygun olmayabilir, farklı bir klinik gerektirebilir veya mevcut akademik klinik ihtiyaçlarla eşleşmeyebilir.',
+      editOrDeleteInfoQuestion: 'Bilgilerimi daha sonra düzeltebilir veya silebilir miyim?',
+      editOrDeleteInfoAnswer:
+        'Gönderdiğiniz bilgilerin düzeltilmesi veya silinmesi hakkında DentBridge ile iletişime geçebilirsiniz. Bazı talepler, vakanızın durumuna ve uygulanabilir kurumsal gerekliliklere bağlı olabilir.',
     },
   },
 
@@ -603,63 +641,65 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
       beginTreatment:
         'Öğrenci hastayla iletişime geçer ve tedaviye denetim altında başlar',
     },
-    platformEyebrow: 'Platform içinde',
-    platformTitle: 'DentBridge içinde sizi neler bekliyor?',
+    platformEyebrow: 'ÖĞRENCİ KLİNİK ÇALIŞMA ALANI',
+    platformTitle: 'Diş Hekimliği Öğrencileri İçin Kapsamlı Bir Klinik Çalışma Alanı',
     platformIntro:
-      'DentBridge sadece size vaka getirmez — vakalarla ilgili tüm süreci yönetmenize yardımcı olur.',
-    smartSystemTitle: 'Klinik Hayatınızı Düzenleyen Akıllı Bir Sistem',
+      'DentBridge, klinik yıllar boyunca öğrencileri desteklemek için tasarlanmıştır — uygun vakalara erişimden atanmış vaka kayıtlarının düzenlenmesine, klinik gerekliliklerin takibinden randevu planlamaya, ilerleme notlarından fakülte denetimli öğrenme süreçlerine kadar.',
+    smartSystemTitle: 'Vaka Eşleştirmeden Daha Fazlası',
     smartSystemBody:
-      'Aktif vaka kayıtlarından notlara, randevulara ve fakülte gözetimli güncellemelere; gelecekte eklenecek destekleyici özelliklere kadar klinik yılların hareketli parçalarını tek düzenli yerde toplar.',
+      'DentBridge; vaka erişimi, koordinasyon, notlar, randevular, görüntüler, protokoller, gereklilikler ve öğrenme desteğini tek bir yapılandırılmış klinik çalışma alanında bir araya getirir — tümü denetimli akademik diş hekimliği akışı etrafında tasarlanmıştır.',
+    smartSystemPrivacyNote:
+      'Hasta gizliliği bu iş akışının temel bir parçasıdır. Öğrenciler vaka bilgilerine yalnızca atanmış rolleri, onaylanmış vaka süreci ve fakülte denetimli çalışma ortamı kapsamında erişir.',
     features: {
       exchange: {
-        title: 'Vaka Değişimi (Yakında)',
+        title: 'Denetimli Vaka Değişimi',
         body:
-          'Herhangi bir değişim yürürlüğe girmeden önce fakülte onayı gerektiren, yapılandırılmış öğrenci vaka değişimi için gelecekte planlanan bir iş akışıdır.',
+          'Uygun klinik vakaları diğer öğrencilerle fakülte onayıyla ilerleyen belgelenmiş bir iş akışı içinde değiştirmeye yardımcı olur. DentBridge, öğrencilerin vakaları akademik gerekliliklerle daha iyi eşleştirmesini desteklerken, gayriresmî düzenlemeleri daha güvenli ve denetimli bir sürece dönüştürür.',
       },
       planner: {
-        title: 'Akıllı Planner',
+        title: 'Akıllı Klinik Planlayıcı',
         body:
-          'Randevularınızı yönetin, tedavilerinizi takip edin ve hiçbir adımı kaçırmadan planlı kalın.',
+          'Randevuları, tedavi adımlarını, takipleri, teslim tarihlerini ve klinik görevleri tek bir yerde düzenleyin. Planlayıcı, öğrencilerin hazırlıklı kalmasına, zamanını yönetmesine ve önemli hasta ya da akademik sorumlulukları gözden kaçırmamasına yardımcı olur.',
       },
       requirements: {
-        title: 'Klinik Gereklilik Takibi (Planlanmaktadır)',
+        title: 'Klinik Gereklilik Takibi',
         body:
-          'Otomatik klinik gereklilik takibi gelecekte eklenecek destekleyici bir özellik olarak planlanmaktadır ve mevcut temel iş akışının parçası değildir.',
+          'Klinik ilerlemenizi bölümler arasında takip edin ve nelerin tamamlandığını, nelerin hâlâ beklediğini daha net görün. DentBridge, öğrencilerin klinik yolculuklarını daha anlaşılır hale getirir ve fakülte denetimli gerekliliklerle uyumlu kalmalarına yardımcı olur.',
       },
       messaging: {
-        title: 'Mesajlaşma Güncellemeleri (Planlanmaktadır)',
+        title: 'Hasta İletişim Güncellemeleri',
         body:
-          'Gerçek zamanlı telefon güncellemeleri ve gelişmiş mesajlaşma, gelecekteki iletişim iş akışı için geliştirme aşamasındadır.',
+          'Randevular, vaka güncellemeleri ve klinik koordinasyon etrafında daha net iletişimi destekler. DentBridge, iletişimi denetimli vaka iş akışına bağlı tutarak öğrenciler, fakülte ve hastalar arasındaki karışıklığı azaltmaya yardımcı olur.',
       },
       records: {
-        title: 'Düzenli Hasta Kayıtları',
+        title: 'Düzenli Vaka Kayıtları',
         body:
-          'Üzerinde çalıştığınız her vaka temiz ve düzenli bir formatta kaydedilir; tüm önemli bilgilere hızlı erişim sağlar.',
+          'Atanmış vaka bilgilerini yapılandırılmış ve kolay erişilebilir şekilde tutun. DentBridge; vaka durumu, klinik notlar, randevular ve ilgili bilgilerin onaylanmış iş akışı içinde düzenlenmesine yardımcı olur.',
       },
       notes: {
-        title: 'Her Hasta İçin Notlar',
+        title: 'Her Hasta İçin Klinik Notlar',
         body:
-          'Tedavi ilerlemesini, aşamaları ve klinik notları kaydedin; tüm vaka boyunca düzenli kalın.',
+          'İlerlemeyi, tedavi adımlarını, gözlemleri ve takip noktalarını temiz ve düzenli bir formatta belgeleyin. Notlar atanmış vakaya bağlı kalır, böylece öğrenciler hasta sürecini daha güvenli ve düzenli şekilde takip edebilir.',
       },
       images: {
-        title: 'Görüntülere ve Radyografilere Kolay Erişim',
+        title: 'Görüntü ve Radyografi Erişimi',
         body:
-          'Hasta görüntülerini ve radyografileri dosya aramadan, hızlı ve erişilebilir şekilde görüntüleyin.',
+          'Atanmış vakanın parçası olduğunda destekleyici klinik görüntülere, radyografilere ve dosyalara erişin. DentBridge, görsel kayıtların ilgili hasta iş akışına bağlı kalmasına yardımcı olurken erişimin rol bazlı ve denetimli kalmasını destekler.',
       },
       protocols: {
         title: 'Bölüm Bazlı Protokoller',
         body:
-          'Çalıştığınız bölüme göre yapılandırılmış klinik protokollere ve yönergelere erişin.',
+          'Hasta bakımından önce daha güvenli hazırlığı desteklemek için yapılandırılmış klinik protokollere ve bölüm bazlı rehberliğe erişin. Öğrenciler çalıştıkları bölüm için önemli noktaları gözden geçirerek her vakaya daha iyi bir yapı ile yaklaşabilir.',
       },
       clinicalCompass: {
-        title: 'Clinical Compass (Yakında)',
+        title: 'Clinical Compass',
         body:
-          'Öğrencileri klinik iletişim, hasta bilgilendirme, acil durum yönlendirmeleri ve fakülteyle uyumlu eğitim içerikleriyle desteklemek için tasarlanan yapılandırılmış bir eğitim bilgi tabanıdır. Destekleyici bir öğrenme eklentisidir ve fakülte gözetiminin veya klinik kararların yerine geçmez.',
+          'Hasta bakımının gerçeklerine göre tasarlanmış yapılandırılmış bir klinik öğrenme kütüphanesidir. Clinical Compass; hasta iletişimi, kırmızı bayraklar, acil durum rehberliği, tıbbi risk farkındalığı, operasyon sonrası talimatlar ve fakülteyle uyumlu öğrenme yolları konusunda öğrencileri destekler.',
       },
       aiAssistant: {
-        title: 'Öğrenci AI Asistanı (Yakında)',
+        title: 'Öğrenci AI Asistanı',
         body:
-          'Öğrenci deneyimi için gelecekte eklenecek destekleyici bir özellik olarak tasarlanmıştır. Fakülte gözetiminin, klinik kararların veya tedavi kararlarının yerine geçmez.',
+          'Öğrencilerin klinik öğrenme sürecinde yol bulmasına, bilgiyi düzenlemesine ve denetimli hasta bakımına hazırlanmasına yardımcı olmak için tasarlanmış destekleyici bir dijital asistandır. Anlamayı ve organizasyonu destekler; klinik yargı ve tedavi kararları ise fakülte denetimi altında kalır.',
       },
     },
     differenceEyebrow: 'DentBridge neden farklı?',

@@ -1,10 +1,8 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import Image from 'next/image'
-import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
-import LanguageSwitcher from '@/components/LanguageSwitcher'
+import PublicDocumentHeader from '@/components/PublicDocumentHeader'
+import PublicFooter from '@/components/PublicFooter'
 import { useI18n } from '@/lib/i18n'
 
 const KVKK_LAW = 'https://www.kvkk.gov.tr/Icerik/6649/Personal-Data-Protection-Law'
@@ -936,36 +934,7 @@ export default function PersonalDataProtectionLawPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center gap-3">
-            <Image
-              src="/dentbridge-icon.webp"
-              alt="DentiBridge"
-              width={36}
-              height={36}
-              className="h-9 w-9 object-contain"
-            />
-            <div>
-              <p className="text-sm font-bold leading-none text-slate-900">DentiBridge</p>
-              <p className="text-[10px] uppercase tracking-wider text-slate-500">
-                {isTr ? 'KVKK Aydınlatma Metni' : 'KVKK Clarification Text'}
-              </p>
-            </div>
-          </Link>
-
-          <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
-            <LanguageSwitcher />
-            <Link
-              href="/privacy"
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              {isTr ? 'Gizliliğe dön' : 'Back to privacy'}
-            </Link>
-          </div>
-        </div>
-      </header>
+      <PublicDocumentHeader eyebrow={isTr ? 'KVKK Aydınlatma Metni' : 'KVKK Clarification Text'} />
 
       <article className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
         <div className="rounded-lg border border-slate-200 bg-white px-5 py-7 shadow-sm sm:px-8 sm:py-9">
@@ -989,6 +958,7 @@ export default function PersonalDataProtectionLawPage() {
           </div>
         </div>
       </article>
+      <PublicFooter />
     </main>
   )
 }

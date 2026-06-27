@@ -214,6 +214,11 @@ export type TranslationShape = {
     kvkkAcknowledgementLink: string
     kvkkAcknowledgementAfterLink: string
     explicitConsentLabel: string
+    consentLegalLinksIntro: string
+    consentLegalLinksPrivacy: string
+    consentLegalLinksBetween: string
+    consentLegalLinksKvkk: string
+    consentLegalLinksEnding: string
     errorRequiredFields: string
     errorConsent: string
     errorFileSize: string
@@ -275,6 +280,9 @@ export type TranslationShape = {
     teaser: string
     statusLine: string
     newChat: string
+    closeChat: string
+    expandChat: string
+    collapseChat: string
     welcome: string
     starterLabel: string
     starterRequestForm: string
@@ -287,6 +295,11 @@ export type TranslationShape = {
     close: string
     loadingReply: string
     errorFallback: string
+    safetyNotice: string
+    safetyLearnMore: string
+    safetyShowLess: string
+    nextStepPrompt: string
+    emergencyNextStep: string
     disclaimer: string
   }
 
@@ -1257,26 +1270,42 @@ export type TranslationShape = {
     items: {
       whatIsDentBridgeQuestion: string
       whatIsDentBridgeAnswer: string
+      isDentBridgeClinicQuestion: string
+      isDentBridgeClinicAnswer: string
+      whoWillReviewRequestQuestion: string
+      whoWillReviewRequestAnswer: string
       whoWillTreatMeQuestion: string
       whoWillTreatMeAnswer: string
       isTreatmentSupervisedQuestion: string
       isTreatmentSupervisedAnswer: string
-      howDoIRequestTreatmentQuestion: string
-      howDoIRequestTreatmentAnswer: string
+      treatmentGuaranteeQuestion: string
+      treatmentGuaranteeAnswer: string
       whatHappensAfterSubmitQuestion: string
       whatHappensAfterSubmitAnswer: string
+      responseTimeQuestion: string
+      responseTimeAnswer: string
       doINeedToKnowDepartmentQuestion: string
       doINeedToKnowDepartmentAnswer: string
+      whatInformationShouldIProvideQuestion: string
+      whatInformationShouldIProvideAnswer: string
       canIUploadPhotosQuestion: string
       canIUploadPhotosAnswer: string
       isMyInformationPrivateQuestion: string
       isMyInformationPrivateAnswer: string
-      howMuchDoesTreatmentCostQuestion: string
-      howMuchDoesTreatmentCostAnswer: string
       canICheckStatusQuestion: string
       canICheckStatusAnswer: string
+      platformCostQuestion: string
+      platformCostAnswer: string
+      howMuchDoesTreatmentCostQuestion: string
+      howMuchDoesTreatmentCostAnswer: string
+      emergencyQuestion: string
+      emergencyAnswer: string
       whatKindsOfCasesQuestion: string
       whatKindsOfCasesAnswer: string
+      canRequestBeRejectedQuestion: string
+      canRequestBeRejectedAnswer: string
+      editOrDeleteInfoQuestion: string
+      editOrDeleteInfoAnswer: string
     }
   }
 
@@ -1319,6 +1348,7 @@ export type TranslationShape = {
     platformIntro: string
     smartSystemTitle: string
     smartSystemBody: string
+    smartSystemPrivacyNote: string
     features: {
       exchange: { title: string; body: string }
       planner: { title: string; body: string }
@@ -1656,14 +1686,19 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     uploadSubtitle: 'JPG, JPEG, PNG, or PDF up to 10 MB',
     uploadSelectedLabel: 'Selected file:',
     consentInfo:
-      'Consent: I understand that my request will be submitted for academic clinical review. Submitting this form does not guarantee treatment, appointment, diagnosis, or acceptance. Eligible cases may be reviewed by authorized faculty members or authorized administrative personnel. Suitable cases may be considered for supervised coordination with senior dental students under faculty supervision. Treatment decisions remain under qualified faculty or clinical supervision. This platform must not be used for emergencies.',
+      'Before submitting, please note that DentiBridge is used for academic clinical coordination only. Submitting a request does not guarantee treatment, appointment, diagnosis, or acceptance. Urgent or emergency dental/medical situations should not be submitted through this form.',
     consentLabel:
-      'I understand and agree to submit my treatment request for academic review.',
+      'I have read and understood the KVKK / Personal Data Protection Clarification Text.',
     kvkkAcknowledgementBeforeLink: 'I have read and understood the ',
     kvkkAcknowledgementLink: 'KVKK / Personal Data Protection Clarification Text',
     kvkkAcknowledgementAfterLink: '.',
     explicitConsentLabel:
       'I explicitly consent to the processing of my submitted dental and health-related information for academic clinical review and, if my request is considered suitable, supervised coordination with senior dental students under faculty supervision.',
+    consentLegalLinksIntro: 'Read our ',
+    consentLegalLinksPrivacy: 'Privacy Policy',
+    consentLegalLinksBetween: ' and ',
+    consentLegalLinksKvkk: 'KVKK / Personal Data Protection Clarification Text',
+    consentLegalLinksEnding: ' for details.',
     errorRequiredFields: 'Please complete all required fields.',
     errorConsent: 'Please confirm both required consent checkboxes before submitting.',
     errorFileSize: 'File size must be 10 MB or less.',
@@ -1725,8 +1760,11 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     headerTitle: 'Bridgey',
     headerSubtitle: 'Here to help with your DentBridge request',
     teaser: 'Need help?',
-    statusLine: 'Online • 24/7',
+    statusLine: 'Online • informational assistant',
     newChat: 'New chat',
+    closeChat: 'Close chat',
+    expandChat: 'Expand chat',
+    collapseChat: 'Collapse chat',
     welcome: 'Hi! What can I help you with today?',
     starterLabel: 'Suggested questions',
     starterRequestForm: 'How do I request treatment?',
@@ -1737,8 +1775,14 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     send: 'Send',
     sending: 'Sending…',
     close: 'Close',
-    loadingReply: 'Preparing a reply…',
-    errorFallback: 'Unable to send your message right now. Please try again.',
+    loadingReply: 'Bridgey is reviewing your question…',
+    errorFallback: 'Bridgey could not reply right now. Please try again in a moment.',
+    safetyNotice:
+      'Information only — no diagnosis, treatment planning, medical advice, or emergency support.',
+    safetyLearnMore: 'More',
+    safetyShowLess: 'Less',
+    nextStepPrompt: 'Need help with anything else?',
+    emergencyNextStep: 'For urgent symptoms, please seek urgent care immediately.',
     disclaimer:
       'Bridgey is an informational assistant for general guidance about the DentBridge request process. It does not provide diagnosis, treatment planning, medical advice, or emergency support. All clinical decisions must be made by qualified faculty and healthcare professionals.',
   },
@@ -2755,42 +2799,66 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     eyebrow: 'Frequently Asked Questions',
     title: 'Patient FAQ',
     description:
-      'Here you can find clear answers to the most common questions about requesting treatment through DentBridge.',
+      'Simple answers to common questions about requesting dental care through DentBridge.',
     backToRequest: 'Back to request',
     items: {
       whatIsDentBridgeQuestion: 'What is DentBridge?',
       whatIsDentBridgeAnswer:
-        'DentBridge is a faculty-supported platform that helps connect patients with appropriate dental student cases under academic supervision. The goal is to make access to care more structured, clear, and affordable.',
-      whoWillTreatMeQuestion: 'Who will treat me?',
+        'DentBridge helps patients submit dental care requests to an academic dental setting, where suitable cases may be reviewed and coordinated with senior dental students under faculty supervision.',
+      isDentBridgeClinicQuestion: 'Is DentBridge a dental clinic?',
+      isDentBridgeClinicAnswer:
+        'No. DentBridge is not a dental clinic or hospital. It is a digital platform that helps organize requests and connect them to the right academic clinical workflow.',
+      whoWillReviewRequestQuestion: 'Who will review my request?',
+      whoWillReviewRequestAnswer:
+        'Your request may be reviewed by authorized faculty members or the relevant academic clinical team before any next step is decided.',
+      whoWillTreatMeQuestion: 'Will I be treated by a student?',
       whoWillTreatMeAnswer:
-        'Treatment is provided by senior dental students, under the supervision of qualified faculty members. Cases are reviewed before matching to help place patients with the most suitable department and student level.',
-      isTreatmentSupervisedQuestion: 'Is treatment supervised?',
+        'If your case is suitable, you may be treated by a senior dental student. Student treatment is provided under faculty supervision.',
+      isTreatmentSupervisedQuestion: 'Is student treatment safe?',
       isTreatmentSupervisedAnswer:
-        'Yes. DentBridge is designed around supervised academic care. Patients are matched through a faculty-reviewed process, and treatment is provided within an educational clinical environment.',
-      howDoIRequestTreatmentQuestion: 'How do I request treatment?',
-      howDoIRequestTreatmentAnswer:
-        'You can submit a treatment request through the online form. You will be asked for basic personal and clinical information so the faculty team can review your case and match you appropriately.',
-      whatHappensAfterSubmitQuestion: 'What happens after I submit my request?',
+        'Dental students work under the guidance of qualified faculty members. The goal is to provide supervised care in an academic clinical environment.',
+      treatmentGuaranteeQuestion: 'Does submitting a request guarantee treatment?',
+      treatmentGuaranteeAnswer:
+        'No. Submitting a request does not guarantee treatment or an appointment. Your request first needs to be reviewed for suitability.',
+      whatHappensAfterSubmitQuestion: 'What happens after I submit the form?',
       whatHappensAfterSubmitAnswer:
-        'After submission, your request is reviewed and directed to the appropriate department. If your case is suitable, it can be matched to a student under supervision. You may then be contacted for the next step.',
-      doINeedToKnowDepartmentQuestion: 'Do I need to know which department I need?',
+        'Your request is reviewed. If it appears suitable, you may be contacted for the next step. If it is not suitable, you may need to seek care through another clinic or service.',
+      responseTimeQuestion: 'How long does it take to get a response?',
+      responseTimeAnswer:
+        'Response time can vary depending on the clinic, faculty review, student availability, and the type of request.',
+      doINeedToKnowDepartmentQuestion: 'Do I need to know which treatment I need?',
       doINeedToKnowDepartmentAnswer:
-        'No. If you are unsure, you can select “I’m not sure” in the request form and describe your complaint in your own words. The faculty review process helps guide the case to the correct department.',
-      canIUploadPhotosQuestion: 'Can I upload photos or x-rays?',
+        'No. If you are not sure, choose “I’m not sure” and describe your concern in simple words.',
+      whatInformationShouldIProvideQuestion: 'What information should I provide?',
+      whatInformationShouldIProvideAnswer:
+        'Provide your contact details and a clear description of your dental concern. This helps the review team understand your request.',
+      canIUploadPhotosQuestion: 'Do I have to upload photos or x-rays?',
       canIUploadPhotosAnswer:
-        'Yes. Uploading a photo or x-ray is optional, but it can help the faculty review your case faster and more accurately.',
-      isMyInformationPrivateQuestion: 'Is my information private?',
+        'No. Uploading photos, x-rays, or documents is optional. Only upload files if they are relevant to your dental request.',
+      isMyInformationPrivateQuestion: 'Who can see my information?',
       isMyInformationPrivateAnswer:
-        'Your information is collected only to review your request and support the treatment-matching process. Please read our Privacy Policy for more details about how your information is handled.',
-      howMuchDoesTreatmentCostQuestion: 'How much does treatment cost?',
-      howMuchDoesTreatmentCostAnswer:
-        'DentBridge is built to support affordable, supervised dental care. Exact treatment costs may depend on the type of case, clinical needs, and institutional process.',
+        'Your information is not open to all students. It is used only for request review and case coordination by authorized users involved in the approved workflow.',
       canICheckStatusQuestion: 'Can I check the status of my request?',
       canICheckStatusAnswer:
-        'Yes. You can use the Check Request Status page to follow your request after submission.',
-      whatKindsOfCasesQuestion: 'What kind of cases can I submit?',
+        'Yes. After submitting a request, you can use the “Check Request Status” page to follow its progress.',
+      platformCostQuestion: 'Does using DentBridge cost money?',
+      platformCostAnswer:
+        'Submitting a request through DentBridge does not require a platform fee from the patient. However, any treatment costs, if applicable, depend on the clinic, treatment type, and institutional process.',
+      howMuchDoesTreatmentCostQuestion: 'How much does treatment cost?',
+      howMuchDoesTreatmentCostAnswer:
+        'Treatment costs may vary depending on the clinic, treatment type, materials, and institutional rules. DentBridge does not independently set treatment fees.',
+      emergencyQuestion: 'Can I use DentBridge for emergencies?',
+      emergencyAnswer:
+        'No. DentBridge should not be used for urgent or emergency dental problems. If you have severe pain, swelling, bleeding, trauma, or difficulty breathing, seek urgent medical or dental care immediately.',
+      whatKindsOfCasesQuestion: 'What types of dental requests can I submit?',
       whatKindsOfCasesAnswer:
-        'You can submit requests for common dental concerns such as consultation, cleaning, fillings, tooth extraction, root canal treatment, gum treatment, prosthetic needs, orthodontic concerns, pediatric dentistry, and esthetic dentistry.',
+        'You may submit requests related to consultation, cleaning, fillings, extraction, root canal treatment, gum treatment, prosthetics, orthodontics, pediatric dentistry, esthetic dentistry, or other dental concerns.',
+      canRequestBeRejectedQuestion: 'Can my request be rejected?',
+      canRequestBeRejectedAnswer:
+        'Yes. Some requests may not be suitable for student treatment, may require a different clinic, or may not match current academic clinical needs.',
+      editOrDeleteInfoQuestion: 'Can I edit or delete my information later?',
+      editOrDeleteInfoAnswer:
+        'You may contact DentBridge to ask about correcting or deleting submitted information. Some requests may depend on the status of your case and applicable institutional requirements.',
     },
   },
 
@@ -2831,63 +2899,65 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       assigned: 'The case is assigned to you',
       beginTreatment: 'You contact the patient and begin treatment under supervision',
     },
-    platformEyebrow: 'Inside the platform',
-    platformTitle: 'What you get inside DentBridge',
+    platformEyebrow: 'INSIDE THE STUDENT WORKSPACE',
+    platformTitle: 'A Complete Clinical Workspace for Dental Students',
     platformIntro:
-      'DentBridge doesn’t just bring you cases — it helps you manage everything around them.',
-    smartSystemTitle: 'A Smart System That Organizes Your Clinical Life',
+      'DentBridge is built to support students throughout the clinical years — from finding suitable cases to organizing assigned case records, tracking requirements, planning appointments, documenting progress, and learning through faculty-supervised workflows.',
+    smartSystemTitle: 'More Than Case Matching',
     smartSystemBody:
-      'From active case records, notes, appointments, and faculty-supervised updates to planned future add-ons, the platform keeps the moving parts of clinical years in one structured place.',
+      'DentBridge brings the student’s clinical workflow into one structured place: case access, coordination, notes, appointments, images, protocols, requirements, and learning support — all designed around supervised academic dentistry.',
+    smartSystemPrivacyNote:
+      'Patient privacy is a core part of the workflow. Students access case information only within their assigned role, approved case pathway, and faculty-supervised environment.',
     features: {
       exchange: {
-        title: 'Case Exchange (Coming soon)',
+        title: 'Supervised Case Exchange',
         body:
-          'Planned as a future workflow for structured student case exchange with faculty approval before any swap takes effect.',
+          'Exchange suitable clinical cases with other students through a documented workflow guided by faculty approval. DentBridge helps students match cases to academic requirements while replacing informal arrangements with a safer, supervised process.',
       },
       planner: {
-        title: 'Smart Planner',
+        title: 'Smart Clinical Planner',
         body:
-          'Manage appointments, track treatments, and stay on schedule so nothing falls through the cracks.',
+          'Organize appointments, treatment steps, follow-ups, deadlines, and clinical tasks in one place. The planner helps students stay prepared, manage their time, and avoid losing track of important patient or academic responsibilities.',
       },
       requirements: {
-        title: 'Clinical Requirements Tracking (Planned)',
+        title: 'Clinical Requirements Tracking',
         body:
-          'Automatic clinical requirements tracking is planned as a future add-on and is not part of the current core workflow.',
+          'Track clinical progress across departments and understand what still needs to be completed. DentBridge helps students see their clinical journey more clearly and stay aligned with faculty-supervised requirements.',
       },
       messaging: {
-        title: 'Messaging Updates (Planned)',
+        title: 'Patient Communication Updates',
         body:
-          'Real-time phone updates and advanced messaging are under development for a future communication workflow.',
+          'Support clearer communication around appointments, case updates, and clinical coordination. DentBridge helps reduce confusion by keeping communication connected to the supervised case workflow.',
       },
       records: {
-        title: 'Organized Patient Records',
+        title: 'Organized Case Records',
         body:
-          'Every case you work on is saved in a clean, structured format with quick access to all relevant information.',
+          'Keep assigned case information structured and easy to access. DentBridge helps students organize case status, clinical notes, appointments, and related information within the approved workflow.',
       },
       notes: {
-        title: 'Notes for Every Patient',
+        title: 'Clinical Notes for Every Patient',
         body:
-          'Track progress, log treatment steps, and stay organized throughout the entire case.',
+          'Document progress, treatment steps, observations, and follow-up points in a clean and organized format. Notes stay connected to the assigned case so students can follow the patient journey more confidently.',
       },
       images: {
-        title: 'Easy Access to Images & Radiographs',
+        title: 'Images and Radiographs Access',
         body:
-          'View patient images and radiographs in a clear, fast, and accessible way without losing or searching for files.',
+          'Access supporting clinical images, radiographs, and files when they are part of an assigned case. DentBridge helps keep visual records connected to the relevant patient workflow while access remains role-based and supervised.',
       },
       protocols: {
         title: 'Department-Based Protocols',
         body:
-          'Access structured clinical protocols and guidelines based on the department you’re working in.',
+          'Access structured clinical protocols and department-specific guidance to support safer preparation before patient care. Students can review what matters for the department they are working in and approach each case with better structure.',
       },
       clinicalCompass: {
-        title: 'Clinical Compass (Coming soon)',
+        title: 'Clinical Compass',
         body:
-          'A structured educational knowledge base designed to support students with clinical communication, patient education, emergency guidance, and faculty-aligned learning content. It is a supportive learning add-on and does not replace faculty supervision or clinical judgment.',
+          'A structured clinical learning library designed for the realities of patient care. Clinical Compass supports students with patient communication, red flags, emergency guidance, medical risk awareness, post-operative instructions, and faculty-aligned learning pathways.',
       },
       aiAssistant: {
-        title: 'Student AI Assistant (Coming soon)',
+        title: 'Student AI Assistant',
         body:
-          'Designed as a future supportive add-on for the student experience. It will not replace faculty supervision, clinical judgment, or treatment decisions.',
+          'A supportive digital assistant designed to help students navigate clinical learning, organize information, and prepare for supervised patient care. It supports understanding and organization, while clinical judgment and treatment decisions remain under faculty supervision.',
       },
     },
     differenceEyebrow: 'Why DentBridge is different',
