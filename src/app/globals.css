@@ -32,17 +32,18 @@ body {
 /*
   In iOS standalone (PWA) mode with viewport-fit=cover and
   apple-mobile-web-app-status-bar-style: black-translucent, the status bar
-  overlays content. Adding padding-top: env(safe-area-inset-top) to every
-  sticky header lets the header background bleed behind the status bar while
-  keeping the header's own content clear of it. This targets every page's
-  sticky header without touching component files.
+  overlays content. Adding padding-top: env(safe-area-inset-top) to public
+  headers lets the header background bleed behind the status bar while keeping
+  the header's own content clear of it.
 */
-header.sticky {
+header.sticky,
+.dentbridge-safe-header {
   padding-top: env(safe-area-inset-top, 0px);
 }
 
 @supports (padding-top: constant(safe-area-inset-top)) {
-  header.sticky {
+  header.sticky,
+  .dentbridge-safe-header {
     padding-top: constant(safe-area-inset-top);
   }
 }

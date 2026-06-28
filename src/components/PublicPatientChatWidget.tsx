@@ -437,8 +437,8 @@ export default function PublicPatientChatWidget() {
       : []
   const showContextualSuggestions = contextualSuggestions.length > 0
   const panelHeightClass = isExpanded
-    ? 'h-[min(82svh,44rem)] max-h-[calc(100svh-6rem)] sm:h-[min(84dvh,46rem)] sm:max-h-[calc(100dvh-4rem)]'
-    : 'h-[min(62svh,32rem)] max-h-[calc(100svh-10rem)] sm:h-[min(70dvh,38rem)] sm:max-h-[calc(100dvh-8rem)]'
+    ? 'h-full max-h-full sm:h-[min(84dvh,46rem)] sm:max-h-[calc(100dvh-4rem)]'
+    : 'h-[min(72dvh,34rem)] max-h-full sm:h-[min(70dvh,38rem)] sm:max-h-[calc(100dvh-8rem)]'
   const panelWidth = isExpanded ? 'min(38rem, calc(100vw - 32px))' : 'min(24rem, calc(100vw - 32px))'
 
   function resetConversation() {
@@ -532,16 +532,16 @@ export default function PublicPatientChatWidget() {
 
   return (
     <div className="pointer-events-none fixed inset-0 z-[70]" aria-live="polite">
-      <div className="fixed bottom-20 right-4 z-50 flex flex-col items-end gap-3 md:bottom-16 md:right-6">
+      <div className="fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] top-[calc(0.75rem+env(safe-area-inset-top))] z-50 flex min-h-0 flex-col items-end justify-end gap-3 sm:inset-x-auto sm:bottom-16 sm:right-6 sm:top-auto md:right-6">
         {isOpen && (
           <section
-            className={`bridgey-panel-enter pointer-events-auto flex ${panelHeightClass} flex-col overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_28px_80px_-32px_rgba(15,23,42,0.45)] ring-1 ring-slate-950/5 backdrop-blur`}
+            className={`bridgey-panel-enter pointer-events-auto flex min-h-0 ${panelHeightClass} flex-col overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_28px_80px_-32px_rgba(15,23,42,0.45)] ring-1 ring-slate-950/5 backdrop-blur`}
             style={{
               width: panelWidth,
             }}
           >
             {/* Header */}
-            <div className="border-b border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.98))] px-4 py-3.5 sm:px-5">
+            <div className="shrink-0 border-b border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.98))] px-4 py-3 sm:px-5 sm:py-3.5">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-start gap-3.5">
                   <BridgeyAvatar sizeClass="h-14 w-14" className="mt-0.5" />
@@ -582,7 +582,7 @@ export default function PublicPatientChatWidget() {
               </div>
             </div>
 
-            <div className="border-b border-slate-200/70 bg-white px-4 py-2.5 sm:px-5">
+            <div className="shrink-0 border-b border-slate-200/70 bg-white px-4 py-2.5 sm:px-5">
               <div className="rounded-2xl border border-teal-100 bg-teal-50/70 px-3 py-2 text-[11px] leading-5 text-slate-600">
                 <div className="flex items-start gap-2">
                   <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-teal-600" />
@@ -608,7 +608,7 @@ export default function PublicPatientChatWidget() {
             {/* Messages */}
             <div
               ref={scrollContainerRef}
-              className="flex-1 space-y-3 overflow-y-auto overscroll-contain bg-[radial-gradient(circle_at_top,rgba(240,253,250,0.55),transparent_42%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-4 py-3.5 sm:px-5"
+              className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain bg-[radial-gradient(circle_at_top,rgba(240,253,250,0.55),transparent_42%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-4 py-3.5 sm:px-5"
             >
               {messages.map((message) => (
                 <div
@@ -721,7 +721,7 @@ export default function PublicPatientChatWidget() {
             </div>
 
             {/* Input */}
-            <div className="border-t border-slate-200/80 bg-white px-4 py-3 sm:px-5 sm:py-4">
+            <div className="shrink-0 border-t border-slate-200/80 bg-white px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 sm:px-5 sm:py-4">
               {errorMessage && (
                 <div className="mb-3 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
                   {errorMessage}

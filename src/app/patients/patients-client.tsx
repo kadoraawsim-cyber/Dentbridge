@@ -70,6 +70,29 @@ const DEPARTMENTS = [
 export default function PatientsPageClient() {
   const { t, locale } = useI18n()
   const [openDepartment, setOpenDepartment] = React.useState<string | null>(null)
+  const ignoreNextDepartmentClickRef = React.useRef(false)
+
+  function toggleDepartment(slug: string) {
+    setOpenDepartment((current) => (current === slug ? null : slug))
+  }
+
+  function handleDepartmentClick(slug: string) {
+    if (ignoreNextDepartmentClickRef.current) {
+      ignoreNextDepartmentClickRef.current = false
+      return
+    }
+
+    toggleDepartment(slug)
+  }
+
+  function handleDepartmentTouchEnd(event: React.TouchEvent<HTMLButtonElement>, slug: string) {
+    event.preventDefault()
+    ignoreNextDepartmentClickRef.current = true
+    toggleDepartment(slug)
+    window.setTimeout(() => {
+      ignoreNextDepartmentClickRef.current = false
+    }, 400)
+  }
 
   // Clear any staff session when landing on the public home page.
   // Patients are always anonymous so signOut() is a no-op for them.
@@ -141,7 +164,7 @@ export default function PatientsPageClient() {
 
   return (
     <main className="min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-white text-slate-900">
-      <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 shadow-[0_10px_30px_-26px_rgba(15,23,42,0.5)] backdrop-blur-xl">
+      <header className="dentbridge-safe-header sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 shadow-[0_10px_30px_-26px_rgba(15,23,42,0.5)] backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 sm:py-4 lg:px-8">
           <Link href="/" className="dentbridge-link-lift flex min-w-0 items-center gap-2 sm:gap-3">
             <Image
@@ -405,8 +428,11 @@ export default function PatientsPageClient() {
                 >
                   <button
                     type="button"
-                    onClick={() => setOpenDepartment(isOpen ? null : dept.slug)}
-                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-slate-50/80 sm:gap-4 sm:px-5 sm:py-5"
+                    aria-expanded={isOpen}
+                    aria-controls={`department-panel-${dept.slug}`}
+                    onClick={() => handleDepartmentClick(dept.slug)}
+                    onTouchEnd={(event) => handleDepartmentTouchEnd(event, dept.slug)}
+                    className="relative z-10 flex w-full touch-manipulation items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-slate-50/80 sm:gap-4 sm:px-5 sm:py-5"
                   >
                     <div className="flex items-center sm:items-start gap-3 sm:gap-4">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-700 ring-1 ring-teal-100 sm:h-12 sm:w-12 sm:rounded-2xl">
@@ -423,14 +449,17 @@ export default function PatientsPageClient() {
                     </div>
 
                     <ChevronDown
-                      className={`h-4 w-4 sm:h-5 sm:w-5 shrink-0 text-slate-500 transition-transform ${
+                      className={`pointer-events-none h-4 w-4 sm:h-5 sm:w-5 shrink-0 text-slate-500 transition-transform ${
                         isOpen ? 'rotate-180' : ''
                       }`}
                     />
                   </button>
 
                   {isOpen && (
-                    <div className="dentbridge-accordion-panel border-t border-slate-100 bg-slate-50/80 px-4 py-4 sm:px-5 sm:py-5">
+                    <div
+                      id={`department-panel-${dept.slug}`}
+                      className="dentbridge-accordion-panel border-t border-slate-100 bg-slate-50/80 px-4 py-4 sm:px-5 sm:py-5"
+                    >
                       <div className="space-y-4 sm:space-y-5 text-xs sm:text-sm leading-relaxed sm:leading-7 text-slate-700">
                         <div>
                           <p className="mb-0.5 sm:mb-1 font-semibold text-slate-900">

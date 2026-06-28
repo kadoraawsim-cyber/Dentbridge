@@ -369,7 +369,7 @@ export default function PatientStatusPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b border-slate-200 bg-white">
+      <header className="dentbridge-safe-header border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-3">
             <img
