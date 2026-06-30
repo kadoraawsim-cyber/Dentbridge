@@ -111,13 +111,13 @@ export const tr: TranslationShape = {
     depts: {
       surgery: {
         name: 'Ağız, Diş ve Çene Cerrahisi',
-        short: 'Diş, çene ve ağız çevresi dokular için cerrahi bakım.',
+        short: 'Ağız, diş, çene ve yüz bölgesini ilgilendiren durumların tanısı ve cerrahi yönetimi.',
         description:
-          'Bu bölüm, dişler, çeneler, ağız ve çevre yumuşak dokular üzerinde cerrahi tedavi gerektiren durumları ele alır.',
+          'Bu bölüm, rutin diş tedavisiyle tek başına yönetilemeyen durumlara odaklanır; gömülü dişler, çene kaynaklı patolojiler, ağız yumuşak dokusu sorunları, yüz şişliği, travma veya cerrahi değerlendirme gerektiren lezyonlar bu kapsamda değerlendirilir.',
         when:
-          'çekim gerektiren bir diş, gömülü 20 yaş dişleri, şişlik, kist, çeneye bağlı sorunlar veya cerrahi değerlendirme gerektiren ağız lezyonları söz konusuysa.',
+          'gömülü yirmi yaş dişleriniz, cerrahi çekim gerektiren bir dişiniz, geçmeyen şişlik, kist, çene ağrısı veya ağız açıklığında kısıtlılık, ağız ya da çene travması veya uzman değerlendirmesi gerektiren bir ağız lezyonunuz varsa bu bölüme ihtiyaç duyabilirsiniz.',
         treatments:
-          'diş çekimleri, 20 yaş dişi cerrahisi, gömülü diş ameliyatı ve ağız yumuşak dokusu ile çeneyle ilgili cerrahi durumların tedavisi.',
+          'basit ve cerrahi diş çekimleri, yirmi yaş dişi çekimi, gömülü dişlerin yönetimi, kist veya ağız lezyonlarının değerlendirilmesi ve tedavisi ile ağız yumuşak dokuları veya çene bölgesini ilgilendiren seçilmiş cerrahi işlemler.',
       },
       endodontics: {
         name: 'Endodonti',
@@ -474,9 +474,10 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
     faq: 'SSS',
     clinicalRequirements: 'Klinik Gereksinimler',
     universityPilot: 'Denetimli akademik pilot platform',
-    email: 'E-posta: contact@dentbridgetr.com',
-    instagram: 'Instagram: @Dentbridge.tr',
-    whatsappSupport: 'WhatsApp: WhatsApp desteği mevcuttur',
+    email: 'Genel iletişim: contact@dentbridgetr.com',
+    patientSupportEmail: 'Hasta desteği: support@dentbridgetr.com',
+    privacyEmail: 'Gizlilik talepleri: privacy@dentbridgetr.com',
+    whatsappSupport: 'WhatsApp: WhatsApp Destek',
     copyright:
       '© 2025–2026 DentBridge™. Waseem Kadura odia tarafından kurulmuştur. Tüm hakları saklıdır.',
     legalNotice:

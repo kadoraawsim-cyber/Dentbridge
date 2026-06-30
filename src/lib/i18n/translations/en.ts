@@ -1215,7 +1215,8 @@ export type TranslationShape = {
     clinicalRequirements: string
     universityPilot: string
     email: string
-    instagram: string
+    patientSupportEmail: string
+    privacyEmail: string
     whatsappSupport: string
     /** {year} is replaced at render time */
     copyright: string
@@ -1510,13 +1511,13 @@ export const en: TranslationShape = {
     depts: {
       surgery: {
         name: 'Oral & Maxillofacial Surgery',
-        short: 'Surgical care for teeth, jaws, and oral tissues.',
+        short: 'Diagnosis and surgical management of oral, dental, jaw, and facial conditions.',
         description:
-          'This department deals with conditions that require surgical treatment involving the teeth, jaws, mouth, and surrounding soft tissues.',
+          'This department focuses on problems that cannot be managed with routine dental care alone, including impacted teeth, jaw-related pathology, oral soft tissue conditions, facial swelling, trauma, or lesions that require surgical evaluation.',
         when:
-          'a tooth that needs extraction, impacted wisdom teeth, swelling, cysts, jaw-related problems, or oral lesions that require surgical evaluation.',
+          'you have impacted wisdom teeth, a tooth that requires surgical extraction, persistent swelling, a cyst, jaw pain or limited movement, trauma involving the mouth or jaws, or an oral lesion that needs specialist assessment.',
         treatments:
-          'tooth extractions, wisdom tooth removal, surgical removal of impacted teeth, and treatment of oral soft tissue or jaw-related surgical conditions.',
+          'simple and surgical extractions, wisdom tooth removal, management of impacted teeth, assessment and treatment of cysts or oral lesions, and selected procedures involving the oral soft tissues or jaw area.',
       },
       endodontics: {
         name: 'Endodontics',
@@ -2734,9 +2735,10 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     faq: 'FAQ',
     clinicalRequirements: 'Clinical Requirements',
     universityPilot: 'Supervised academic pilot platform',
-    email: 'Email: contact@dentbridgetr.com',
-    instagram: 'Instagram: @Dentbridge.tr',
-    whatsappSupport: 'WhatsApp: WhatsApp support available',
+    email: 'General inquiries: contact@dentbridgetr.com',
+    patientSupportEmail: 'Patient support: support@dentbridgetr.com',
+    privacyEmail: 'Privacy requests: privacy@dentbridgetr.com',
+    whatsappSupport: 'WhatsApp: WhatsApp Support',
     copyright:
       '© 2025–2026 DentBridge™. Founded by Waseem Kadura odia. All rights reserved.',
     legalNotice:

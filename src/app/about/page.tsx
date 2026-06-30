@@ -314,6 +314,16 @@ export default function AboutPage() {
                   {t('footer.email')}
                 </a>
               </li>
+              <li>
+                <a href="mailto:support@dentbridgetr.com" className="transition hover:text-white">
+                  {t('footer.patientSupportEmail')}
+                </a>
+              </li>
+              <li>
+                <a href="mailto:privacy@dentbridgetr.com" className="transition hover:text-white">
+                  {t('footer.privacyEmail')}
+                </a>
+              </li>
               <li>{t('footer.universityPilot')}</li>
             </ul>
           </div>

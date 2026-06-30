@@ -583,13 +583,13 @@ export default function PatientsPageClient() {
                 </a>
               </li>
               <li>
-                <a
-                  href="https://instagram.com/dentbridge.tr"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="transition hover:text-white"
-                >
-                  {t('footer.instagram')}
+                <a href="mailto:support@dentbridgetr.com" className="transition hover:text-white">
+                  {t('footer.patientSupportEmail')}
+                </a>
+              </li>
+              <li>
+                <a href="mailto:privacy@dentbridgetr.com" className="transition hover:text-white">
+                  {t('footer.privacyEmail')}
                 </a>
               </li>
               <li>
