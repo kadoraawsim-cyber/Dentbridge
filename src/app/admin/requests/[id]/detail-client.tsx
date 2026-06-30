@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { buildCaseTimeline } from '@/lib/case-timeline'
@@ -274,6 +275,17 @@ export function CaseDetailClient({
 }: Props) {
   const { t, locale } = useI18n()
   const dateLocale = locale === 'tr' ? 'tr-TR' : 'en-GB'
+  const [now, setNow] = useState<number | null>(null)
+
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      setNow(Date.now())
+    })
+
+    return () => {
+      window.cancelAnimationFrame(frameId)
+    }
+  }, [])
 
   function formatReviewDate(iso: string | null): string {
     if (!iso) return '—'
@@ -285,7 +297,8 @@ export function CaseDetailClient({
 
   function waitingDays(iso: string | null): string {
     if (!iso) return '—'
-    const days = Math.floor((Date.now() - new Date(iso).getTime()) / (1000 * 60 * 60 * 24))
+    if (now === null) return '—'
+    const days = Math.floor((now - new Date(iso).getTime()) / (1000 * 60 * 60 * 24))
     if (days === 0) return t('admin.detail.submittedToday')
     if (days === 1) return t('admin.detail.waitingOneDay')
     return `${t('admin.detail.waitingDaysPrefix')} ${days} ${t('admin.detail.waitingDaysSuffix')}`
@@ -527,13 +540,22 @@ export function CaseDetailClient({
   useEffect(() => {
     if (!request.attachment_path) {
       previewUrlExpiresAtRef.current = 0
-      setPreviewUrl(null)
-      setPreviewLoading(false)
-      return
+      const resetFrameId = window.requestAnimationFrame(() => {
+        setPreviewUrl(null)
+        setPreviewLoading(false)
+      })
+
+      return () => {
+        window.cancelAnimationFrame(resetFrameId)
+      }
     }
 
     let cancelled = false
-    setPreviewLoading(true)
+    const loadingFrameId = window.requestAnimationFrame(() => {
+      if (!cancelled) {
+        setPreviewLoading(true)
+      }
+    })
     supabase.storage
       .from('patient-uploads')
       .createSignedUrl(request.attachment_path, 3600)
@@ -548,6 +570,7 @@ export function CaseDetailClient({
       })
     return () => {
       cancelled = true
+      window.cancelAnimationFrame(loadingFrameId)
     }
   }, [request.attachment_path])
 
@@ -1205,9 +1228,11 @@ export function CaseDetailClient({
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-3">
-            <img
+            <Image
               src="/dentbridge-icon.webp"
               alt="DentBridge icon"
+              width={40}
+              height={40}
               className="h-10 w-10 object-contain"
             />
             <div>
@@ -1424,11 +1449,14 @@ export function CaseDetailClient({
                         <span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-slate-600" />
                       </div>
                     ) : previewUrl ? (
-                      <img
-                        src={previewUrl}
-                        alt={attachmentLabel}
-                        className="aspect-video w-full object-contain"
-                      />
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element -- Signed upload preview URLs are short-lived and may not match static Next image remote patterns. */}
+                        <img
+                          src={previewUrl}
+                          alt={attachmentLabel}
+                          className="aspect-video w-full object-contain"
+                        />
+                      </>
                     ) : (
                       <div className="flex aspect-video items-center justify-center">
                         <p className="px-4 text-center text-xs text-slate-500">{attachmentLabel}</p>

@@ -319,5 +319,14 @@ export function buildCaseTimeline({
 
   return items
     .sort((left, right) => left.sortTime - right.sortTime || left.order - right.order)
-    .map(({ sortTime: _sortTime, order: _order, ...item }) => item)
+    .map((item) => ({
+      id: item.id,
+      kind: item.kind,
+      titleKey: item.titleKey,
+      occurredAt: item.occurredAt,
+      detail: item.detail,
+      actor: item.actor,
+      appointmentDate: item.appointmentDate,
+      appointmentTime: item.appointmentTime,
+    }))
 }

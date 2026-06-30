@@ -319,8 +319,9 @@ export default function AboutPage() {
           </div>
         </div>
 
-        <div className="mx-auto mt-8 max-w-7xl border-t border-white/10 px-4 pt-5 text-xs text-slate-500 sm:px-6 lg:px-8">
-          {t('footer.copyright')}
+        <div className="mx-auto mt-8 max-w-7xl border-t border-white/10 px-4 pt-5 text-xs leading-relaxed text-slate-500 sm:px-6 lg:px-8">
+          <p>{t('footer.copyright')}</p>
+          <p className="mt-2 max-w-5xl">{t('footer.legalNotice')}</p>
         </div>
       </footer>
     </main>

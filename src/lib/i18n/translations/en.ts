@@ -1219,6 +1219,7 @@ export type TranslationShape = {
     whatsappSupport: string
     /** {year} is replaced at render time */
     copyright: string
+    legalNotice: string
   }
 
   aboutPage: {
@@ -2737,7 +2738,9 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     instagram: 'Instagram: @Dentbridge.tr',
     whatsappSupport: 'WhatsApp: WhatsApp support available',
     copyright:
-      '© 2026 DentBridge. All treatments are provided under academic supervision.',
+      '© 2025–2026 DentBridge™. Founded by Waseem Kadura odia. All rights reserved.',
+    legalNotice:
+      'Unauthorized use, copying, imitation, scraping, or public presentation of DentBridge materials is strictly prohibited and may result in legal action.',
   },
 
   aboutPage: {

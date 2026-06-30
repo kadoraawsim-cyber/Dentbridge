@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import {
@@ -1023,9 +1024,11 @@ export function DashboardClient({ initialRequests, adminEmail, currentRole }: Pr
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-3 py-2 sm:px-6 lg:px-8">
           <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-3">
-            <img
+            <Image
               src="/dentbridge-icon.webp"
               alt="DentBridge icon"
+              width={40}
+              height={40}
               className="h-8 w-8 sm:h-10 sm:w-10 shrink-0 object-contain"
             />
             <div className="min-w-0">

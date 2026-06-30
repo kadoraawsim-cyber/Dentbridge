@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { ArrowLeft, CheckCircle2, Info, UploadCloud } from 'lucide-react'
@@ -397,45 +398,61 @@ export default function PatientRequestPage() {
       return
     }
 
+    let restoreFrameId: number | null = null
     const savedDraft = parsePatientRequestDraft(
       window.sessionStorage.getItem(PATIENT_REQUEST_DRAFT_KEY)
     )
-
-    if (savedDraft) {
-      setFullName(savedDraft.fullName)
-      setPhoneCountryCode(savedDraft.phoneCountryCode)
-      setPhone(savedDraft.phone)
-      setAge(savedDraft.age)
-      setGender(savedDraft.gender)
-      setPreferredLanguage(savedDraft.preferredLanguage)
-      setPreferredUniversity(savedDraft.preferredUniversity)
-      setTreatmentType(savedDraft.treatmentType)
-      setComplaintText(savedDraft.complaintText)
-      setPreferredDays(savedDraft.preferredDays)
-      setPainScore(savedDraft.painScore)
-      setSymptomDuration(savedDraft.symptomDuration)
-      setContactMethod(savedDraft.contactMethod)
-      setBestContactTime(savedDraft.bestContactTime)
-      setMedicalCondition(savedDraft.medicalCondition)
-      setMedicalConditionDetails(savedDraft.medicalConditionDetails)
-      setHasTouchedMedicalCondition(savedDraft.hasTouchedMedicalCondition)
-      setKvkkAcknowledgement(savedDraft.kvkkAcknowledgement)
-      setExplicitConsent(savedDraft.explicitConsent)
-    } else if (window.sessionStorage.getItem(PATIENT_REQUEST_DRAFT_KEY)) {
-      window.sessionStorage.removeItem(PATIENT_REQUEST_DRAFT_KEY)
-    }
-
     const savedStepIndex = parseSavedStepIndex(
       window.sessionStorage.getItem(PATIENT_REQUEST_STEP_KEY)
     )
 
-    if (savedDraft && savedStepIndex !== null) {
-      setRestoredStepIndex(savedStepIndex)
-    } else if (window.sessionStorage.getItem(PATIENT_REQUEST_STEP_KEY)) {
+    if (savedDraft) {
+      restoreFrameId = window.requestAnimationFrame(() => {
+        setFullName(savedDraft.fullName)
+        setPhoneCountryCode(savedDraft.phoneCountryCode)
+        setPhone(savedDraft.phone)
+        setAge(savedDraft.age)
+        setGender(savedDraft.gender)
+        setPreferredLanguage(savedDraft.preferredLanguage)
+        setPreferredUniversity(savedDraft.preferredUniversity)
+        setTreatmentType(savedDraft.treatmentType)
+        setComplaintText(savedDraft.complaintText)
+        setPreferredDays(savedDraft.preferredDays)
+        setPainScore(savedDraft.painScore)
+        setSymptomDuration(savedDraft.symptomDuration)
+        setContactMethod(savedDraft.contactMethod)
+        setBestContactTime(savedDraft.bestContactTime)
+        setMedicalCondition(savedDraft.medicalCondition)
+        setMedicalConditionDetails(savedDraft.medicalConditionDetails)
+        setHasTouchedMedicalCondition(savedDraft.hasTouchedMedicalCondition)
+        setKvkkAcknowledgement(savedDraft.kvkkAcknowledgement)
+        setExplicitConsent(savedDraft.explicitConsent)
+
+        if (savedStepIndex !== null) {
+          setRestoredStepIndex(savedStepIndex)
+        }
+
+        setHasRestoredDraft(true)
+      })
+    } else if (window.sessionStorage.getItem(PATIENT_REQUEST_DRAFT_KEY)) {
+      window.sessionStorage.removeItem(PATIENT_REQUEST_DRAFT_KEY)
+    }
+
+    if ((!savedDraft || savedStepIndex === null) && window.sessionStorage.getItem(PATIENT_REQUEST_STEP_KEY)) {
       window.sessionStorage.removeItem(PATIENT_REQUEST_STEP_KEY)
     }
 
-    setHasRestoredDraft(true)
+    if (!savedDraft) {
+      restoreFrameId = window.requestAnimationFrame(() => {
+        setHasRestoredDraft(true)
+      })
+    }
+
+    return () => {
+      if (restoreFrameId !== null) {
+        window.cancelAnimationFrame(restoreFrameId)
+      }
+    }
   }, [])
 
   useEffect(() => {
@@ -515,8 +532,12 @@ export default function PatientRequestPage() {
     const targetSection = stepSectionRefs.current[targetIndex]
 
     if (!targetSection) {
-      setRestoredStepIndex(null)
-      return
+      const resetFrameId = window.requestAnimationFrame(() => {
+        setRestoredStepIndex(null)
+      })
+      return () => {
+        window.cancelAnimationFrame(resetFrameId)
+      }
     }
 
     const animationFrameId = window.requestAnimationFrame(() => {
@@ -730,9 +751,11 @@ export default function PatientRequestPage() {
       <header className="dentbridge-safe-header border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <img
+            <Image
               src="/dentbridge-icon.webp"
               alt="DentBridge icon"
+              width={40}
+              height={40}
               className="h-8 w-8 sm:h-10 sm:w-10 shrink-0 object-contain"
             />
             <div className="min-w-0">
@@ -1308,9 +1331,11 @@ export default function PatientRequestPage() {
         <div className="mx-auto grid max-w-7xl gap-6 sm:gap-10 px-4 sm:px-6 md:grid-cols-2 lg:grid-cols-3 lg:px-8">
           <div>
             <div className="mb-4 flex items-center gap-3">
-              <img
+              <Image
                 src="/dentbridge-icon.webp"
                 alt="DentBridge icon"
+                width={40}
+                height={40}
                 className="h-8 w-8 sm:h-10 sm:w-10 shrink-0 object-contain"
               />
               <div>
@@ -1406,9 +1431,10 @@ export default function PatientRequestPage() {
           </div>
         </div>
 
-<div className="mx-auto mt-6 max-w-7xl border-t border-slate-800 px-4 pt-4 text-[10px] text-slate-500 sm:mt-10 sm:px-6 sm:pt-6 sm:text-xs lg:px-8">
-  {t('footer.copyright')}
-</div>
+        <div className="mx-auto mt-6 max-w-7xl border-t border-slate-800 px-4 pt-4 text-[10px] leading-relaxed text-slate-500 sm:mt-10 sm:px-6 sm:pt-6 sm:text-xs lg:px-8">
+          <p>{t('footer.copyright')}</p>
+          <p className="mt-2 max-w-5xl">{t('footer.legalNotice')}</p>
+        </div>
       </footer>
     </main>
   )

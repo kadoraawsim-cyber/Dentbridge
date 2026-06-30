@@ -238,6 +238,35 @@ export default function PrivacyPolicyPage() {
           ),
         },
         {
+          title: 'Teknik Veriler ve Güvenlik Kayıtları',
+          body: (
+            <>
+              <p>
+                Güvenlik, kötüye kullanımın önlenmesi, fikri mülkiyet koruması ve hukuki hakların korunması amacıyla
+                DentBridge, bu web sitesi ve platforma yapılan ziyaretlere ilişkin teknik erişim kayıtlarını toplayabilir
+                ve saklayabilir.
+              </p>
+              <p>
+                Bu kayıtlar IP adresi, yaklaşık ülke veya bölge bilgisi, cihaz ve tarayıcı bilgileri, kullanıcı aracısı
+                verileri, zaman damgaları, ziyaret edilen sayfalar, yönlendiren kaynak bilgisi, istek kalıpları ve diğer
+                teknik meta verileri içerebilir.
+              </p>
+              <p>
+                Bu kayıtlar bir ziyaretçiyi her zaman kişisel olarak tanımlamayabilir. Ancak mevcut teknik kayıtlar ve
+                dijital veriler; DentBridge materyallerinin izinsiz kopyalanması, kazınması, taklit edilmesi,
+                çoğaltılması, tersine mühendislik uygulanması, kötüye kullanılması veya kamuya sunulması gibi durumların
+                incelenmesinde kullanılabilir.
+              </p>
+              <p>
+                Bu kayıtlar; içerik kaldırma taleplerinde, platform bildirimlerinde, hukuki süreçlerde, tazminat
+                taleplerinde ve DentBridge’in fikri mülkiyetini, ticari kimliğini, itibarını, ticari çıkarlarını ve
+                uluslararası düzeyde saklı haklarını korumaya yönelik işlemlerde delil olarak saklanabilir ve
+                kullanılabilir.
+              </p>
+            </>
+          ),
+        },
+        {
           title: 'Platformu İyileştirmek İçin Bilgilerin Kullanımı',
           body: (
             <>
@@ -461,6 +490,32 @@ export default function PrivacyPolicyPage() {
                 DentiBridge applies privacy-conscious access and data-handling practices appropriate for a supervised
                 academic clinical workflow. Users also play an important role in protecting information by keeping account
                 credentials private and avoiding unauthorized sharing of platform data.
+              </p>
+            </>
+          ),
+        },
+        {
+          title: 'Technical Data and Security Logs',
+          body: (
+            <>
+              <p>
+                For security, abuse prevention, intellectual property protection, and legal enforcement purposes,
+                DentBridge may collect and retain technical access logs related to visits to this website and platform.
+              </p>
+              <p>
+                These records may include IP address, approximate country or region, device and browser information,
+                user-agent data, timestamps, visited pages, referrer information, request patterns, and other technical
+                metadata.
+              </p>
+              <p>
+                These records do not necessarily identify a visitor personally. However, available technical logs and
+                digital records may be used to investigate unauthorized copying, scraping, imitation, reproduction,
+                reverse engineering, misuse, or public presentation of DentBridge materials.
+              </p>
+              <p>
+                Such records may be preserved and used as evidence in takedown requests, platform reports, legal
+                proceedings, claims for damages, and enforcement actions to protect DentBridge’s intellectual property,
+                business identity, reputation, commercial interests, and internationally reserved rights.
               </p>
             </>
           ),

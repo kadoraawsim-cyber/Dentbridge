@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { LogOut, CheckCircle2, Clock, XCircle } from 'lucide-react'
@@ -224,7 +225,7 @@ export function RequestsClient({ myRequests, caseMap }: Props) {
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-3">
-            <img src="/dentbridge-icon.webp" alt="DentBridge" className="h-9 w-9 object-contain" />
+            <Image src="/dentbridge-icon.webp" alt="DentBridge" width={36} height={36} className="h-9 w-9 object-contain" />
             <div>
               <p className="text-[15px] font-bold leading-none text-slate-900">DentBridge</p>
               <p className="text-[10px] uppercase tracking-wider text-slate-400">

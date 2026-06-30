@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
@@ -87,9 +88,11 @@ export default function StudentLoginPage() {
     <main className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4 py-12">
       <div className="mb-6 flex w-full max-w-md items-center justify-between">
         <Link href="/" className="flex items-center gap-3">
-          <img
+          <Image
             src="/dentbridge-icon.webp"
             alt="DentBridge icon"
+            width={36}
+            height={36}
             className="h-9 w-9 object-contain"
           />
           <div>

@@ -65,7 +65,7 @@ export function setup() {
 }
 
 // ── Default function — runs once per VU per iteration ──────────────────────
-export default function () {
+export default function PublicSiteTest() {
   // 1. Homepage
   group('homepage', () => {
     const res = http.get(`${BASE_URL}/`, HTML_HEADERS);

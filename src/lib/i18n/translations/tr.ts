@@ -478,7 +478,9 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
     instagram: 'Instagram: @Dentbridge.tr',
     whatsappSupport: 'WhatsApp: WhatsApp desteği mevcuttur',
     copyright:
-      '© 2026 DentBridge. Tüm tedaviler akademik denetim altında sağlanmaktadır.',
+      '© 2025–2026 DentBridge™. Waseem Kadura odia tarafından kurulmuştur. Tüm hakları saklıdır.',
+    legalNotice:
+      'DentBridge materyallerinin izinsiz kullanımı, kopyalanması, taklit edilmesi, kazınması veya kamuya sunulması kesinlikle yasaktır ve hukuki işlemle sonuçlanabilir.',
   },
 
   aboutPage: {

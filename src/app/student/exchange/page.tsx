@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { ArrowLeft, GraduationCap, LogOut, RefreshCw } from 'lucide-react'
@@ -21,9 +22,11 @@ export default function StudentExchangePage() {
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-3">
-            <img
+            <Image
               src="/dentbridge-icon.webp"
               alt="DentBridge icon"
+              width={40}
+              height={40}
               className="h-10 w-10 object-contain"
             />
             <div>

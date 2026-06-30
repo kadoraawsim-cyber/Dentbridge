@@ -80,6 +80,42 @@ export default function TermsOfUsePage() {
           ),
         },
         {
+          title: 'Fikri Mülkiyet ve Özel Platform Hakları',
+          body: (
+            <>
+              <p>
+                DentBridge™, Waseem Kadura odia tarafından kurulan özel mülkiyete ait bir dental teknoloji platformudur.
+                DentBridge adı, platform kimliği, dijital konsepti, tasarımı, kullanıcı arayüzü, iş akışları, içerikleri,
+                dokümantasyonu, ekran görüntüleri, yazılım yapısı, kodu ve ilgili materyalleri DentBridge ve kurucusu
+                tarafından sahiplenilmekte, kontrol edilmekte ve korunmaktadır.
+              </p>
+              <p>
+                DentBridge’in geliştirme, sahiplik ve dijital kayıtları 11 Kasım 2025 tarihine kadar uzanmaktadır. Bu
+                platform açık kaynaklı değildir, kamu malı değildir ve önceden yazılı izin alınmadan kopyalama, taklit
+                etme, çoğaltma, değiştirme, kamuya sunma, ticari kullanım, akademik proje olarak sunma, portföy kullanımı
+                veya üçüncü kişiler tarafından yayınlama amacıyla kullanılamaz.
+              </p>
+              <p>
+                DentBridge adının, platform kimliğinin, konseptinin, tasarımının, iş akışlarının, ekran görüntülerinin,
+                içeriklerinin, kodunun, dokümantasyonunun veya karışıklığa yol açabilecek benzer bir ad, platform ya da
+                sunumun izinsiz kullanımı kesinlikle yasaktır.
+              </p>
+              <p>
+                DentBridge; web siteleri, sosyal medya, freelance platformları, kod depoları, portföyler, akademik
+                projeler ve kamuya açık arama sonuçları dahil olmak üzere kendi adı, kimliği ve platform materyallerinin
+                izinsiz kullanımını aktif olarak takip eder.
+              </p>
+              <p>
+                İhlaller; derhal içerik kaldırma talepleri, platform bildirimleri, ihtar süreçleri, hukuki talepler,
+                tazminat talepleri, hukuki masrafların tahsili ve DentBridge’in fikri mülkiyetini, ticari kimliğini,
+                itibarını, ticari çıkarlarını ve uluslararası düzeyde saklı haklarını korumaya yönelik diğer işlemlerle
+                sonuçlanabilir.
+              </p>
+              <p>Tüm haklar uluslararası düzeyde açıkça saklıdır.</p>
+            </>
+          ),
+        },
+        {
           title: 'Acil Durumlar',
           body: (
             <>
@@ -253,6 +289,42 @@ export default function TermsOfUsePage() {
                 The platform supports the educational and clinical process, but it does not replace faculty procedures,
                 faculty decisions, or the professional responsibility of qualified personnel.
               </p>
+            </>
+          ),
+        },
+        {
+          title: 'Intellectual Property and Proprietary Platform',
+          body: (
+            <>
+              <p>
+                DentBridge™ is a proprietary dental technology platform founded by Waseem Kadura odia. The DentBridge
+                name, platform identity, digital concept, design, user interface, workflows, content, documentation,
+                screenshots, software structure, code, and related materials are owned, controlled, and protected by
+                DentBridge and its founder.
+              </p>
+              <p>
+                DentBridge has documented development, ownership, and digital records dating back to 11 November 2025.
+                The platform is not open-source, public-domain, or available for copying, imitation, reproduction,
+                modification, public presentation, commercial use, academic submission, portfolio use, or third-party
+                publication without prior written authorization.
+              </p>
+              <p>
+                Unauthorized use of the DentBridge name, platform identity, concept, design, workflows, screenshots,
+                content, code, documentation, or any confusingly similar name, platform, or presentation is strictly
+                prohibited.
+              </p>
+              <p>
+                DentBridge actively monitors unauthorized use of its name, identity, and platform materials across
+                websites, social media, freelance platforms, repositories, portfolios, academic projects, and public
+                search results.
+              </p>
+              <p>
+                Violations may result in immediate takedown requests, platform reports, cease-and-desist notices, legal
+                claims, claims for damages, recovery of legal costs, and further action to protect DentBridge’s
+                intellectual property, business identity, reputation, commercial interests, and internationally reserved
+                rights.
+              </p>
+              <p>All rights are expressly reserved internationally.</p>
             </>
           ),
         },
@@ -432,7 +504,7 @@ export default function TermsOfUsePage() {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid items-start gap-4 md:grid-cols-2">
           {sections.map((section, index) => (
             <article key={section.title} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="mb-3 flex items-center gap-2">

@@ -1,6 +1,7 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { AlertCircle, ArrowLeft, LogOut, Phone, Search, ShieldCheck } from 'lucide-react'
@@ -219,6 +220,7 @@ function getNextStatusForAction(action: QuickAction): PatientRequest['status'] {
 export function RequestsClient({ initialRequests, adminEmail }: Props) {
   const { t, locale } = useI18n()
   const dateLocale = locale === 'tr' ? 'tr-TR' : 'en-GB'
+  const [now, setNow] = useState<number | null>(null)
 
   const [requests, setRequests] = useState(initialRequests)
   const [searchTerm, setSearchTerm] = useState('')
@@ -236,9 +238,22 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
     [requests]
   )
 
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      setNow(Date.now())
+    })
+
+    return () => {
+      window.cancelAnimationFrame(frameId)
+    }
+  }, [])
+
   function relativeTime(iso: string | null): string {
     if (!iso) return '\u2014'
-    const ms = Date.now() - new Date(iso).getTime()
+    if (now === null) {
+      return new Date(iso).toLocaleDateString(dateLocale, { month: 'short', day: 'numeric' })
+    }
+    const ms = now - new Date(iso).getTime()
     const mins = Math.floor(ms / 60000)
     if (mins < 2) return t('admin.db.timeJustNow')
     if (mins < 60) return `${mins}${t('admin.db.timeMinutesSuffix')}`
@@ -693,9 +708,11 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-3">
-            <img
+            <Image
               src="/dentbridge-icon.webp"
               alt="DentBridge icon"
+              width={40}
+              height={40}
               className="h-10 w-10 object-contain"
             />
             <div>

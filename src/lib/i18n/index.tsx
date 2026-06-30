@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect, useSyncExternalStore } from 'react'
 import { en } from './translations/en'
 import { tr } from './translations/tr'
 
@@ -18,6 +18,36 @@ export const LOCALES: { code: Locale; label: string; dir: 'ltr' | 'rtl' }[] = [
 ]
 
 const translations: Record<Locale, typeof en> = { en, tr }
+const LOCALE_STORAGE_KEY = 'dentbridge_locale'
+const LOCALE_CHANGE_EVENT = 'dentbridge_locale_change'
+
+function getStoredLocale(): Locale {
+  if (typeof window === 'undefined') return 'en'
+  const saved = window.localStorage.getItem(LOCALE_STORAGE_KEY) as Locale | null
+  return saved && translations[saved] ? saved : 'en'
+}
+
+function getServerLocaleSnapshot(): Locale {
+  return 'en'
+}
+
+function subscribeToLocaleStore(onStoreChange: () => void) {
+  if (typeof window === 'undefined') return () => {}
+
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key === LOCALE_STORAGE_KEY) {
+      onStoreChange()
+    }
+  }
+
+  window.addEventListener('storage', handleStorage)
+  window.addEventListener(LOCALE_CHANGE_EVENT, onStoreChange)
+
+  return () => {
+    window.removeEventListener('storage', handleStorage)
+    window.removeEventListener(LOCALE_CHANGE_EVENT, onStoreChange)
+  }
+}
 
 // ── Context ──────────────────────────────────────────────────────────────────
 interface I18nContextValue {
@@ -32,15 +62,11 @@ const I18nContext = createContext<I18nContextValue | null>(null)
 
 // ── Provider ─────────────────────────────────────────────────────────────────
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>('en')
-
-  // Restore persisted locale preference on first mount
-  useEffect(() => {
-    const saved = localStorage.getItem('dentbridge_locale') as Locale | null
-    if (saved && translations[saved]) {
-      setLocaleState(saved)
-    }
-  }, [])
+  const locale = useSyncExternalStore(
+    subscribeToLocaleStore,
+    getStoredLocale,
+    getServerLocaleSnapshot
+  )
 
   // Sync <html lang> and dir attributes whenever locale changes
   useEffect(() => {
@@ -50,8 +76,8 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   }, [locale])
 
   function setLocale(l: Locale) {
-    setLocaleState(l)
-    localStorage.setItem('dentbridge_locale', l)
+    window.localStorage.setItem(LOCALE_STORAGE_KEY, l)
+    window.dispatchEvent(new Event(LOCALE_CHANGE_EVENT))
   }
 
   function t(key: string): string {

@@ -606,8 +606,9 @@ export default function PatientsPageClient() {
           </div>
         </div>
 
-        <div className="mx-auto mt-8 sm:mt-10 max-w-7xl border-t border-slate-800 px-4 pt-4 sm:pt-6 text-[10px] sm:text-xs text-slate-500 sm:px-6 lg:px-8">
-          {t('footer.copyright')}
+        <div className="mx-auto mt-8 sm:mt-10 max-w-7xl border-t border-slate-800 px-4 pt-4 sm:pt-6 text-[10px] leading-relaxed text-slate-500 sm:px-6 sm:text-xs lg:px-8">
+          <p>{t('footer.copyright')}</p>
+          <p className="mt-2 max-w-5xl">{t('footer.legalNotice')}</p>
         </div>
       </footer>
     </main>

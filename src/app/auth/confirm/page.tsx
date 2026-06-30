@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense, useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -129,9 +130,11 @@ function AuthConfirmContent() {
       <div className="mx-auto max-w-md">
         <div className="mb-8 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-3">
-            <img
+            <Image
               src="/dentbridge-icon.webp"
               alt="DentBridge icon"
+              width={36}
+              height={36}
               className="h-9 w-9 object-contain"
             />
             <div>

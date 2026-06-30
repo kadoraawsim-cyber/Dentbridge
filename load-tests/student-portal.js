@@ -154,7 +154,7 @@ export function setup() {
 }
 
 // ── Default function — runs once per VU per iteration ──────────────────────
-export default function (data) {
+export default function StudentPortalTest(data) {
   const { cookieHeader, allowMutations } = data;
 
   // All requests send the auth cookie so Next.js middleware grants access.

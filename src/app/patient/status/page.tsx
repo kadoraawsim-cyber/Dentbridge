@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { ArrowLeft, Search, Stethoscope } from 'lucide-react'
@@ -372,9 +373,11 @@ export default function PatientStatusPage() {
       <header className="dentbridge-safe-header border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-3">
-            <img
+            <Image
               src="/dentbridge-icon.webp"
               alt="DentBridge icon"
+              width={40}
+              height={40}
               className="h-10 w-10 object-contain"
             />
             <div>
@@ -629,9 +632,11 @@ export default function PatientStatusPage() {
         <div className="mx-auto grid max-w-7xl gap-6 sm:gap-10 px-4 sm:px-6 md:grid-cols-2 lg:grid-cols-3 lg:px-8">
           <div>
             <div className="mb-4 flex items-center gap-3">
-              <img
+              <Image
                 src="/dentbridge-icon.webp"
                 alt="DentBridge icon"
+                width={40}
+                height={40}
                 className="h-8 w-8 sm:h-10 sm:w-10 shrink-0 object-contain"
               />
               <div>
@@ -720,8 +725,9 @@ export default function PatientStatusPage() {
           </div>
         </div>
 
-        <div className="mx-auto mt-8 sm:mt-10 max-w-7xl border-t border-slate-800 px-4 pt-5 sm:pt-6 text-[11px] sm:text-xs text-slate-500 sm:px-6 lg:px-8">
-          {t('footer.copyright').replace('{year}', String(new Date().getFullYear()))}
+        <div className="mx-auto mt-8 sm:mt-10 max-w-7xl border-t border-slate-800 px-4 pt-5 sm:pt-6 text-[11px] leading-relaxed text-slate-500 sm:px-6 sm:text-xs lg:px-8">
+          <p>{t('footer.copyright').replace('{year}', String(new Date().getFullYear()))}</p>
+          <p className="mt-2 max-w-5xl">{t('footer.legalNotice')}</p>
         </div>
       </footer>
     </main>

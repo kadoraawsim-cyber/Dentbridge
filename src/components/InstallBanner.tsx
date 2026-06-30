@@ -5,38 +5,64 @@ import { X, Smartphone, Share, MoreVertical } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 
 type Platform = 'android' | 'ios' | null
+type BannerState = {
+  platform: Platform
+  visible: boolean
+}
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type BeforeInstallPromptEvent = Event & { prompt(): Promise<void>; userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }> }
 
 const DISMISS_KEY = 'dentbridge-pwa-dismissed'
+const HIDDEN_BANNER_STATE: BannerState = { platform: null, visible: false }
+
+function getClientBannerState(): BannerState {
+  // Already running in standalone (installed) — nothing to show
+  if (window.matchMedia('(display-mode: standalone)').matches) {
+    return HIDDEN_BANNER_STATE
+  }
+
+  // User previously dismissed
+  if (window.localStorage.getItem(DISMISS_KEY) === '1') {
+    return HIDDEN_BANNER_STATE
+  }
+
+  const ua = window.navigator.userAgent
+  const isIOS = /iP(hone|ad|od)/.test(ua)
+  // Only show on iOS Safari — Chrome/Firefox iOS cannot install PWAs
+  const isIOSSafari = isIOS && /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS/.test(ua)
+  const isAndroid = /Android/.test(ua)
+
+  if (isIOSSafari) {
+    return { platform: 'ios', visible: true }
+  }
+
+  // Android visibility waits for beforeinstallprompt.
+  if (isAndroid) {
+    return { platform: 'android', visible: false }
+  }
+
+  return HIDDEN_BANNER_STATE
+}
 
 export default function InstallBanner() {
   const { t } = useI18n()
-  const [platform, setPlatform] = useState<Platform>(null)
+  const [{ platform, visible }, setBannerState] = useState<BannerState>(HIDDEN_BANNER_STATE)
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
-  const [visible, setVisible] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [installing, setInstalling] = useState(false)
 
   useEffect(() => {
-    // Already running in standalone (installed) — nothing to show
-    if (window.matchMedia('(display-mode: standalone)').matches) return
-    // User previously dismissed
-    if (localStorage.getItem(DISMISS_KEY) === '1') return
+    let cancelled = false
+    const frameId = window.requestAnimationFrame(() => {
+      if (cancelled) return
 
-    const ua = navigator.userAgent
-    const isIOS = /iP(hone|ad|od)/.test(ua)
-    // Only show on iOS Safari — Chrome/Firefox iOS cannot install PWAs
-    const isIOSSafari = isIOS && /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS/.test(ua)
-    const isAndroid = /Android/.test(ua)
+      const clientState = getClientBannerState()
+      setBannerState((current) => (current.visible ? current : clientState))
+    })
 
-    if (isIOSSafari) {
-      setPlatform('ios')
-      setVisible(true)
-    } else if (isAndroid) {
-      // Platform is set here; visibility waits for beforeinstallprompt
-      setPlatform('android')
+    return () => {
+      cancelled = true
+      window.cancelAnimationFrame(frameId)
     }
   }, [])
 
@@ -44,19 +70,22 @@ export default function InstallBanner() {
     const handler = (e: Event) => {
       e.preventDefault()
       setDeferredPrompt(e as BeforeInstallPromptEvent)
-      setPlatform('android')
-      setVisible(true)
+      setBannerState({ platform: 'android', visible: true })
+    }
+    const appInstalledHandler = () => {
+      setBannerState((current) => ({ ...current, visible: false }))
     }
     window.addEventListener('beforeinstallprompt', handler)
-    window.addEventListener('appinstalled', () => setVisible(false))
+    window.addEventListener('appinstalled', appInstalledHandler)
     return () => {
       window.removeEventListener('beforeinstallprompt', handler)
+      window.removeEventListener('appinstalled', appInstalledHandler)
     }
   }, [])
 
   function dismiss() {
     localStorage.setItem(DISMISS_KEY, '1')
-    setVisible(false)
+    setBannerState((current) => ({ ...current, visible: false }))
   }
 
   async function handleAndroidInstall() {
@@ -66,7 +95,7 @@ export default function InstallBanner() {
       const { outcome } = await deferredPrompt.userChoice
       setInstalling(false)
       if (outcome === 'accepted') {
-        setVisible(false)
+        setBannerState((current) => ({ ...current, visible: false }))
         return
       }
       setDeferredPrompt(null)
