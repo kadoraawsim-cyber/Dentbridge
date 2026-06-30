@@ -17,6 +17,20 @@ type TermsSection = {
   body: ReactNode
 }
 
+function TermsSectionCard({ section, index }: { section: TermsSection; index: number }) {
+  return (
+    <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="mb-3 flex items-center gap-2">
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-500">
+          {index + 1}
+        </div>
+        <h2 className="text-base font-bold text-slate-900">{section.title}</h2>
+      </div>
+      <div className="space-y-3 text-sm leading-relaxed text-slate-600">{section.body}</div>
+    </article>
+  )
+}
+
 function ExternalLegalLink({ href, children }: { href: string; children: ReactNode }) {
   return (
     <a
@@ -504,18 +518,29 @@ export default function TermsOfUsePage() {
           </div>
         </div>
 
-        <div className="grid items-start gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:hidden">
           {sections.map((section, index) => (
-            <article key={section.title} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="mb-3 flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-500">
-                  {index + 1}
-                </div>
-                <h2 className="text-base font-bold text-slate-900">{section.title}</h2>
-              </div>
-              <div className="space-y-3 text-sm leading-relaxed text-slate-600">{section.body}</div>
-            </article>
+            <TermsSectionCard key={section.title} section={section} index={index} />
           ))}
+        </div>
+
+        <div className="hidden items-start gap-4 md:grid md:grid-cols-2">
+          <div className="space-y-4">
+            {sections
+              .filter((_, index) => index % 2 === 0)
+              .map((section, columnIndex) => {
+                const originalIndex = columnIndex * 2
+                return <TermsSectionCard key={section.title} section={section} index={originalIndex} />
+              })}
+          </div>
+          <div className="space-y-4">
+            {sections
+              .filter((_, index) => index % 2 === 1)
+              .map((section, columnIndex) => {
+                const originalIndex = columnIndex * 2 + 1
+                return <TermsSectionCard key={section.title} section={section} index={originalIndex} />
+              })}
+          </div>
         </div>
 
         <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

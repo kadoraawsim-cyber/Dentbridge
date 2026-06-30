@@ -474,7 +474,7 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
     faq: 'SSS',
     clinicalRequirements: 'Klinik Gereksinimler',
     universityPilot: 'Denetimli akademik pilot platform',
-    email: 'E-posta: Dentbridge.tr@gmail.com',
+    email: 'E-posta: contact@dentbridgetr.com',
     instagram: 'Instagram: @Dentbridge.tr',
     whatsappSupport: 'WhatsApp: WhatsApp desteği mevcuttur',
     copyright:

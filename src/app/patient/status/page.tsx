@@ -697,7 +697,7 @@ export default function PatientStatusPage() {
                 Istanbul, Türkiye
               </li>
               <li>
-                <a href="mailto:Dentbridge.tr@gmail.com" className="hover:text-white">
+                <a href="mailto:contact@dentbridgetr.com" className="hover:text-white">
                   {t('footer.email')}
                 </a>
               </li>

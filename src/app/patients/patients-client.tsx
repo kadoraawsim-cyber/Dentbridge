@@ -578,7 +578,7 @@ export default function PatientsPageClient() {
                 Istanbul, Türkiye
               </li>
               <li>
-                <a href="mailto:Dentbridge.tr@gmail.com" className="transition hover:text-white">
+                <a href="mailto:contact@dentbridgetr.com" className="transition hover:text-white">
                   {t('footer.email')}
                 </a>
               </li>

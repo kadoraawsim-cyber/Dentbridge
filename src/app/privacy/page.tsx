@@ -14,7 +14,7 @@ type PrivacySection = {
   afterBullets?: string
 }
 
-const PRIVACY_EMAIL = 'Dentbridge.tr@gmail.com'
+const PRIVACY_EMAIL = 'privacy@dentbridgetr.com'
 
 export default function PrivacyPolicyPage() {
   const { locale } = useI18n()

@@ -2734,7 +2734,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     faq: 'FAQ',
     clinicalRequirements: 'Clinical Requirements',
     universityPilot: 'Supervised academic pilot platform',
-    email: 'Email: Dentbridge.tr@gmail.com',
+    email: 'Email: contact@dentbridgetr.com',
     instagram: 'Instagram: @Dentbridge.tr',
     whatsappSupport: 'WhatsApp: WhatsApp support available',
     copyright:

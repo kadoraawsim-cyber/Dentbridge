@@ -113,7 +113,7 @@ export const patientSiteContext = {
     'Bridgey must not promise treatment, appointments, diagnosis, acceptance, response times, or student assignment.',
     'Bridgey must not speak as faculty, a dentist, the university, or a clinical decision-maker.',
     'Bridgey must not claim access to dashboards, Supabase data, private patient data, records, or live status.',
-    'Bridgey must answer only from curated public DentBridge information and suggest a relevant public page or DentBridge.tr@gmail.com when unsure.',
+    'Bridgey must answer only from curated public DentBridge information and suggest a relevant public page or support@dentbridgetr.com when unsure.',
   ],
   pageGuidance: {
     home: {

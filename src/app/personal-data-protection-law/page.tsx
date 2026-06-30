@@ -146,10 +146,10 @@ export default function PersonalDataProtectionLawPage() {
               <p>
                 <strong>
                   <a
-                    href="mailto:Dentbridge.tr@gmail.com"
+                    href="mailto:privacy@dentbridgetr.com"
                     className="text-blue-700 underline underline-offset-2 hover:text-blue-800"
                   >
-                    Dentbridge.tr@gmail.com
+                    privacy@dentbridgetr.com
                   </a>
                 </strong>
               </p>
@@ -367,10 +367,10 @@ export default function PersonalDataProtectionLawPage() {
               <p>
                 <strong>
                   <a
-                    href="mailto:Dentbridge.tr@gmail.com"
+                    href="mailto:privacy@dentbridgetr.com"
                     className="text-blue-700 underline underline-offset-2 hover:text-blue-800"
                   >
-                    Dentbridge.tr@gmail.com
+                    privacy@dentbridgetr.com
                   </a>
                 </strong>
               </p>
@@ -403,10 +403,10 @@ export default function PersonalDataProtectionLawPage() {
               <p>
                 <strong>
                   <a
-                    href="mailto:Dentbridge.tr@gmail.com"
+                    href="mailto:privacy@dentbridgetr.com"
                     className="text-blue-700 underline underline-offset-2 hover:text-blue-800"
                   >
-                    Dentbridge.tr@gmail.com
+                    privacy@dentbridgetr.com
                   </a>
                 </strong>
               </p>
@@ -563,10 +563,10 @@ export default function PersonalDataProtectionLawPage() {
               <p>
                 <strong>
                   <a
-                    href="mailto:Dentbridge.tr@gmail.com"
+                    href="mailto:privacy@dentbridgetr.com"
                     className="text-blue-700 underline underline-offset-2 hover:text-blue-800"
                   >
-                    Dentbridge.tr@gmail.com
+                    privacy@dentbridgetr.com
                   </a>
                 </strong>
               </p>
@@ -780,10 +780,10 @@ export default function PersonalDataProtectionLawPage() {
               <p>
                 <strong>
                   <a
-                    href="mailto:Dentbridge.tr@gmail.com"
+                    href="mailto:privacy@dentbridgetr.com"
                     className="text-blue-700 underline underline-offset-2 hover:text-blue-800"
                   >
-                    Dentbridge.tr@gmail.com
+                    privacy@dentbridgetr.com
                   </a>
                 </strong>
               </p>
@@ -816,10 +816,10 @@ export default function PersonalDataProtectionLawPage() {
               <p>
                 <strong>
                   <a
-                    href="mailto:Dentbridge.tr@gmail.com"
+                    href="mailto:privacy@dentbridgetr.com"
                     className="text-blue-700 underline underline-offset-2 hover:text-blue-800"
                   >
-                    Dentbridge.tr@gmail.com
+                    privacy@dentbridgetr.com
                   </a>
                 </strong>
               </p>
