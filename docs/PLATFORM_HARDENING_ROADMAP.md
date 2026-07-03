@@ -18,6 +18,20 @@ Core principles:
 - Improve DentBridge as a professional web platform.
 - Prepare a clean API layer for a future mobile app.
 
+## Database Portability And Data Residency Principle
+
+DentBridge currently uses Supabase as the Data/Auth/Storage layer, but the
+architecture must avoid unnecessary vendor lock-in. Sensitive workflows must go
+through DentBridge API/service layers so that, if required in the future, the
+database/storage/auth layer can be migrated to another PostgreSQL database,
+Turkish hosting provider, Turkish data center, or institution-controlled
+infrastructure without rebuilding the whole product.
+
+This principle does not remove Supabase from the current roadmap. It means the
+platform should clearly document what is Supabase-specific and keep business
+workflow boundaries behind DentBridge-owned API and service layers wherever
+practical.
+
 Estimated realistic timeline:
 
 - One strong developer: 8-12 weeks
@@ -1231,6 +1245,19 @@ A senior developer should open the repo and see a professional system.
 - Audit logs
 - Monitoring
 - Future mobile app connects to API only
+- Database portability assumptions
+- Which parts are Supabase-specific
+- Which parts are abstracted behind DentBridge API/service layers
+- Data residency considerations for future Turkish hosting, Turkish data
+  centers, or institution-controlled infrastructure
+
+### Additional Documentation Requirements
+
+- Document database portability assumptions.
+- Document which parts are Supabase-specific.
+- Document which parts are abstracted behind DentBridge API/service layers.
+- Document that future mobile and integrations must use DentBridge API only,
+  not direct Supabase access.
 
 ### Done
 
@@ -1264,6 +1291,11 @@ Do not build a mobile app, but prepare the website for it.
 3. Confirm that future mobile does not need direct Supabase client access.
 4. Create `docs/MOBILE_READINESS.md`.
 5. Define: Mobile app will use DentBridge API only.
+6. Document database portability assumptions.
+7. Document which parts are Supabase-specific.
+8. Document which parts are abstracted behind DentBridge API/service layers.
+9. Document that future mobile and integrations must use DentBridge API only,
+   not direct Supabase access.
 
 ### Do Not Do
 
@@ -1276,6 +1308,9 @@ Do not build a mobile app, but prepare the website for it.
 - System is conceptually and technically ready for a future app.
 - API is clear.
 - Business logic is not trapped in UI.
+- Future mobile and integrations use DentBridge API only, not direct Supabase
+  access.
+- Database portability and data residency assumptions are documented.
 
 ## Phase 15 - Push Notifications Foundation
 
