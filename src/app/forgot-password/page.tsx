@@ -59,7 +59,7 @@ const copy: Record<
 }
 
 const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '')
-const configuredResetRedirectUrl = process.env.PASSWORD_RESET_REDIRECT_URL?.trim()
+const configuredResetRedirectUrl = process.env.NEXT_PUBLIC_PASSWORD_RESET_REDIRECT_URL?.trim()
 
 function getResetRedirectUrl() {
   const { hostname, origin } = window.location
