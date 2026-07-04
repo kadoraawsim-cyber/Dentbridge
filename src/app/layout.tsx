@@ -15,6 +15,9 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const fallbackUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.APP_URL || fallbackUrl;
+
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -23,7 +26,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://dentbridgetr.com"),
+  metadataBase: new URL(siteUrl),
   title: "DentBridge — Faculty-Supported Clinical Platform",
   description:
     "DentBridge connects patients with affordable university dental care provided by senior students under faculty supervision.",

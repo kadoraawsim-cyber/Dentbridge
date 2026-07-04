@@ -58,6 +58,9 @@ const copy: Record<
   },
 }
 
+const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '')
+const configuredResetRedirectUrl = process.env.PASSWORD_RESET_REDIRECT_URL?.trim()
+
 function getResetRedirectUrl() {
   const { hostname, origin } = window.location
 
@@ -65,7 +68,7 @@ function getResetRedirectUrl() {
     return `${origin}/auth/update-password`
   }
 
-  return 'https://dentbridgetr.com/auth/update-password'
+  return configuredResetRedirectUrl || `${configuredSiteUrl || origin}/auth/update-password`
 }
 
 export default function ForgotPasswordPage() {
