@@ -4,7 +4,9 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { inviteUserWithRole } from '@/lib/auth-invitations'
 import { isAdminRole } from '@/lib/roles'
 
-const INVITE_REDIRECT_TO = 'https://dentbridgetr.com/auth/callback'
+const fallbackUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'
+const appUrl = (process.env.APP_URL || process.env.NEXT_PUBLIC_SITE_URL || fallbackUrl).replace(/\/$/, '')
+const INVITE_REDIRECT_TO = process.env.INVITE_REDIRECT_URL || `${appUrl}/auth/callback`
 
 interface InviteRequestBody {
   email?: string
