@@ -8,6 +8,11 @@ import { ArrowLeft, CheckCircle2, Info, UploadCloud } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import PublicPatientChatButton from '@/components/PublicPatientChatButton'
+import {
+  ALLOWED_EXTENSIONS,
+  HARD_MAX_UPLOAD_BYTES,
+  PATIENT_UPLOADS_BUCKET,
+} from '@/lib/files/file.constants'
 
 // ── Option arrays — values are the English strings stored to the database.
 // Display labels are resolved through t() at render time.
@@ -210,26 +215,20 @@ function normalizePhoneNumber(value: string) {
   return value.replace(/[\s().-]/g, '')
 }
 
-const ALLOWED_ATTACHMENT_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'pdf'])
-
-function createSafeStorageSlug(value: string) {
-  const slug = value
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/ı/g, 'i')
-    .replace(/[^a-z0-9._-]+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '')
-
-  return slug || 'patient'
-}
+const ALLOWED_ATTACHMENT_EXTENSIONS = new Set(ALLOWED_EXTENSIONS)
 
 function getAllowedAttachmentExtension(fileName: string) {
   const extension = fileName.split('.').pop()?.toLowerCase() ?? ''
 
   return ALLOWED_ATTACHMENT_EXTENSIONS.has(extension) ? extension : null
+}
+
+type PreparedUpload = {
+  success: true
+  fileId: string
+  objectPath: string
+  token: string
+  ticket: string
 }
 
 export default function PatientRequestPage() {
@@ -650,14 +649,15 @@ export default function PatientRequestPage() {
       return
     }
 
-    if (attachment && attachment.size > 10 * 1024 * 1024) {
+    if (attachment && attachment.size > HARD_MAX_UPLOAD_BYTES) {
       setErrorMessage(t('request.errorFileSize'))
       return
     }
 
     setIsSubmitting(true)
 
-    let attachmentPath: string | null = null
+    let fileId: string | null = null
+    let fileTicket: string | null = null
 
     if (attachment) {
       const fileExt = getAllowedAttachmentExtension(attachment.name)
@@ -668,12 +668,41 @@ export default function PatientRequestPage() {
         return
       }
 
-      const safeName = createSafeStorageSlug(fullName)
-      const fileName = `${safeName}-${Date.now()}.${fileExt}`
-      const filePath = fileName
+      const prepareResponse = await fetch('/api/v1/files/prepare-upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: attachment.name,
+          mimeType: attachment.type,
+          sizeBytes: attachment.size,
+          locale,
+        }),
+      })
+
+      if (!prepareResponse.ok) {
+        setIsSubmitting(false)
+        setErrorMessage(t('request.errorGeneric'))
+        return
+      }
+
+      let prepared: PreparedUpload
+      try {
+        prepared = (await prepareResponse.json()) as PreparedUpload
+      } catch {
+        setIsSubmitting(false)
+        setErrorMessage(t('request.errorGeneric'))
+        return
+      }
+
+      if (!prepared.fileId || !prepared.objectPath || !prepared.token || !prepared.ticket) {
+        setIsSubmitting(false)
+        setErrorMessage(t('request.errorGeneric'))
+        return
+      }
+
       const { error: uploadError } = await supabase.storage
-        .from('patient-uploads')
-        .upload(filePath, attachment)
+        .from(PATIENT_UPLOADS_BUCKET)
+        .uploadToSignedUrl(prepared.objectPath, prepared.token, attachment)
 
       if (uploadError) {
         setIsSubmitting(false)
@@ -681,7 +710,23 @@ export default function PatientRequestPage() {
         return
       }
 
-      attachmentPath = filePath
+      const confirmResponse = await fetch(`/api/v1/files/${prepared.fileId}/confirm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ticket: prepared.ticket,
+          locale,
+        }),
+      })
+
+      if (!confirmResponse.ok) {
+        setIsSubmitting(false)
+        setErrorMessage(t('request.errorGeneric'))
+        return
+      }
+
+      fileId = prepared.fileId
+      fileTicket = prepared.ticket
     }
 
     try {
@@ -707,8 +752,8 @@ export default function PatientRequestPage() {
           medicalConditionDetails,
           kvkkAcknowledgement,
           explicitConsent,
-          attachmentPath,
-          attachmentName: attachment ? attachment.name : null,
+          fileId,
+          fileTicket,
           locale,
         }),
       })

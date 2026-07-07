@@ -13,6 +13,10 @@ import {
   createAuditRequestContext,
 } from '@/lib/audit/audit.service'
 import { CONSENT_STATUS, CONSENT_TYPES, PATIENT_REQUEST_CONSENT } from '@/lib/consent/consent.constants'
+import {
+  attachConfirmedFileToPatientRequest,
+  deletePreparedFileObject,
+} from '@/lib/files/files.service'
 
 export const runtime = 'nodejs'
 
@@ -68,7 +72,6 @@ const MEDICAL_CONDITION_VALUES = new Set([
   'Allergy',
   'Other',
 ])
-const ATTACHMENT_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'pdf'])
 
 interface PatientRequestPayload {
   fullName?: unknown
@@ -89,8 +92,8 @@ interface PatientRequestPayload {
   medicalConditionDetails?: unknown
   kvkkAcknowledgement?: unknown
   explicitConsent?: unknown
-  attachmentPath?: unknown
-  attachmentName?: unknown
+  fileId?: unknown
+  fileTicket?: unknown
   locale?: unknown
 }
 
@@ -110,8 +113,8 @@ interface ValidatedPatientRequest {
   contactMethod: string | null
   bestContactTime: string | null
   medicalCondition: string
-  attachmentPath: string | null
-  attachmentName: string | null
+  fileId: string | null
+  fileTicket: string | null
 }
 
 interface PatientRequestRow {
@@ -180,19 +183,10 @@ function isValidOptionalValue(value: string | null, allowed: Set<string>): boole
   return value == null || allowed.has(value)
 }
 
-function isValidAttachment(path: string | null, name: string | null): boolean {
-  if (!path && !name) {
-    return true
-  }
-  if (!path || !name || path.length > 300 || name.length > 255) {
-    return false
-  }
-  if (path.includes('/') || path.includes('\\') || path.includes('..')) {
-    return false
-  }
-
-  const extension = name.split('.').pop()?.toLowerCase() ?? ''
-  return ATTACHMENT_EXTENSIONS.has(extension)
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value
+  )
 }
 
 function validatePayload(payload: PatientRequestPayload): ValidatedPatientRequest | null {
@@ -211,8 +205,8 @@ function validatePayload(payload: PatientRequestPayload): ValidatedPatientReques
   const bestContactTime = getOptionalString(payload.bestContactTime)
   const medicalCondition = getString(payload.medicalCondition)
   const medicalConditionDetails = getString(payload.medicalConditionDetails)
-  const attachmentPath = getOptionalString(payload.attachmentPath)
-  const attachmentName = getOptionalString(payload.attachmentName)
+  const fileId = getOptionalString(payload.fileId)
+  const fileTicket = getOptionalString(payload.fileTicket)
 
   if (!isValidFullName(fullName)) {
     return null
@@ -262,7 +256,10 @@ function validatePayload(payload: PatientRequestPayload): ValidatedPatientReques
   if (payload.kvkkAcknowledgement !== true || payload.explicitConsent !== true) {
     return null
   }
-  if (!isValidAttachment(attachmentPath, attachmentName)) {
+  if ((fileId && !fileTicket) || (!fileId && fileTicket)) {
+    return null
+  }
+  if (fileId && (!isUuid(fileId) || !fileTicket || fileTicket.length > 256)) {
     return null
   }
 
@@ -283,8 +280,8 @@ function validatePayload(payload: PatientRequestPayload): ValidatedPatientReques
     bestContactTime,
     medicalCondition:
       medicalCondition === 'Other' ? `Other: ${medicalConditionDetails}` : medicalCondition,
-    attachmentPath,
-    attachmentName,
+    fileId,
+    fileTicket,
   }
 }
 
@@ -351,6 +348,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const admin = createSupabaseAdminClient()
     const acceptedAt = new Date().toISOString()
+    let linkedFileId: string | null = null
     const { data: patientRequest, error } = await admin
       .from('patient_requests')
       .insert({
@@ -372,8 +370,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         consent: true,
         consent_accepted_at: acceptedAt,
         consent_version: PATIENT_REQUEST_CONSENT.version,
-        attachment_path: validated.attachmentPath,
-        attachment_name: validated.attachmentName,
+        attachment_path: null,
+        attachment_name: null,
         status: 'submitted',
       })
       .select('id')
@@ -387,6 +385,71 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       typeof patientRequest?.id === 'string' ? patientRequest.id : null
     if (!patientRequestId) {
       throw new Error('Patient request insert did not return an id.')
+    }
+
+    if (validated.fileId && validated.fileTicket) {
+      const attachResult = await attachConfirmedFileToPatientRequest({
+        fileId: validated.fileId,
+        ticket: validated.fileTicket,
+        patientRequestId,
+        locale,
+        context: auditContext,
+        supabase: admin,
+      })
+
+      if (!attachResult.ok) {
+        await deletePreparedFileObject({
+          fileId: validated.fileId,
+          ticket: validated.fileTicket,
+          supabase: admin,
+        })
+
+        const { error: cleanupError } = await admin
+          .from('patient_requests')
+          .delete()
+          .eq('id', patientRequestId)
+
+        if (cleanupError) {
+          console.error('[patient-request] Failed to clean up request after file attach failure', {
+            patientRequestId,
+            error: cleanupError.message,
+          })
+        }
+
+        return errorResponse('invalid_request', locale)
+      }
+
+      linkedFileId = attachResult.data.fileId
+
+      const { error: attachmentUpdateError } = await admin
+        .from('patient_requests')
+        .update({
+          attachment_path: attachResult.data.objectPath,
+          attachment_name: attachResult.data.originalFilename,
+        })
+        .eq('id', patientRequestId)
+
+      if (attachmentUpdateError) {
+        await deletePreparedFileObject({
+          fileId: validated.fileId,
+          ticket: validated.fileTicket,
+          supabase: admin,
+        })
+
+        const { error: cleanupError } = await admin
+          .from('patient_requests')
+          .delete()
+          .eq('id', patientRequestId)
+
+        if (cleanupError) {
+          console.error('[patient-request] Failed to clean up request after file link failure', {
+            patientRequestId,
+            error: cleanupError.message,
+          })
+        }
+
+        throw attachmentUpdateError
+      }
     }
 
     const { error: consentError } = await admin.from('consent_records').insert([
@@ -432,6 +495,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         error: consentError.message,
       })
 
+      if (validated.fileId && validated.fileTicket) {
+        await deletePreparedFileObject({
+          fileId: validated.fileId,
+          ticket: validated.fileTicket,
+          supabase: admin,
+        })
+      }
+
       const { error: cleanupError } = await admin
         .from('patient_requests')
         .delete()
@@ -451,7 +522,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       patientRequestId,
       consentRecordCount: 2,
       consentVersion: PATIENT_REQUEST_CONSENT.version,
-      hasAttachment: Boolean(validated.attachmentPath),
+      hasAttachment: Boolean(linkedFileId),
       locale,
       context: auditContext,
       supabase: admin,

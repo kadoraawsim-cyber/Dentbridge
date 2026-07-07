@@ -8,6 +8,10 @@ export const AUDIT_ACTIONS = {
   PATIENT_REQUEST_CREATED: 'patient_request_created',
   PATIENT_STATUS_OTP_REQUESTED: 'patient_status_otp_requested',
   PATIENT_STATUS_LOOKUP: 'patient_status_lookup',
+  FILE_UPLOAD_PREPARED: 'file_upload_prepared',
+  FILE_CONFIRMED: 'file_confirmed',
+  FILE_REJECTED: 'file_rejected',
+  FILE_SIGNED_URL_CREATED: 'file_signed_url_created',
 } as const
 
 export const AUDIT_CATEGORIES = {
@@ -43,7 +47,12 @@ const SENSITIVE_METADATA_KEYS = new Set([
   'authorization',
   'attachment_name',
   'attachment_path',
+  'checksum',
+  'checksum_sha256',
   'code',
+  'filename',
+  'object_path',
+  'original_filename',
   'code_hash',
   'complaint_text',
   'full_name',
@@ -89,6 +98,26 @@ const AUDIT_EVENT_DEFINITIONS: Record<AuditAction, AuditEventDefinition> = {
     category: AUDIT_CATEGORIES.PRIVACY,
     severity: AUDIT_SEVERITIES.NOTICE,
     entityType: 'patient_status',
+  },
+  [AUDIT_ACTIONS.FILE_UPLOAD_PREPARED]: {
+    category: AUDIT_CATEGORIES.SECURITY,
+    severity: AUDIT_SEVERITIES.INFO,
+    entityType: 'patient_file',
+  },
+  [AUDIT_ACTIONS.FILE_CONFIRMED]: {
+    category: AUDIT_CATEGORIES.SECURITY,
+    severity: AUDIT_SEVERITIES.INFO,
+    entityType: 'patient_file',
+  },
+  [AUDIT_ACTIONS.FILE_REJECTED]: {
+    category: AUDIT_CATEGORIES.SECURITY,
+    severity: AUDIT_SEVERITIES.WARNING,
+    entityType: 'patient_file',
+  },
+  [AUDIT_ACTIONS.FILE_SIGNED_URL_CREATED]: {
+    category: AUDIT_CATEGORIES.PRIVACY,
+    severity: AUDIT_SEVERITIES.NOTICE,
+    entityType: 'patient_file',
   },
 }
 
@@ -358,6 +387,126 @@ export async function auditPatientStatusLookup(
       phone_last4: input.phoneLast4,
       locale: input.locale,
       result: input.result,
+    },
+    context: input.context,
+    supabase: input.supabase,
+  })
+}
+
+interface FileUploadPreparedAuditInput {
+  fileId: string
+  declaredMime: string
+  extension: string
+  declaredSizeBytes: number | null
+  locale: string
+  context: AuditRequestContext
+  supabase?: SupabaseAdminClient
+}
+
+interface FileConfirmedAuditInput {
+  fileId: string
+  patientRequestId?: string | null
+  detectedMime: string | null
+  sizeBytes: number | null
+  locale: string
+  context: AuditRequestContext
+  supabase?: SupabaseAdminClient
+}
+
+interface FileRejectedAuditInput {
+  fileId: string
+  reason: string
+  locale: string
+  context: AuditRequestContext
+  supabase?: SupabaseAdminClient
+}
+
+interface FileSignedUrlCreatedAuditInput {
+  fileId: string
+  patientRequestId: string | null
+  purpose: 'preview' | 'download'
+  expirySeconds: number
+  actorUserId: string
+  actorEmail?: string | null
+  actorRole: string
+  context: AuditRequestContext
+  supabase?: SupabaseAdminClient
+}
+
+export async function auditFileUploadPrepared(
+  input: FileUploadPreparedAuditInput
+): Promise<boolean> {
+  return createAuditLog({
+    action: AUDIT_ACTIONS.FILE_UPLOAD_PREPARED,
+    actorType: AUDIT_ACTOR_TYPES.ANONYMOUS,
+    entityId: input.fileId,
+    metadata: {
+      file_id: input.fileId,
+      declared_mime: input.declaredMime,
+      extension: input.extension,
+      declared_size_bytes: input.declaredSizeBytes,
+      locale: input.locale,
+    },
+    context: input.context,
+    supabase: input.supabase,
+  })
+}
+
+export async function auditFileConfirmed(
+  input: FileConfirmedAuditInput
+): Promise<boolean> {
+  return createAuditLog({
+    action: AUDIT_ACTIONS.FILE_CONFIRMED,
+    actorType: AUDIT_ACTOR_TYPES.ANONYMOUS,
+    entityId: input.fileId,
+    metadata: {
+      file_id: input.fileId,
+      patient_request_id: input.patientRequestId ?? null,
+      detected_mime: input.detectedMime,
+      size_bytes: input.sizeBytes,
+      result: 'confirmed',
+      locale: input.locale,
+    },
+    context: input.context,
+    supabase: input.supabase,
+  })
+}
+
+export async function auditFileRejected(
+  input: FileRejectedAuditInput
+): Promise<boolean> {
+  return createAuditLog({
+    action: AUDIT_ACTIONS.FILE_REJECTED,
+    actorType: AUDIT_ACTOR_TYPES.ANONYMOUS,
+    success: false,
+    entityId: input.fileId,
+    metadata: {
+      file_id: input.fileId,
+      reason: input.reason,
+      result: 'rejected',
+      locale: input.locale,
+    },
+    context: input.context,
+    supabase: input.supabase,
+  })
+}
+
+export async function auditFileSignedUrlCreated(
+  input: FileSignedUrlCreatedAuditInput
+): Promise<boolean> {
+  return createAuditLog({
+    action: AUDIT_ACTIONS.FILE_SIGNED_URL_CREATED,
+    actorUserId: input.actorUserId,
+    actorEmail: input.actorEmail,
+    actorRole: input.actorRole,
+    actorType: AUDIT_ACTOR_TYPES.SERVICE,
+    entityId: input.fileId,
+    metadata: {
+      file_id: input.fileId,
+      patient_request_id: input.patientRequestId,
+      purpose: input.purpose,
+      expiry_seconds: input.expirySeconds,
+      actor_role: input.actorRole,
     },
     context: input.context,
     supabase: input.supabase,

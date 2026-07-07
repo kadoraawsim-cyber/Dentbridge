@@ -40,6 +40,7 @@ type PatientRequest = {
   status: string
   attachment_path: string | null
   attachment_name: string | null
+  attachment_file_id: string | null
   assigned_department: string | null
   target_student_level: string | null
   clinical_notes: string | null
@@ -133,8 +134,14 @@ const studentLevelOptions = [
   'Specialist Dentist',
 ]
 
-const PREVIEW_SIGNED_URL_TTL_MS = 3600 * 1000
+const PREVIEW_SIGNED_URL_TTL_MS = 120 * 1000
 const SIGNED_URL_FRESHNESS_BUFFER_MS = 30 * 1000
+
+type SignedFileUrlResponse = {
+  success: true
+  signedUrl: string
+  expiresAt: string
+}
 
 function keywordRoutingHint(treatmentType: string, assignedDepartment: string | null) {
   if (assignedDepartment) return assignedDepartment
@@ -497,7 +504,7 @@ export function CaseDetailClient({
   const [saveSuccess, setSaveSuccess] = useState('')
   const [openingFile, setOpeningFile] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [previewLoading, setPreviewLoading] = useState(!!request.attachment_path)
+  const [previewLoading, setPreviewLoading] = useState(!!request.attachment_file_id)
   const previewUrlExpiresAtRef = useRef(0)
   const saveSuccessTimeoutRef = useRef<number | null>(null)
 
@@ -538,7 +545,7 @@ export function CaseDetailClient({
   const [isEditingTriage, setIsEditingTriage] = useState(false)
 
   useEffect(() => {
-    if (!request.attachment_path) {
+    if (!request.attachment_file_id) {
       previewUrlExpiresAtRef.current = 0
       const resetFrameId = window.requestAnimationFrame(() => {
         setPreviewUrl(null)
@@ -556,15 +563,33 @@ export function CaseDetailClient({
         setPreviewLoading(true)
       }
     })
-    supabase.storage
-      .from('patient-uploads')
-      .createSignedUrl(request.attachment_path, 3600)
-      .then(({ data }) => {
+
+    fetch(`/api/v1/files/${request.attachment_file_id}/signed-url`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ purpose: 'preview' }),
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          return null
+        }
+        return (await response.json()) as SignedFileUrlResponse
+      })
+      .then((data) => {
         if (!cancelled) {
           setPreviewUrl(data?.signedUrl ?? null)
-          previewUrlExpiresAtRef.current = data?.signedUrl
-            ? Date.now() + PREVIEW_SIGNED_URL_TTL_MS
-            : 0
+          previewUrlExpiresAtRef.current = data?.expiresAt
+            ? new Date(data.expiresAt).getTime()
+            : data?.signedUrl
+              ? Date.now() + PREVIEW_SIGNED_URL_TTL_MS
+              : 0
+          setPreviewLoading(false)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPreviewUrl(null)
+          previewUrlExpiresAtRef.current = 0
           setPreviewLoading(false)
         }
       })
@@ -572,7 +597,7 @@ export function CaseDetailClient({
       cancelled = true
       window.cancelAnimationFrame(loadingFrameId)
     }
-  }, [request.attachment_path])
+  }, [request.attachment_file_id])
 
   useEffect(() => {
     return () => {
@@ -662,7 +687,7 @@ export function CaseDetailClient({
   }
 
   async function handleViewAttachment() {
-    if (!request.attachment_path) return
+    if (!request.attachment_file_id) return
 
     if (
       previewUrl &&
@@ -675,20 +700,29 @@ export function CaseDetailClient({
     setOpeningFile(true)
     setErrorMessage('')
 
-    const { data, error } = await supabase.storage
-      .from('patient-uploads')
-      .createSignedUrl(request.attachment_path, 60)
+    let data: SignedFileUrlResponse | null = null
+    try {
+      const response = await fetch(`/api/v1/files/${request.attachment_file_id}/signed-url`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ purpose: 'download' }),
+      })
+
+      if (response.ok) {
+        data = (await response.json()) as SignedFileUrlResponse
+      }
+    } catch {
+      data = null
+    }
 
     setOpeningFile(false)
 
-    if (error) {
-      setErrorMessage(error.message)
+    if (!data?.signedUrl) {
+      setErrorMessage('Unable to open this attachment right now.')
       return
     }
 
-    if (data?.signedUrl) {
-      window.open(data.signedUrl, '_blank')
-    }
+    window.open(data.signedUrl, '_blank')
   }
 
   function showSaved(message: string) {
@@ -1440,7 +1474,7 @@ export function CaseDetailClient({
 
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                   <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-                    {!request.attachment_path ? (
+                    {!request.attachment_file_id ? (
                       <div className="flex aspect-video items-center justify-center">
                         <p className="px-4 text-center text-xs text-slate-400">{t('admin.detail.noUploadedImage')}</p>
                       </div>
@@ -1465,7 +1499,7 @@ export function CaseDetailClient({
                   </div>
 
                   <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    {request.attachment_path ? (
+                    {request.attachment_file_id ? (
                       <p className="min-w-0 truncate text-xs text-slate-400">{attachmentLabel}</p>
                     ) : (
                       <p className="text-xs text-slate-400">{t('admin.detail.noUploadedImage')}</p>
@@ -1474,7 +1508,7 @@ export function CaseDetailClient({
                     <button
                       type="button"
                       onClick={handleViewAttachment}
-                      disabled={!request.attachment_path || openingFile}
+                      disabled={!request.attachment_file_id || openingFile}
                       className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {openingFile ? t('admin.detail.openingFile') : t('admin.detail.viewFullScreen')}

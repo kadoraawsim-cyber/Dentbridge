@@ -127,6 +127,36 @@ plaintext.
 - Wired by the Phase 3 Branch A patient status OTP endpoints. The public UI
   requests an OTP first, then verifies the OTP before status data is returned.
 
+### `patient_files`
+
+Metadata for patient upload attachments (Phase 5, Branch 5B). One row per
+prepared/uploaded file. The storage object key is opaque; the original filename
+and other identifying metadata live here, protected by RLS, never in the key.
+
+- Created by: `20260709000000_patient_files.sql`
+- Related Phase 5 migrations:
+  `20260709010000_revoke_patient_upload_insert.sql` removes the legacy
+  anon/authenticated Storage INSERT path, and
+  `20260709020000_backfill_patient_files.sql` backfills existing attachment
+  metadata.
+- Linked to `patient_requests(id)` with `ON DELETE CASCADE` (nullable until a
+  file is attached to a submitted request).
+- `object_path` is a unique, opaque UUID storage key. No patient name, phone, or
+  free text is ever placed in the key.
+- Tracks `status` (`pending`, `uploaded`, `scanning`, `clean`, `quarantined`,
+  `rejected`, `orphaned`, `deleted`), `scan_state`, `declared_mime` /
+  `detected_mime`, `extension`, `size_bytes`, `checksum_sha256`, and
+  `expires_at` for pending-upload orphan cleanup.
+- Access model: service-role/server only. RLS is enabled with no anon or
+  authenticated policies; all file access goes through the DentBridge files
+  service/API.
+- Patient request submission now accepts only a confirmed `fileId` plus upload
+  ticket. The API links `patient_files` to `patient_requests` and keeps legacy
+  `attachment_path` / `attachment_name` synchronized for compatibility.
+- Signed download/preview URLs are created only by the server-side files
+  service, are short-lived, and are audited.
+- See `docs/FILE_UPLOADS.md` for the full upload architecture and QA plan.
+
 ## Migration Order
 
 Fresh database creation must apply migrations in filename order. The baseline
@@ -216,6 +246,13 @@ directly. API routes should create consent records when consent is part of the
 required workflow, and audit writes should avoid sensitive payload details and
 must not expose internal failures to patients.
 
+Phase 5 adds service-role-only `patient_files` for upload metadata. RLS is
+enabled with no anon or authenticated policies; browser clients must not read or
+write file metadata directly. The legacy `patient_uploads_insert` Storage policy
+is dropped by a forward migration, and INSERT on `storage.objects` is revoked
+from anon and authenticated. Browser uploads now use server-created signed upload
+tokens only.
+
 ## Audit Logging Guidelines
 
 Audit logs are an internal accountability record, not an analytics stream and
@@ -238,6 +275,7 @@ Events that must always be audited once their server-side workflows exist:
 - required consent capture;
 - OTP challenge request for patient status lookup;
 - OTP-protected patient status lookup success or failure;
+- file upload prepare, confirmation/rejection, and signed URL creation;
 - future admin, student, faculty, routing, upload-review, and permission
   decisions that affect patient data access or lifecycle state.
 

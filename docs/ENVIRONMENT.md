@@ -145,6 +145,27 @@ All of these are server-only secrets. Like `SUPABASE_SERVICE_ROLE_KEY` and
 `OPENAI_API_KEY`, they must never be prefixed with `NEXT_PUBLIC_` and must never
 be exposed to browser code, docs, logs, or client bundles.
 
+## File Upload Secrets (Phase 5)
+
+Phase 5 introduces a server-mediated patient file upload flow. The flow signs a
+short-lived HMAC ticket that binds a prepared file id so a caller cannot confirm
+or attach a file id they did not prepare.
+
+- `FILE_TICKET_SECRET` — server-only secret used to sign (HMAC-SHA256) patient
+  file upload tickets. It must never be prefixed with `NEXT_PUBLIC_` and must
+  never be exposed to browser code, docs, logs, or client bundles. A placeholder
+  is present in `.env.example`.
+
+Rules:
+
+- It must be a distinct value from `OTP_HASH_SECRET`. The two secrets protect
+  different flows and must not be shared or derived from one another.
+- It must be configured in both Preview and Production before the Phase 5
+  server-mediated upload flow is enabled. Until then the prepare/confirm
+  endpoints fail closed with generic errors.
+- Rotating it invalidates any in-flight upload tickets, which is acceptable
+  because tickets are short-lived. Rotate it independently of other secrets.
+
 ## Student Pilot Archive
 
 The old `/student-pilot` form is inactive.
