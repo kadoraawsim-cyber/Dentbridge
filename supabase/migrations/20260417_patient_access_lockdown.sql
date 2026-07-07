@@ -86,8 +86,6 @@ VALUES ('patient-uploads', 'patient-uploads', false)
 ON CONFLICT (id) DO UPDATE
 SET public = EXCLUDED.public;
 
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "patient_uploads_insert" ON storage.objects;
 CREATE POLICY "patient_uploads_insert"
   ON storage.objects

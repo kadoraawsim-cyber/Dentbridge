@@ -5,7 +5,6 @@
 
 ALTER TABLE patient_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE student_case_requests ENABLE ROW LEVEL SECURITY;
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
 
 -- patient_requests: faculty can read and update all patient cases, matching
 -- the existing admin clinical workflow.

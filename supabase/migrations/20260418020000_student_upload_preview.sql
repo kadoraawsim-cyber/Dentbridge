@@ -3,8 +3,6 @@
 -- to generate signed URLs for attachments attached to cases they are already
 -- allowed to see in the current workflow.
 
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "student_can_read_patient_uploads" ON storage.objects;
 CREATE POLICY "student_can_read_patient_uploads"
   ON storage.objects

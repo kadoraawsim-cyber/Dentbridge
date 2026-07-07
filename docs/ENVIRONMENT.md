@@ -56,6 +56,16 @@ only.
 Local URL values should point to the local app or a safe test deployment. Do
 not use production secrets for routine local development.
 
+Supabase local may generate or display default local API keys and database
+credentials. Treat those values as development-only:
+
+- Do not expose local Supabase Studio, API, or database ports publicly.
+- Do not use local default keys or local credentials in Production or Preview.
+- Do not copy local service-role credentials into Vercel or any hosted
+  environment.
+- Rotate any hosted credential that is accidentally copied into local notes,
+  logs, screenshots, or shared channels.
+
 ## Vercel Configuration
 
 The linked Vercel project is `dentbridge`.

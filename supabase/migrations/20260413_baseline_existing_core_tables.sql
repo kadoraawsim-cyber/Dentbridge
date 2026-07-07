@@ -34,6 +34,20 @@ CREATE TABLE IF NOT EXISTS patient_requests (
   created_at timestamptz DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS student_case_requests (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  case_id uuid NOT NULL REFERENCES patient_requests(id) ON DELETE CASCADE,
+  student_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  student_email text NOT NULL,
+  status text NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending', 'approved', 'rejected')),
+  clinical_notes text,
+  reviewed_by text,
+  reviewed_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (case_id, student_id)
+);
+
 CREATE TABLE IF NOT EXISTS student_profiles (
   id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email text NOT NULL UNIQUE,

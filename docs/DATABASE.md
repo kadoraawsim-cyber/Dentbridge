@@ -15,8 +15,8 @@ Patient intake and lifecycle source of truth.
 - Later additions include review accountability, consent metadata, gender,
   routing stage links, and routing completion time.
 - Current status constraint is managed by:
-  - `20260415_lifecycle_statuses.sql`
-  - `20260509_allow_faculty_review_status.sql`
+  - `20260416_lifecycle_statuses.sql`
+  - `20260509000000_allow_faculty_review_status.sql`
 
 ### `student_profiles`
 
@@ -30,7 +30,7 @@ Student account profile data linked to invited/authenticated users.
 
 Faculty account profile data linked to invited/authenticated users.
 
-- Created by: `20260420_faculty_profiles.sql`
+- Created by: `20260420010000_faculty_profiles.sql`
 - Primary key: `id`
 - Unique key: `email`
 
@@ -52,15 +52,15 @@ Student planner entries and system-created appointment links.
 - Case appointment link: `source_case_id`
 - Routing stage link: `stage_id`
 - Source-linking constraints and unique source index are managed by
-  `20260424_student_planner_case_links.sql`.
+  `20260424010000_student_planner_case_links.sql`.
 - `lifecycle_state` constraint is managed by
-  `20260509_case_routing_stages_foundation.sql`.
+  `20260509010000_case_routing_stages_foundation.sql`.
 
 ### `case_progress_entries`
 
 Append-only case progress notes for approved student-owned cases.
 
-- Created by: `20260424_case_progress_entries.sql`
+- Created by: `20260424000000_case_progress_entries.sql`
 - Linked by `case_id`, `student_id`, and later `stage_id`
 - Includes a content check constraint so empty progress entries are rejected.
 
@@ -68,7 +68,7 @@ Append-only case progress notes for approved student-owned cases.
 
 Sequential department routing stages for a patient case.
 
-- Created by: `20260509_case_routing_stages_foundation.sql`
+- Created by: `20260509010000_case_routing_stages_foundation.sql`
 - Unique key: `(case_id, sequence)`
 - Status constraint is added by
   `20260707_phase2_database_foundation_constraints_indexes.sql`.
@@ -142,6 +142,14 @@ npm run build
 npx tsc --noEmit
 npm run lint
 ```
+
+Supabase local may print a notice that `seed.sql` does not exist. That is
+expected for Phase 2: no seed file is required to validate the production
+schema, migrations, constraints, indexes, or RLS policy definitions.
+
+Future demo or sample seed data belongs in a later testing/developer-experience
+task. It must not be folded into production migrations or used to make fresh
+replay depend on non-production data.
 
 If local Supabase cannot run, verify the chain statically by checking that:
 
