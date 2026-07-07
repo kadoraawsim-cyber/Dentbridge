@@ -8,6 +8,7 @@ import {
 } from '@/lib/api/errors'
 import { createRateLimiter, getClientIp } from '@/lib/api/rate-limit'
 import { isAllowedSameOriginRequest } from '@/lib/api/same-origin'
+import { AUDIT_ACTIONS, createAuditLog } from '@/lib/audit/audit.service'
 
 export const runtime = 'nodejs'
 
@@ -109,6 +110,10 @@ interface ValidatedPatientRequest {
   medicalCondition: string
   attachmentPath: string | null
   attachmentName: string | null
+}
+
+interface PatientRequestRow {
+  id?: unknown
 }
 
 function getHeaderLocale(request: NextRequest): ApiLocale {
@@ -342,33 +347,104 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const admin = createSupabaseAdminClient()
-    const { error } = await admin.from('patient_requests').insert({
-      full_name: validated.fullName,
-      age: validated.age,
-      gender: validated.gender,
-      phone: validated.phone,
-      preferred_language: validated.preferredLanguage,
-      preferred_university: validated.preferredUniversity,
-      treatment_type: validated.treatmentType,
-      complaint_text: validated.complaintText,
-      urgency: validated.urgency,
-      preferred_days: validated.preferredDays,
-      pain_score: validated.painScore,
-      symptom_duration: validated.symptomDuration,
-      contact_method: validated.contactMethod,
-      best_contact_time: validated.bestContactTime,
-      medical_condition: validated.medicalCondition,
-      consent: true,
-      consent_accepted_at: new Date().toISOString(),
-      consent_version: CONSENT_VERSION,
-      attachment_path: validated.attachmentPath,
-      attachment_name: validated.attachmentName,
-      status: 'submitted',
-    })
+    const acceptedAt = new Date().toISOString()
+    const userAgent = request.headers.get('user-agent')
+    const { data: patientRequest, error } = await admin
+      .from('patient_requests')
+      .insert({
+        full_name: validated.fullName,
+        age: validated.age,
+        gender: validated.gender,
+        phone: validated.phone,
+        preferred_language: validated.preferredLanguage,
+        preferred_university: validated.preferredUniversity,
+        treatment_type: validated.treatmentType,
+        complaint_text: validated.complaintText,
+        urgency: validated.urgency,
+        preferred_days: validated.preferredDays,
+        pain_score: validated.painScore,
+        symptom_duration: validated.symptomDuration,
+        contact_method: validated.contactMethod,
+        best_contact_time: validated.bestContactTime,
+        medical_condition: validated.medicalCondition,
+        consent: true,
+        consent_accepted_at: acceptedAt,
+        consent_version: CONSENT_VERSION,
+        attachment_path: validated.attachmentPath,
+        attachment_name: validated.attachmentName,
+        status: 'submitted',
+      })
+      .select('id')
+      .single<PatientRequestRow>()
 
     if (error) {
       throw error
     }
+
+    const patientRequestId =
+      typeof patientRequest?.id === 'string' ? patientRequest.id : null
+    if (!patientRequestId) {
+      throw new Error('Patient request insert did not return an id.')
+    }
+
+    const { error: consentError } = await admin.from('consent_records').insert([
+      {
+        patient_request_id: patientRequestId,
+        consent_type: 'kvkk_acknowledgement',
+        consent_version: CONSENT_VERSION,
+        language: locale,
+        accepted_at: acceptedAt,
+        ip_address: clientIp,
+        user_agent: userAgent,
+        source: 'patient_request',
+      },
+      {
+        patient_request_id: patientRequestId,
+        consent_type: 'explicit_consent',
+        consent_version: CONSENT_VERSION,
+        language: locale,
+        accepted_at: acceptedAt,
+        ip_address: clientIp,
+        user_agent: userAgent,
+        source: 'patient_request',
+      },
+    ])
+
+    if (consentError) {
+      console.error('[patient-request] Failed to create consent records', {
+        patientRequestId,
+        error: consentError.message,
+      })
+
+      const { error: cleanupError } = await admin
+        .from('patient_requests')
+        .delete()
+        .eq('id', patientRequestId)
+
+      if (cleanupError) {
+        console.error('[patient-request] Failed to clean up request after consent failure', {
+          patientRequestId,
+          error: cleanupError.message,
+        })
+      }
+
+      throw new Error('Consent record creation failed.')
+    }
+
+    await createAuditLog({
+      action: AUDIT_ACTIONS.PATIENT_REQUEST_CREATED,
+      entityType: 'patient_request',
+      entityId: patientRequestId,
+      metadata: {
+        treatment_type: validated.treatmentType,
+        urgency: validated.urgency,
+        preferred_university: validated.preferredUniversity,
+        has_attachment: Boolean(validated.attachmentPath),
+        locale,
+      },
+      ipAddress: clientIp,
+      userAgent,
+    })
 
     return NextResponse.json({ success: true }, { status: 200, headers: SECURITY_HEADERS })
   } catch (error) {

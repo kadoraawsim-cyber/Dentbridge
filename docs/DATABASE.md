@@ -76,6 +76,32 @@ Sequential department routing stages for a patient case.
 - Status constraint is added by
   `20260707_phase2_database_foundation_constraints_indexes.sql`.
 
+### `audit_logs`
+
+Append-only operational audit events for security-relevant patient and workflow
+actions.
+
+- Created by: `20260708030000_phase4_audit_logs_consent_records.sql`
+- Access model: service-role/server only.
+- RLS is enabled and no `anon` or `authenticated` direct access is granted.
+- Audit metadata must contain only caller-curated safe fields. Do not log OTP
+  codes, OTP hashes, raw secrets, full complaint text, medical details,
+  attachment contents, or unnecessary patient identifiers.
+- Phase 4 initially covers patient request creation. OTP audit coverage is
+  deferred in this branch because the OTP status API endpoints are not present
+  in this checkout.
+
+### `consent_records`
+
+Immutable consent acceptance records tied to patient intake submissions.
+
+- Created by: `20260708030000_phase4_audit_logs_consent_records.sql`
+- Linked to `patient_requests(id)` with `ON DELETE CASCADE`.
+- Current consent types are `kvkk_acknowledgement` and `explicit_consent`.
+- Current source is constrained to `patient_request`.
+- Access model: service-role/server only.
+- RLS is enabled and no `anon` or `authenticated` direct access is granted.
+
 ## Migration Order
 
 Fresh database creation must apply migrations in filename order. The baseline
@@ -139,6 +165,12 @@ Phase 3 Branch B moves public patient request submission to
 with the service role. The old browser insert policy is dropped, and `anon` and
 `authenticated` lose direct `INSERT` privileges on `patient_requests`; browser
 clients should not insert patient request rows directly.
+
+Phase 4 adds service-role-only `audit_logs` and `consent_records`. Public
+browser clients must not select, insert, update, or delete these records
+directly. API routes should create consent records when consent is part of the
+required workflow, and audit writes should avoid sensitive payload details and
+must not expose internal failures to patients.
 
 ## Fresh Replay Verification
 

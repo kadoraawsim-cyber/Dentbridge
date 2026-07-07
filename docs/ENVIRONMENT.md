@@ -110,6 +110,9 @@ must not silently send preview or staging users to production.
 - `.env.example` may be committed with placeholder values only.
 - `OPENAI_API_KEY` must be used server-side only.
 - `SUPABASE_SERVICE_ROLE_KEY` must be used server-side only.
+- Patient request API inserts, consent records, and audit logging depend on
+  `SUPABASE_SERVICE_ROLE_KEY`; missing or incorrect values cause those
+  server-side workflows to fail closed with generic public errors.
 - Server-only secrets must never be imported into client components.
 - Server-only secrets must never appear in README files, docs, public assets,
   screenshots, logs, or client bundles.
