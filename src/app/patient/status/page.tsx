@@ -3,21 +3,20 @@
 import React, { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
-import { ArrowLeft, Search, Stethoscope } from 'lucide-react'
+import { ArrowLeft, KeyRound, Search, Stethoscope } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import PublicPatientChatButton from '@/components/PublicPatientChatButton'
 
 type PatientRequest = {
-  id: string
   treatment_type: string
   status: string
   created_at: string | null
-  reviewed_at?: string | null
   preferred_days: string | null
   assigned_department: string | null
 }
+
+type StatusStep = 'phone' | 'otp' | 'result'
 
 const PHONE_COUNTRY_CODE_OPTIONS = [
   '+90',
@@ -104,18 +103,6 @@ function formatDate(dateString: string | null, locale: string) {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
-  })
-}
-
-function formatDateTime(dateString: string | null, locale: string) {
-  if (!dateString) return '—'
-  const localeCode = locale === 'tr' ? 'tr-TR' : 'en-GB'
-  return new Date(dateString).toLocaleString(localeCode, {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
   })
 }
 
@@ -241,10 +228,6 @@ function getLocalizedDepartmentGuidance(locale: string) {
     : 'Your case was routed to this department based on faculty review.'
 }
 
-function getLocalizedLastUpdatedLabel(locale: string) {
-  return locale === 'tr' ? 'Son Güncelleme' : 'Last Updated'
-}
-
 function getLocalizedCtaLabel(locale: string) {
   return locale === 'tr' ? 'Yeni Tedavi Talebi Gönder' : 'Submit New Treatment Request'
 }
@@ -324,10 +307,13 @@ export default function PatientStatusPage() {
 
   const [phoneCountryCode, setPhoneCountryCode] = useState('+90')
   const [phone, setPhone] = useState('')
+  const [otp, setOtp] = useState('')
+  const [lookupPhone, setLookupPhone] = useState('')
+  const [step, setStep] = useState<StatusStep>('phone')
   const [loading, setLoading] = useState(false)
-  const [searched, setSearched] = useState(false)
   const [result, setResult] = useState<PatientRequest | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
+  const [infoMessage, setInfoMessage] = useState('')
 
   function getStatusLabel(status: string): string {
     const key = (status || '').toLowerCase()
@@ -336,32 +322,99 @@ export default function PatientStatusPage() {
     return label !== tKey ? label : status
   }
 
-  async function handleSearch(e: React.SyntheticEvent<HTMLFormElement>) {
+  function getGenericApiError(status: number, code?: string): string {
+    if (status === 429 || code === 'rate_limited') {
+      return t('status.errorRateLimited')
+    }
+    if (code === 'verification_failed') {
+      return t('status.errorVerification')
+    }
+    return t('status.errorGeneric')
+  }
+
+  async function handleRequestOtp(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
     setErrorMessage('')
+    setInfoMessage('')
     setResult(null)
-    setSearched(false)
+    setOtp('')
 
     const normalizedPhone = phone.replace(/\D/g, '')
     if (!normalizedPhone) return
 
-    const lookupPhone = `${phoneCountryCode}${normalizedPhone}`
+    const nextLookupPhone = `${phoneCountryCode}${normalizedPhone}`
+    setLookupPhone(nextLookupPhone)
 
     setLoading(true)
 
-    const { data, error } = await supabase
-      .rpc('get_request_status_by_phone', { lookup_phone: lookupPhone })
-      .maybeSingle()
+    try {
+      const response = await fetch('/api/v1/patient/status/request-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: nextLookupPhone, locale }),
+      })
+      const body = await response.json().catch(() => null)
 
-    setLoading(false)
-    setSearched(true)
+      if (!response.ok) {
+        setErrorMessage(getGenericApiError(response.status, body?.code))
+        return
+      }
 
-    if (error) {
-      setErrorMessage(error.message)
-      return
+      setInfoMessage(
+        typeof body?.message === 'string' ? body.message : t('status.otpSentMessage')
+      )
+      setStep('otp')
+    } catch {
+      setErrorMessage(t('status.errorGeneric'))
+    } finally {
+      setLoading(false)
     }
+  }
 
-    setResult(data as PatientRequest | null)
+  async function handleVerifyOtp(e: React.SyntheticEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setErrorMessage('')
+    setInfoMessage('')
+
+    const normalizedOtp = otp.replace(/\D/g, '')
+    if (!lookupPhone || !normalizedOtp) return
+
+    setLoading(true)
+
+    try {
+      const response = await fetch('/api/v1/patient/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: lookupPhone, otp: normalizedOtp, locale }),
+      })
+      const body = await response.json().catch(() => null)
+
+      if (!response.ok) {
+        setErrorMessage(getGenericApiError(response.status, body?.code))
+        return
+      }
+
+      if (!body?.request) {
+        setErrorMessage(t('status.errorGeneric'))
+        return
+      }
+
+      setResult(body.request as PatientRequest)
+      setStep('result')
+    } catch {
+      setErrorMessage(t('status.errorGeneric'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function resetLookup() {
+    setStep('phone')
+    setLookupPhone('')
+    setOtp('')
+    setResult(null)
+    setErrorMessage('')
+    setInfoMessage('')
   }
 
   const shouldShowRepeatCta = ['completed', 'cancelled', 'rejected'].includes(
@@ -421,83 +474,148 @@ export default function PatientStatusPage() {
         </div>
 
         <form
-          onSubmit={handleSearch}
+          onSubmit={step === 'otp' ? handleVerifyOtp : handleRequestOtp}
           className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
         >
           <div className="p-6 sm:p-8">
             <div className="mb-5 flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-teal-500" />
-              <h2 className="text-lg font-semibold text-slate-900">{t('status.lookupTitle')}</h2>
+              <h2 className="text-lg font-semibold text-slate-900">
+                {step === 'otp' ? t('status.otpTitle') : t('status.lookupTitle')}
+              </h2>
             </div>
 
-            <label className="mb-2 block text-sm font-medium text-slate-700">
-              {t('status.phoneLabel')}
-            </label>
-
-            <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
-              <div className="flex h-11 flex-1 items-stretch overflow-hidden rounded-xl border border-slate-200 bg-white transition focus-within:border-slate-400 focus-within:ring-2 focus-within:ring-slate-100">
-                <select
-                  value={phoneCountryCode}
-                  onChange={(e) => setPhoneCountryCode(e.target.value)}
-                  aria-label={t('request.phoneCountryCode')}
-                  className="w-[88px] shrink-0 border-0 bg-transparent px-3 text-sm font-medium text-slate-900 outline-none"
-                >
-                  {PHONE_COUNTRY_CODE_OPTIONS.map((code) => (
-                    <option key={code} value={code}>
-                      {code}
-                    </option>
-                  ))}
-                </select>
-
-                <div className="my-2 w-px bg-slate-200" aria-hidden="true" />
-
-                <input
-                  type="tel"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  autoComplete="tel-national"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                  onKeyDown={(e) => {
-                    if (
-                      e.ctrlKey ||
-                      e.metaKey ||
-                      e.altKey ||
-                      [
-                        'Backspace',
-                        'Delete',
-                        'Tab',
-                        'ArrowLeft',
-                        'ArrowRight',
-                        'Home',
-                        'End',
-                        'Enter',
-                      ].includes(e.key)
-                    ) {
-                      return
-                    }
-
-                    if (!/^\d$/.test(e.key)) {
-                      e.preventDefault()
-                    }
-                  }}
-                  placeholder={t('request.phoneNumberPlaceholder')}
-                  className="min-w-0 flex-1 border-0 bg-transparent px-4 text-sm text-slate-900 placeholder:text-slate-400 outline-none"
-                />
+            {step === 'otp' && infoMessage && (
+              <div className="mb-5 rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-800">
+                {infoMessage}
               </div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-teal-600 px-5 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-              >
-                {loading ? (
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                ) : (
-                  <Search className="h-4 w-4" />
-                )}
-                {loading ? t('status.searching') : t('status.searchButton')}
-              </button>
-            </div>
+            )}
+
+            {step === 'otp' ? (
+              <>
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  {t('status.otpLabel')}
+                </label>
+
+                <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+                  <div className="flex h-11 flex-1 items-stretch overflow-hidden rounded-xl border border-slate-200 bg-white transition focus-within:border-slate-400 focus-within:ring-2 focus-within:ring-slate-100">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      autoComplete="one-time-code"
+                      value={otp}
+                      maxLength={6}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder={t('status.otpPlaceholder')}
+                      className="min-w-0 flex-1 border-0 bg-transparent px-4 text-sm tracking-[0.3em] text-slate-900 placeholder:tracking-normal placeholder:text-slate-400 outline-none"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-teal-600 px-5 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                  >
+                    {loading ? (
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                    ) : (
+                      <KeyRound className="h-4 w-4" />
+                    )}
+                    {loading ? t('status.verifying') : t('status.verifyButton')}
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={resetLookup}
+                  className="mt-3 text-sm font-medium text-slate-500 hover:text-slate-900"
+                >
+                  {t('status.changePhone')}
+                </button>
+              </>
+            ) : (
+              <>
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  {t('status.phoneLabel')}
+                </label>
+
+                <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+                  <div className="flex h-11 flex-1 items-stretch overflow-hidden rounded-xl border border-slate-200 bg-white transition focus-within:border-slate-400 focus-within:ring-2 focus-within:ring-slate-100">
+                    <select
+                      value={phoneCountryCode}
+                      onChange={(e) => setPhoneCountryCode(e.target.value)}
+                      aria-label={t('request.phoneCountryCode')}
+                      className="w-[88px] shrink-0 border-0 bg-transparent px-3 text-sm font-medium text-slate-900 outline-none"
+                    >
+                      {PHONE_COUNTRY_CODE_OPTIONS.map((code) => (
+                        <option key={code} value={code}>
+                          {code}
+                        </option>
+                      ))}
+                    </select>
+
+                    <div className="my-2 w-px bg-slate-200" aria-hidden="true" />
+
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      autoComplete="tel-national"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                      onKeyDown={(e) => {
+                        if (
+                          e.ctrlKey ||
+                          e.metaKey ||
+                          e.altKey ||
+                          [
+                            'Backspace',
+                            'Delete',
+                            'Tab',
+                            'ArrowLeft',
+                            'ArrowRight',
+                            'Home',
+                            'End',
+                            'Enter',
+                          ].includes(e.key)
+                        ) {
+                          return
+                        }
+
+                        if (!/^\d$/.test(e.key)) {
+                          e.preventDefault()
+                        }
+                      }}
+                      placeholder={t('request.phoneNumberPlaceholder')}
+                      className="min-w-0 flex-1 border-0 bg-transparent px-4 text-sm text-slate-900 placeholder:text-slate-400 outline-none"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-teal-600 px-5 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                  >
+                    {loading ? (
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                    ) : (
+                      <Search className="h-4 w-4" />
+                    )}
+                    {loading ? t('status.requestingOtp') : t('status.requestOtpButton')}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {step === 'result' && (
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={resetLookup}
+                  className="text-sm font-medium text-slate-500 hover:text-slate-900"
+                >
+                  {t('status.checkAnother')}
+                </button>
+              </div>
+            )}
 
             {errorMessage && (
               <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -507,27 +625,11 @@ export default function PatientStatusPage() {
           </div>
         </form>
 
-        {!loading && searched && !result && !errorMessage && (
-          <div className="mt-5 flex items-start gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-5">
-            <Search className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
-            <div>
-              <p className="text-sm font-semibold text-slate-700">{t('status.notFoundTitle')}</p>
-              <p className="mt-1 text-sm text-slate-500">
-                {t('status.notFoundBefore')}{' '}
-                <Link href="/patient/request" className="text-teal-600 hover:underline">
-                  {t('status.notFoundLink')}
-                </Link>
-                .
-              </p>
-            </div>
-          </div>
-        )}
-
         {!loading && result && (
           <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/60 px-5 py-3.5">
-              <span className="font-mono text-xs font-bold text-slate-400">
-                REF #{result.id.slice(0, 8).toUpperCase()}
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                {t('status.resultTitle')}
               </span>
               <span
                 className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getStatusBadgeClass(
@@ -598,15 +700,6 @@ export default function PatientStatusPage() {
                     <p className="text-sm text-slate-400">{t('status.pendingReview')}</p>
                   )}
                 </div>
-              </div>
-
-              <div className="mt-5 rounded-xl border border-slate-200 bg-white px-4 py-3">
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  {getLocalizedLastUpdatedLabel(locale)}
-                </p>
-                <p className="mt-1 text-sm font-semibold text-slate-900">
-                  {formatDateTime(result.reviewed_at || result.created_at, locale)}
-                </p>
               </div>
 
               {shouldShowRepeatCta && (
