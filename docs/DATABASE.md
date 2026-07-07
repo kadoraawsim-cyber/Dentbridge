@@ -85,7 +85,8 @@ plaintext.
   `request_ip` to support attempt limits, expiry, single use, and rate limiting.
 - Access is service-role only: RLS is enabled with no anon or authenticated
   policies (see RLS And Policies below).
-- Not yet wired to any API, SMS provider, or UI in this commit.
+- Wired by the Phase 3 Branch A patient status OTP endpoints. The public UI
+  requests an OTP first, then verifies the OTP before status data is returned.
 
 ## Migration Order
 
@@ -154,9 +155,15 @@ access behavior, APIs, auth, patient flow, student flow, admin flow, or UI.
 
 Phase 3 (Branch A) adds `otp_codes` with RLS enabled and no anon or
 authenticated policies. Only the service role (which bypasses RLS) can read or
-write OTP rows; browser clients using the anon key have no access. This creates
-the secure storage layer only and does not change existing patient, student,
-admin, or storage access behavior.
+write OTP rows; browser clients using the anon key have no access.
+
+The legacy phone-only `get_request_status_by_phone(text)` RPC was created by
+`20260416_lifecycle_statuses.sql` for the original patient status page. Phase 3
+Branch A keeps the function for history/compatibility but revokes `EXECUTE`
+from `anon`, `authenticated`, and `public` in
+`20260708010000_revoke_phone_status_rpc.sql`. Browser status lookup must go
+through the OTP-protected `/api/v1/patient/status/request-otp` and
+`/api/v1/patient/status` endpoints.
 
 ## Fresh Replay Verification
 

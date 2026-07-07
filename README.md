@@ -19,7 +19,7 @@ DentBridge is a faculty-supported clinical coordination platform built with Next
 - `/` is the public landing page.
 - `/patient/request` lets a patient submit a treatment request without an account.
 - The request form writes directly to `patient_requests` and can upload one optional file to the private `patient-uploads` bucket.
-- `/patient/status` lets a patient check the latest request status by phone number using the `get_request_status_by_phone` Supabase RPC.
+- `/patient/status` lets a patient request a one-time code and then view the latest request status through the OTP-protected patient status API.
 - Public FAQ and privacy pages are available at `/faq` and `/privacy`.
 
 ### Admin and faculty flow
