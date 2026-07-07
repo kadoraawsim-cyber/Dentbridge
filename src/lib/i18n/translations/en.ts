@@ -222,6 +222,7 @@ export type TranslationShape = {
     errorRequiredFields: string
     errorConsent: string
     errorFileSize: string
+    errorGeneric: string
     cancel: string
     submit: string
     submitting: string
@@ -1704,6 +1705,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     errorRequiredFields: 'Please complete all required fields.',
     errorConsent: 'Please confirm both required consent checkboxes before submitting.',
     errorFileSize: 'File size must be 10 MB or less.',
+    errorGeneric: 'We could not submit your request right now. Please try again.',
     cancel: 'Cancel',
     submit: 'Submit Treatment Request',
     submitting: 'Submitting…',

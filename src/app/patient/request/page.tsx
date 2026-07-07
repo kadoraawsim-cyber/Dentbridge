@@ -95,20 +95,6 @@ const DURATION_OPTIONS = [
   { value: 'Routine / No specific start date', tKey: 'request.durationRoutineNoSpecificStart' },
 ] as const
 
-function getUrgencyFromPainScore(painScore: string) {
-  const score = Number(painScore)
-
-  if (score >= 7) {
-    return 'High'
-  }
-
-  if (score >= 4) {
-    return 'Medium'
-  }
-
-  return 'Low'
-}
-
 const CONTACT_METHOD_OPTIONS = [
   { value: 'WhatsApp', tKey: 'request.contactMethodWhatsapp' },
   { value: 'Phone Call', tKey: 'request.contactMethodPhone' },
@@ -131,7 +117,6 @@ const MEDICAL_CONDITION_OPTIONS = [
   { value: 'Other', tKey: 'request.medicalOther' },
 ] as const
 
-const CONSENT_VERSION = '2026-04-18-v1'
 const PATIENT_REQUEST_DRAFT_KEY = 'patient_request_draft'
 const PATIENT_REQUEST_STEP_KEY = 'patient_request_step'
 
@@ -597,7 +582,6 @@ export default function PatientRequestPage() {
     const hasOnlyAllowedNameCharacters =
       trimmedFullName.replace(/[\p{L}\s'.-]/gu, '') === ''
     const normalizedPhone = normalizePhoneNumber(phone.trim()).replace(/^\+/, '')
-    const combinedPhone = `${phoneCountryCode}${normalizedPhone}`
     const parsedAge = Number(age)
 
     if (!trimmedFullName) {
@@ -672,11 +656,6 @@ export default function PatientRequestPage() {
     }
 
     setIsSubmitting(true)
-    const urgency = getUrgencyFromPainScore(painScore)
-    const medicalConditionValue =
-      medicalCondition === 'Other'
-        ? `Other: ${medicalConditionDetails.trim()}`
-        : medicalCondition
 
     let attachmentPath: string | null = null
 
@@ -698,46 +677,51 @@ export default function PatientRequestPage() {
 
       if (uploadError) {
         setIsSubmitting(false)
-        setErrorMessage(uploadError.message)
+        setErrorMessage(t('request.errorGeneric'))
         return
       }
 
       attachmentPath = filePath
     }
 
-    const { error } = await supabase
-      .from('patient_requests')
-      .insert([
-        {
-          full_name: fullName,
-          age: Number.isFinite(parsedAge) && parsedAge >= 0 ? parsedAge : null,
+    try {
+      const response = await fetch('/api/v1/patient/requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: trimmedFullName,
+          age,
           gender,
-          phone: combinedPhone,
-          preferred_language: preferredLanguage || null,
-          preferred_university: preferredUniversity || null,
-          treatment_type: treatmentType,
-          complaint_text: complaintText,
-          urgency,
-          preferred_days: preferredDays || null,
-          pain_score: painScore ? Number(painScore) : null,
-          symptom_duration: symptomDuration,
-          contact_method: contactMethod || null,
-          best_contact_time: bestContactTime || null,
-          medical_condition: medicalConditionValue,
-          consent: kvkkAcknowledgement && explicitConsent,
-          consent_accepted_at: new Date().toISOString(),
-          consent_version: CONSENT_VERSION,
-          attachment_path: attachmentPath,
-          attachment_name: attachment ? attachment.name : null,
-          status: 'submitted',
-        }
-      ])
+          phoneCountryCode,
+          phone,
+          preferredLanguage,
+          preferredUniversity,
+          treatmentType,
+          complaintText,
+          preferredDays,
+          painScore,
+          symptomDuration,
+          contactMethod,
+          bestContactTime,
+          medicalCondition,
+          medicalConditionDetails,
+          kvkkAcknowledgement,
+          explicitConsent,
+          attachmentPath,
+          attachmentName: attachment ? attachment.name : null,
+          locale,
+        }),
+      })
 
-    setIsSubmitting(false)
-
-    if (error) {
-      setErrorMessage(error.message)
+      if (!response.ok) {
+        setErrorMessage(t('request.errorGeneric'))
+        return
+      }
+    } catch {
+      setErrorMessage(t('request.errorGeneric'))
       return
+    } finally {
+      setIsSubmitting(false)
     }
 
     clearPersistedDraft()

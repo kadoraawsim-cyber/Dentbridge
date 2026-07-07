@@ -17,6 +17,9 @@ Patient intake and lifecycle source of truth.
 - Current status constraint is managed by:
   - `20260416_lifecycle_statuses.sql`
   - `20260509000000_allow_faculty_review_status.sql`
+- Phase 3 Branch B routes public submissions through
+  `/api/v1/patient/requests`; browser-role direct table inserts are revoked
+  by `20260708020000_revoke_anon_patient_request_insert.sql`.
 
 ### `student_profiles`
 
@@ -130,6 +133,12 @@ Existing migrations create the first indexes for `student_case_requests`,
 RLS and policies are intentionally outside this Phase 2 foundation pass unless
 an existing migration already manages them. Phase 2 must not change production
 access behavior, APIs, auth, patient flow, student flow, admin flow, or UI.
+
+Phase 3 Branch B moves public patient request submission to
+`/api/v1/patient/requests`, where validation and insertion happen server-side
+with the service role. The old browser insert policy is dropped, and `anon` and
+`authenticated` lose direct `INSERT` privileges on `patient_requests`; browser
+clients should not insert patient request rows directly.
 
 ## Fresh Replay Verification
 
