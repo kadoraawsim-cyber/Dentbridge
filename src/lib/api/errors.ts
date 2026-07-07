@@ -1,15 +1,28 @@
 /**
  * Generic public API error mapper for patient-facing endpoints.
  *
- * These messages intentionally avoid exposing validation internals, database
- * errors, or operational details to public clients.
+ * Patient-facing endpoints (OTP request/verify, patient status, patient request)
+ * must never leak internal error details, database messages, or the reason a
+ * lookup failed. Every failure is mapped to one of a small set of stable, safe,
+ * bilingual public messages. Callers log the real error server-side and return
+ * only the public error body produced here.
+ *
+ * This module is framework-light: it returns plain data (status + body) so route
+ * handlers wrap it in their own response (NextResponse, etc.).
  */
 
 export type ApiLocale = 'en' | 'tr'
 
+/**
+ * Stable, public-safe error codes. These are intentionally coarse. In
+ * particular, `verification_failed` is generic so that "wrong code", "expired
+ * code", and "no matching request" cannot be distinguished by a caller; this
+ * avoids turning the endpoint into an enumeration/oracle.
+ */
 export type PublicErrorCode =
   | 'invalid_request'
   | 'rate_limited'
+  | 'verification_failed'
   | 'service_unavailable'
   | 'server_error'
 
@@ -42,6 +55,13 @@ const ERROR_DEFINITIONS: Record<
       tr: 'Çok fazla istek gönderildi. Lütfen kısa bir süre sonra tekrar deneyin.',
     },
   },
+  verification_failed: {
+    status: 400,
+    messages: {
+      en: 'We could not verify the information provided. Please try again.',
+      tr: 'Verilen bilgiler doğrulanamadı. Lütfen tekrar deneyin.',
+    },
+  },
   service_unavailable: {
     status: 503,
     messages: {
@@ -58,6 +78,12 @@ const ERROR_DEFINITIONS: Record<
   },
 }
 
+/** Coerce arbitrary input into a supported locale, defaulting to English. */
+export function normalizeApiLocale(value: unknown): ApiLocale {
+  return value === 'tr' ? 'tr' : 'en'
+}
+
+/** Resolve a public error code + status + localized generic message. */
 export function getPublicApiError(
   code: PublicErrorCode,
   locale: ApiLocale = 'en'
@@ -70,6 +96,7 @@ export function getPublicApiError(
   }
 }
 
+/** Build the JSON body to return to the client for a public error. */
 export function toPublicErrorBody(
   code: PublicErrorCode,
   locale: ApiLocale = 'en'

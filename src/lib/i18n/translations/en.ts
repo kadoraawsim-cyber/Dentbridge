@@ -236,6 +236,20 @@ export type TranslationShape = {
     phoneLabel: string
     searchButton: string
     searching: string
+    requestOtpButton: string
+    requestingOtp: string
+    otpTitle: string
+    otpLabel: string
+    otpPlaceholder: string
+    verifyButton: string
+    verifying: string
+    changePhone: string
+    checkAnother: string
+    resultTitle: string
+    otpSentMessage: string
+    errorGeneric: string
+    errorVerification: string
+    errorRateLimited: string
     notFoundTitle: string
     notFoundBefore: string
     notFoundLink: string
@@ -1719,6 +1733,21 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     phoneLabel: 'Phone Number',
     searchButton: 'Check Status',
     searching: 'Searching…',
+    requestOtpButton: 'Send Code',
+    requestingOtp: 'Sending…',
+    otpTitle: 'Enter Verification Code',
+    otpLabel: 'Verification Code',
+    otpPlaceholder: '6-digit code',
+    verifyButton: 'View Status',
+    verifying: 'Verifying…',
+    changePhone: 'Use a different phone number',
+    checkAnother: 'Check another request',
+    resultTitle: 'Verified Status',
+    otpSentMessage:
+      'If a matching request exists, we have sent a verification code to that phone number. Enter the code to view your status.',
+    errorGeneric: 'We could not complete this request. Please try again.',
+    errorVerification: 'We could not verify the information provided. Please check the code and try again.',
+    errorRateLimited: 'Too many attempts. Please wait a moment and try again.',
     notFoundTitle: 'No request found',
     notFoundBefore:
       "We couldn't find a request for that number. Double-check and try again, or",

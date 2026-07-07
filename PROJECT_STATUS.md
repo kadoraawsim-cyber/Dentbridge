@@ -60,8 +60,7 @@ This file reflects the current checked-in app state.
 ### 2. Patient status lookup
 
 - Patients use `/patient/status`.
-- Lookup is based on phone number.
-- The page calls the `get_request_status_by_phone` RPC and shows the latest request status and related non-sensitive details.
+- Lookup is OTP-protected: patients first request a one-time code for their phone number, then submit the code to view the latest request status and related non-sensitive details.
 
 ### 3. Admin and faculty workflow
 
@@ -138,7 +137,7 @@ This file reflects the current checked-in app state.
 
 ### RPC
 
-- `get_request_status_by_phone`
+- Legacy phone-only patient status RPC execution is revoked for browser-facing roles; patient status lookup now uses the OTP-protected API flow.
 
 ## Known Current Limitations
 

@@ -87,9 +87,8 @@ actions.
 - Audit metadata must contain only caller-curated safe fields. Do not log OTP
   codes, OTP hashes, raw secrets, full complaint text, medical details,
   attachment contents, or unnecessary patient identifiers.
-- Phase 4 initially covers patient request creation. OTP audit coverage is
-  deferred in this branch because the OTP status API endpoints are not present
-  in this checkout.
+- Phase 4 audit coverage includes patient request creation. OTP-related audit
+  events must not include OTP codes, OTP hashes, or raw phone numbers.
 
 ### `consent_records`
 
@@ -101,6 +100,21 @@ Immutable consent acceptance records tied to patient intake submissions.
 - Current source is constrained to `patient_request`.
 - Access model: service-role/server only.
 - RLS is enabled and no `anon` or `authenticated` direct access is granted.
+
+### `otp_codes`
+
+Server-side storage for one-time passcodes used to verify secure patient status
+lookups (Phase 3, Branch A). Codes are stored hashed in `code_hash`, never in
+plaintext.
+
+- Created by: `20260708000000_otp_codes.sql`
+- Purpose is fixed to `patient_status_lookup` via a CHECK constraint.
+- Tracks `attempts` / `max_attempts`, `expires_at`, `consumed_at`, and
+  `request_ip` to support attempt limits, expiry, single use, and rate limiting.
+- Access is service-role only: RLS is enabled with no anon or authenticated
+  policies (see RLS And Policies below).
+- Wired by the Phase 3 Branch A patient status OTP endpoints. The public UI
+  requests an OTP first, then verifies the OTP before status data is returned.
 
 ## Migration Order
 
@@ -137,6 +151,9 @@ Other important constraints include:
 - `case_progress_entries_has_content`
 - `student_planner_events_source_pair_chk`
 - `student_planner_events_source_kind_chk`
+- `otp_codes_purpose_check` (`purpose = 'patient_status_lookup'`)
+- `otp_codes_attempts_check` (`attempts >= 0`)
+- `otp_codes_max_attempts_check` (`max_attempts > 0`)
 
 ## Indexes
 
@@ -154,6 +171,10 @@ Existing migrations create the first indexes for `student_case_requests`,
 `case_routing_stages`. Phase 2 adds missing additive indexes in
 `20260707_phase2_database_foundation_constraints_indexes.sql`.
 
+The `otp_codes` table (Phase 3) adds `idx_otp_codes_phone_created_at`
+(`(phone, created_at DESC)`) for newest-code lookups and
+`idx_otp_codes_expires_at` for expiry-based cleanup.
+
 ## RLS And Policies
 
 RLS and policies are intentionally outside this Phase 2 foundation pass unless
@@ -165,6 +186,18 @@ Phase 3 Branch B moves public patient request submission to
 with the service role. The old browser insert policy is dropped, and `anon` and
 `authenticated` lose direct `INSERT` privileges on `patient_requests`; browser
 clients should not insert patient request rows directly.
+
+Phase 3 Branch A adds `otp_codes` with RLS enabled and no anon or
+authenticated policies. Only the service role, which bypasses RLS, can read or
+write OTP rows; browser clients using the anon key have no access.
+
+The legacy phone-only `get_request_status_by_phone(text)` RPC was created by
+`20260416_lifecycle_statuses.sql` for the original patient status page. Phase 3
+Branch A keeps the function for history/compatibility but revokes `EXECUTE`
+from `anon`, `authenticated`, and `public` in
+`20260708010000_revoke_phone_status_rpc.sql`. Browser status lookup must go
+through the OTP-protected `/api/v1/patient/status/request-otp` and
+`/api/v1/patient/status` endpoints.
 
 Phase 4 adds service-role-only `audit_logs` and `consent_records`. Public
 browser clients must not select, insert, update, or delete these records
