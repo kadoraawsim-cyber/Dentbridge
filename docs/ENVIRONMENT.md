@@ -113,6 +113,10 @@ must not silently send preview or staging users to production.
 - Patient request API inserts, consent records, and audit logging depend on
   `SUPABASE_SERVICE_ROLE_KEY`; missing or incorrect values cause those
   server-side workflows to fail closed with generic public errors.
+- Audit logging uses server-side request context such as IP, user agent,
+  `x-request-id`, and `x-correlation-id` when present. These headers are not
+  secrets, but they should be treated as operational trace data and should not
+  contain patient details, tokens, or credentials.
 - Server-only secrets must never be imported into client components.
 - Server-only secrets must never appear in README files, docs, public assets,
   screenshots, logs, or client bundles.

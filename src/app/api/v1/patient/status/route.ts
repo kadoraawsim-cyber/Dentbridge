@@ -8,6 +8,11 @@ import {
 } from '@/lib/api/errors'
 import { createRateLimiter, getClientIp } from '@/lib/api/rate-limit'
 import { isAllowedSameOriginRequest } from '@/lib/api/same-origin'
+import {
+  auditPatientStatusLookup,
+  createAuditRequestContext,
+  getPhoneLast4,
+} from '@/lib/audit/audit.service'
 import { OTP_CODE_LENGTH, verifyOtpCode } from '@/lib/otp/otp.service'
 import { normalizePatientStatusPhone } from '@/lib/patient-status/phone'
 
@@ -153,6 +158,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const clientIp = getClientIp(request)
+    const auditContext = createAuditRequestContext(request, { ipAddress: clientIp })
+    const phoneLast4 = getPhoneLast4(phone)
     const ipLimit = ipRateLimiter.check(clientIp)
     if (!ipLimit.allowed) {
       return errorResponse('rate_limited', locale, { retryAfterSeconds: ipLimit.retryAfterSeconds })
@@ -185,12 +192,28 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       if (latestOtp) {
         await incrementFailedAttempt(admin, latestOtp)
       }
+      await auditPatientStatusLookup({
+        phoneLast4,
+        locale,
+        success: false,
+        result: 'verification_failed',
+        context: auditContext,
+        supabase: admin,
+      })
       return errorResponse('verification_failed', locale)
     }
 
     const verified = verifyOtpCode(rawOtp, latestOtp.code_hash)
     if (!verified) {
       await incrementFailedAttempt(admin, latestOtp)
+      await auditPatientStatusLookup({
+        phoneLast4,
+        locale,
+        success: false,
+        result: 'verification_failed',
+        context: auditContext,
+        supabase: admin,
+      })
       return errorResponse('verification_failed', locale)
     }
 
@@ -207,6 +230,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     if (!statusRow) {
+      await auditPatientStatusLookup({
+        phoneLast4,
+        locale,
+        success: false,
+        result: 'status_not_found',
+        context: auditContext,
+        supabase: admin,
+      })
       return errorResponse('verification_failed', locale)
     }
 
@@ -220,6 +251,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (consumeError) {
       throw consumeError
     }
+
+    await auditPatientStatusLookup({
+      phoneLast4,
+      locale,
+      success: true,
+      result: 'verified',
+      context: auditContext,
+      supabase: admin,
+    })
 
     return successResponse(statusRow)
   } catch (error) {

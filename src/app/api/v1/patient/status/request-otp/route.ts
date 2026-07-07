@@ -9,6 +9,11 @@ import {
 import { createRateLimiter, getClientIp } from '@/lib/api/rate-limit'
 import { isAllowedSameOriginRequest } from '@/lib/api/same-origin'
 import {
+  auditPatientStatusOtpRequested,
+  createAuditRequestContext,
+  getPhoneLast4,
+} from '@/lib/audit/audit.service'
+import {
   computeOtpExpiry,
   generateOtpCode,
   hashOtpCode,
@@ -130,6 +135,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // ── 4. Rate limiting by IP then phone (identical response for all phones) ─
     const clientIp = getClientIp(request)
+    const auditContext = createAuditRequestContext(request, { ipAddress: clientIp })
 
     const ipLimit = ipRateLimiter.check(clientIp)
     if (!ipLimit.allowed) {
@@ -159,6 +165,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       throw lookupError
     }
 
+    let otpIssued = false
+    let smsDelivered: boolean | null = null
+    let smsProvider: string | null = null
+
     // ── 6. Issue + store + send ONLY when a request exists ───────────────────
     // Any failure inside this branch is swallowed (logged server-side) so the
     // public response stays identical and cannot be used to detect existence.
@@ -179,8 +189,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           throw insertError
         }
 
+        otpIssued = true
+
         const sms = getSmsSender()
         const sendResult = await sms.send({ to: phone, body: buildSmsBody(code, locale) })
+        smsDelivered = sendResult.delivered
+        smsProvider = sendResult.provider
 
         if (!sendResult.delivered) {
           console.warn('[request-otp] OTP was not delivered by the SMS sender', {
@@ -193,6 +207,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         })
       }
     }
+
+    await auditPatientStatusOtpRequested({
+      phoneLast4: getPhoneLast4(phone),
+      locale,
+      otpIssued,
+      smsDelivered,
+      provider: smsProvider,
+      context: auditContext,
+      supabase: admin,
+    })
 
     // ── 7. Identical generic success ─────────────────────────────────────────
     return successResponse(locale)

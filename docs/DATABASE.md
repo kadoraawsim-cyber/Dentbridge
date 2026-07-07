@@ -82,22 +82,33 @@ Append-only operational audit events for security-relevant patient and workflow
 actions.
 
 - Created by: `20260708030000_phase4_audit_logs_consent_records.sql`
+- Enterprise hardening: `20260708040000_phase4_enterprise_audit_consent_hardening.sql`
 - Access model: service-role/server only.
 - RLS is enabled and no `anon` or `authenticated` direct access is granted.
+- Events include a typed `action`, `category`, `severity`, `actor_type`,
+  `success`, `event_version`, `metadata_schema`, `request_id`,
+  `correlation_id`, `source_service`, and optional `api_version`.
 - Audit metadata must contain only caller-curated safe fields. Do not log OTP
   codes, OTP hashes, raw secrets, full complaint text, medical details,
-  attachment contents, or unnecessary patient identifiers.
-- Phase 4 audit coverage includes patient request creation. OTP-related audit
-  events must not include OTP codes, OTP hashes, or raw phone numbers.
+  attachment contents, authorization tokens, raw phone numbers, or unnecessary
+  patient identifiers.
+- Metadata is intentionally size-limited and should stay flat, low-cardinality,
+  and export-friendly for future SIEM or queue-based delivery.
+- Phase 4 audit coverage includes patient request creation, OTP challenge
+  requests, and OTP-protected patient status lookups.
 
 ### `consent_records`
 
 Immutable consent acceptance records tied to patient intake submissions.
 
 - Created by: `20260708030000_phase4_audit_logs_consent_records.sql`
+- Enterprise hardening: `20260708040000_phase4_enterprise_audit_consent_hardening.sql`
 - Linked to `patient_requests(id)` with `ON DELETE CASCADE`.
 - Current consent types are `kvkk_acknowledgement` and `explicit_consent`.
 - Current source is constrained to `patient_request`.
+- Records include `consent_status`, `policy_version`, document metadata,
+  jurisdiction, country code, and university key so future legal/version
+  changes do not require reshaping the core table.
 - Access model: service-role/server only.
 - RLS is enabled and no `anon` or `authenticated` direct access is granted.
 
@@ -204,6 +215,73 @@ browser clients must not select, insert, update, or delete these records
 directly. API routes should create consent records when consent is part of the
 required workflow, and audit writes should avoid sensitive payload details and
 must not expose internal failures to patients.
+
+## Audit Logging Guidelines
+
+Audit logs are an internal accountability record, not an analytics stream and
+not a clinical detail store. Events should be append-only and suitable for
+future export to a SIEM, queue, or compliance archive without changing the
+application-facing event contract.
+
+Each audited event should include:
+
+- a stable `action` from the application audit constants;
+- `category`, `severity`, `actor_type`, and `success`;
+- `entity_type` and, when safe, `entity_id`;
+- `request_id` and `correlation_id` for tracing multi-step workflows;
+- `source_service`, `api_version`, `event_version`, and `metadata_schema`;
+- only safe, flat metadata that has been curated by the caller.
+
+Events that must always be audited once their server-side workflows exist:
+
+- patient request creation;
+- required consent capture;
+- OTP challenge request for patient status lookup;
+- OTP-protected patient status lookup success or failure;
+- future admin, student, faculty, routing, upload-review, and permission
+  decisions that affect patient data access or lifecycle state.
+
+Audit metadata must never contain:
+
+- OTP codes or OTP hashes;
+- raw full phone numbers, passwords, secrets, authorization headers, tokens, or
+  service-role keys;
+- full complaint text, medical condition details, clinical notes, uploaded file
+  contents, or attachment paths/names unless a future reviewed policy explicitly
+  permits a safe reference;
+- raw Supabase or provider errors intended only for server logs.
+
+Operational recommendations:
+
+- Keep audit inserts centralized in `src/lib/audit/audit.service.ts`.
+- Prefer wrapper helpers over direct `createAuditLog` calls in route handlers.
+- Treat audit insert failure as non-blocking unless a workflow explicitly
+  requires it; consent record failure is different and should fail closed for
+  patient intake.
+- Use retention policies appropriate to jurisdiction and institutional
+  requirements before production scale. Retention cleanup, SIEM export,
+  monitoring alerts, queues, and dashboards are intentionally deferred and
+  should integrate at the audit service boundary rather than changing callers.
+
+## Consent Record Guidelines
+
+Consent records are legal/accountability records tied to a patient request.
+They should remain immutable-friendly: create new rows for new decisions or
+future withdrawal/revocation events rather than overwriting the original
+acceptance history.
+
+For every consent row, capture:
+
+- `consent_type`, `consent_version`, and when applicable `policy_version`;
+- `consent_status`;
+- language, source, jurisdiction, country code, and university key;
+- document title and document fingerprint when a stable published document
+  fingerprint is available;
+- IP address and user agent from the server-side request context.
+
+Future consent expansion should add new consent types, document fingerprints,
+and withdrawal/revocation workflows with forward migrations. It must not expose
+`consent_records` directly to browser roles.
 
 ## Fresh Replay Verification
 

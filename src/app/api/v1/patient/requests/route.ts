@@ -8,11 +8,13 @@ import {
 } from '@/lib/api/errors'
 import { createRateLimiter, getClientIp } from '@/lib/api/rate-limit'
 import { isAllowedSameOriginRequest } from '@/lib/api/same-origin'
-import { AUDIT_ACTIONS, createAuditLog } from '@/lib/audit/audit.service'
+import {
+  auditPatientRequestCreated,
+  createAuditRequestContext,
+} from '@/lib/audit/audit.service'
+import { CONSENT_STATUS, CONSENT_TYPES, PATIENT_REQUEST_CONSENT } from '@/lib/consent/consent.constants'
 
 export const runtime = 'nodejs'
-
-const CONSENT_VERSION = '2026-04-18-v1'
 
 const SECURITY_HEADERS: Record<string, string> = {
   'Cache-Control': 'no-store',
@@ -314,6 +316,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const clientIp = getClientIp(request)
+    const auditContext = createAuditRequestContext(request, { ipAddress: clientIp })
     const ipLimit = ipRateLimiter.check(clientIp)
     if (!ipLimit.allowed) {
       return errorResponse('rate_limited', headerLocale, {
@@ -348,7 +351,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const admin = createSupabaseAdminClient()
     const acceptedAt = new Date().toISOString()
-    const userAgent = request.headers.get('user-agent')
     const { data: patientRequest, error } = await admin
       .from('patient_requests')
       .insert({
@@ -369,7 +371,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         medical_condition: validated.medicalCondition,
         consent: true,
         consent_accepted_at: acceptedAt,
-        consent_version: CONSENT_VERSION,
+        consent_version: PATIENT_REQUEST_CONSENT.version,
         attachment_path: validated.attachmentPath,
         attachment_name: validated.attachmentName,
         status: 'submitted',
@@ -390,23 +392,37 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const { error: consentError } = await admin.from('consent_records').insert([
       {
         patient_request_id: patientRequestId,
-        consent_type: 'kvkk_acknowledgement',
-        consent_version: CONSENT_VERSION,
+        consent_type: CONSENT_TYPES.KVKK_ACKNOWLEDGEMENT,
+        consent_version: PATIENT_REQUEST_CONSENT.version,
+        policy_version: PATIENT_REQUEST_CONSENT.policyVersion,
         language: locale,
         accepted_at: acceptedAt,
         ip_address: clientIp,
-        user_agent: userAgent,
-        source: 'patient_request',
+        user_agent: auditContext.userAgent,
+        source: PATIENT_REQUEST_CONSENT.source,
+        consent_status: CONSENT_STATUS.ACCEPTED,
+        document_fingerprint: PATIENT_REQUEST_CONSENT.documentFingerprint,
+        document_title: PATIENT_REQUEST_CONSENT.documentTitle,
+        jurisdiction: PATIENT_REQUEST_CONSENT.jurisdiction,
+        country_code: PATIENT_REQUEST_CONSENT.countryCode,
+        university_key: PATIENT_REQUEST_CONSENT.universityKey,
       },
       {
         patient_request_id: patientRequestId,
-        consent_type: 'explicit_consent',
-        consent_version: CONSENT_VERSION,
+        consent_type: CONSENT_TYPES.EXPLICIT_CONSENT,
+        consent_version: PATIENT_REQUEST_CONSENT.version,
+        policy_version: PATIENT_REQUEST_CONSENT.policyVersion,
         language: locale,
         accepted_at: acceptedAt,
         ip_address: clientIp,
-        user_agent: userAgent,
-        source: 'patient_request',
+        user_agent: auditContext.userAgent,
+        source: PATIENT_REQUEST_CONSENT.source,
+        consent_status: CONSENT_STATUS.ACCEPTED,
+        document_fingerprint: PATIENT_REQUEST_CONSENT.documentFingerprint,
+        document_title: PATIENT_REQUEST_CONSENT.documentTitle,
+        jurisdiction: PATIENT_REQUEST_CONSENT.jurisdiction,
+        country_code: PATIENT_REQUEST_CONSENT.countryCode,
+        university_key: PATIENT_REQUEST_CONSENT.universityKey,
       },
     ])
 
@@ -431,19 +447,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       throw new Error('Consent record creation failed.')
     }
 
-    await createAuditLog({
-      action: AUDIT_ACTIONS.PATIENT_REQUEST_CREATED,
-      entityType: 'patient_request',
-      entityId: patientRequestId,
-      metadata: {
-        treatment_type: validated.treatmentType,
-        urgency: validated.urgency,
-        preferred_university: validated.preferredUniversity,
-        has_attachment: Boolean(validated.attachmentPath),
-        locale,
-      },
-      ipAddress: clientIp,
-      userAgent,
+    await auditPatientRequestCreated({
+      patientRequestId,
+      consentRecordCount: 2,
+      consentVersion: PATIENT_REQUEST_CONSENT.version,
+      hasAttachment: Boolean(validated.attachmentPath),
+      locale,
+      context: auditContext,
+      supabase: admin,
     })
 
     return NextResponse.json({ success: true }, { status: 200, headers: SECURITY_HEADERS })
