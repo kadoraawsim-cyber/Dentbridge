@@ -116,6 +116,23 @@ must not silently send preview or staging users to production.
 - Do not expose service-role access through browser code or public static
   files.
 
+## Future OTP Secrets (Phase 3)
+
+Phase 3 introduces secure OTP verification for patient status lookup. The
+`otp_codes` table (`20260708000000_otp_codes.sql`) is the storage layer only and
+requires no environment variables on its own.
+
+Later Phase 3 commits will add server-only secrets that are not required yet and
+are therefore not present in `.env.example`:
+
+- A server-only secret for hashing OTP codes before they are stored (codes are
+  never stored in plaintext).
+- Server-only SMS provider credentials for delivering OTP codes.
+
+When introduced, these must follow the same rules as `SUPABASE_SERVICE_ROLE_KEY`
+and `OPENAI_API_KEY`: server-side only, never prefixed with `NEXT_PUBLIC_`, and
+never exposed to browser code, docs, logs, or client bundles.
+
 ## Student Pilot Archive
 
 The old `/student-pilot` form is inactive.

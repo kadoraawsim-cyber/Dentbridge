@@ -73,6 +73,20 @@ Sequential department routing stages for a patient case.
 - Status constraint is added by
   `20260707_phase2_database_foundation_constraints_indexes.sql`.
 
+### `otp_codes`
+
+Server-side storage for one-time passcodes used to verify secure patient status
+lookups (Phase 3, Branch A). Codes are stored hashed in `code_hash`, never in
+plaintext.
+
+- Created by: `20260708000000_otp_codes.sql`
+- Purpose is fixed to `patient_status_lookup` via a CHECK constraint.
+- Tracks `attempts` / `max_attempts`, `expires_at`, `consumed_at`, and
+  `request_ip` to support attempt limits, expiry, single use, and rate limiting.
+- Access is service-role only: RLS is enabled with no anon or authenticated
+  policies (see RLS And Policies below).
+- Not yet wired to any API, SMS provider, or UI in this commit.
+
 ## Migration Order
 
 Fresh database creation must apply migrations in filename order. The baseline
@@ -108,6 +122,9 @@ Other important constraints include:
 - `case_progress_entries_has_content`
 - `student_planner_events_source_pair_chk`
 - `student_planner_events_source_kind_chk`
+- `otp_codes_purpose_check` (`purpose = 'patient_status_lookup'`)
+- `otp_codes_attempts_check` (`attempts >= 0`)
+- `otp_codes_max_attempts_check` (`max_attempts > 0`)
 
 ## Indexes
 
@@ -125,11 +142,21 @@ Existing migrations create the first indexes for `student_case_requests`,
 `case_routing_stages`. Phase 2 adds missing additive indexes in
 `20260707_phase2_database_foundation_constraints_indexes.sql`.
 
+The `otp_codes` table (Phase 3) adds `idx_otp_codes_phone_created_at`
+(`(phone, created_at DESC)`) for newest-code lookups and
+`idx_otp_codes_expires_at` for expiry-based cleanup.
+
 ## RLS And Policies
 
 RLS and policies are intentionally outside this Phase 2 foundation pass unless
 an existing migration already manages them. Phase 2 must not change production
 access behavior, APIs, auth, patient flow, student flow, admin flow, or UI.
+
+Phase 3 (Branch A) adds `otp_codes` with RLS enabled and no anon or
+authenticated policies. Only the service role (which bypasses RLS) can read or
+write OTP rows; browser clients using the anon key have no access. This creates
+the secure storage layer only and does not change existing patient, student,
+admin, or storage access behavior.
 
 ## Fresh Replay Verification
 
