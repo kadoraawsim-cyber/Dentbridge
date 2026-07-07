@@ -116,22 +116,27 @@ must not silently send preview or staging users to production.
 - Do not expose service-role access through browser code or public static
   files.
 
-## Future OTP Secrets (Phase 3)
+## OTP Secrets (Phase 3)
 
 Phase 3 introduces secure OTP verification for patient status lookup. The
-`otp_codes` table (`20260708000000_otp_codes.sql`) is the storage layer only and
+`otp_codes` table (`20260708000000_otp_codes.sql`) is the storage layer and
 requires no environment variables on its own.
 
-Later Phase 3 commits will add server-only secrets that are not required yet and
-are therefore not present in `.env.example`:
+Introduced with the server-side OTP primitives:
 
-- A server-only secret for hashing OTP codes before they are stored (codes are
-  never stored in plaintext).
-- Server-only SMS provider credentials for delivering OTP codes.
+- `OTP_HASH_SECRET` — server-only secret used to hash (HMAC-SHA256) patient
+  status OTP codes before they are stored. Plaintext codes are never stored or
+  logged. A placeholder is present in `.env.example`. It is consumed by the OTP
+  service and by the upcoming OTP endpoints; it is not yet wired to any route.
 
-When introduced, these must follow the same rules as `SUPABASE_SERVICE_ROLE_KEY`
-and `OPENAI_API_KEY`: server-side only, never prefixed with `NEXT_PUBLIC_`, and
-never exposed to browser code, docs, logs, or client bundles.
+Still to come in later Phase 3 commits (not present in `.env.example` yet):
+
+- Server-only SMS provider credentials for delivering OTP codes. Only a
+  dev/mock SMS sender exists so far; no paid provider is integrated.
+
+All of these are server-only secrets. Like `SUPABASE_SERVICE_ROLE_KEY` and
+`OPENAI_API_KEY`, they must never be prefixed with `NEXT_PUBLIC_` and must never
+be exposed to browser code, docs, logs, or client bundles.
 
 ## Student Pilot Archive
 
