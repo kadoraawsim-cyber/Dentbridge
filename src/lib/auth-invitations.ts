@@ -1,4 +1,8 @@
 import { createSupabaseAdminClient } from '@/lib/supabase-admin'
+import {
+  auditInvitationSent,
+  type AuditRequestContext,
+} from '@/lib/audit/audit.service'
 
 export type InvitedRole = 'student' | 'faculty'
 
@@ -7,6 +11,7 @@ export interface InviteUserWithRoleParams {
   role: InvitedRole
   invitedBy: string
   redirectTo: string
+  context?: AuditRequestContext
 }
 
 export interface InviteUserWithRoleResult {
@@ -30,6 +35,7 @@ export async function inviteUserWithRole({
   role,
   invitedBy,
   redirectTo,
+  context,
 }: InviteUserWithRoleParams): Promise<InviteUserWithRoleResult> {
   const normalizedEmail = normalizeEmail(email)
 
@@ -94,6 +100,17 @@ export async function inviteUserWithRole({
     throw new Error(
       `Invitation role assignment failed and the invited auth user was rolled back. ${updateUserError.message}`
     )
+  }
+
+  if (context) {
+    await auditInvitationSent({
+      invitedUserId,
+      invitedRole: role,
+      actorEmail: invitedBy,
+      actorRole: 'admin',
+      context,
+      supabase: supabaseAdmin,
+    })
   }
 
   return {

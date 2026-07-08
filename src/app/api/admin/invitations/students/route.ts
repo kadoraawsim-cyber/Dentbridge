@@ -3,6 +3,8 @@ import { cookies } from 'next/headers'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { inviteUserWithRole } from '@/lib/auth-invitations'
 import { isAdminRole } from '@/lib/roles'
+import { getClientIp } from '@/lib/api/rate-limit'
+import { createAuditRequestContext } from '@/lib/audit/audit.service'
 
 const fallbackUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'
 const appUrl = (process.env.APP_URL || process.env.NEXT_PUBLIC_SITE_URL || fallbackUrl).replace(/\/$/, '')
@@ -42,6 +44,7 @@ export async function POST(request: NextRequest) {
       role: 'student',
       invitedBy: user.email ?? 'admin',
       redirectTo: INVITE_REDIRECT_TO,
+      context: createAuditRequestContext(request, { ipAddress: getClientIp(request) }),
     })
 
     return NextResponse.json(result)

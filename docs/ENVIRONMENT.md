@@ -113,6 +113,10 @@ must not silently send preview or staging users to production.
 - Patient request API inserts, consent records, and audit logging depend on
   `SUPABASE_SERVICE_ROLE_KEY`; missing or incorrect values cause those
   server-side workflows to fail closed with generic public errors.
+- Phase 6 profile completion, case workflow, student progress, student case
+  request, planner, and admin/faculty mutation services also depend on
+  `SUPABASE_SERVICE_ROLE_KEY` because direct browser write policies are revoked
+  after the API replacements are deployed.
 - Audit logging uses server-side request context such as IP, user agent,
   `x-request-id`, and `x-correlation-id` when present. These headers are not
   secrets, but they should be treated as operational trace data and should not
@@ -165,6 +169,20 @@ Rules:
   endpoints fail closed with generic errors.
 - Rotating it invalidates any in-flight upload tickets, which is acceptable
   because tickets are short-lived. Rotate it independently of other secrets.
+
+## Phase 6 API Mutation Boundary
+
+Phase 6 does not introduce new environment variables.
+
+It does require the existing `SUPABASE_SERVICE_ROLE_KEY` to be present in
+Preview and Production before the Phase 6 RLS cleanup migration is applied.
+After that migration, browser roles can no longer write directly to several
+workflow tables, and the application depends on DentBridge API routes for those
+mutations.
+
+Do not expose `SUPABASE_SERVICE_ROLE_KEY` to browser code. The service role is
+used only inside server-only services and route handlers after explicit
+session, role, ownership, and workflow checks.
 
 ## Student Pilot Archive
 

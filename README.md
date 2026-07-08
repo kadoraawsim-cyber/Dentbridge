@@ -18,7 +18,7 @@ DentBridge is a faculty-supported clinical coordination platform built with Next
 
 - `/` is the public landing page.
 - `/patient/request` lets a patient submit a treatment request without an account.
-- The request form writes directly to `patient_requests` and can upload one optional file to the private `patient-uploads` bucket.
+- The request form submits through `/api/v1/patient/requests` and can upload one optional file through the server-mediated signed-upload flow.
 - `/patient/status` lets a patient request a one-time code and then view the latest request status through the OTP-protected patient status API.
 - Public FAQ and privacy pages are available at `/faq` and `/privacy`.
 
@@ -45,6 +45,9 @@ DentBridge is a faculty-supported clinical coordination platform built with Next
 - `/student/requests` shows the student’s own submitted requests and outcomes.
 - `/student/planner` is a working private planner tied to the student account, with optional links to active patients.
 - `/student/exchange` exists as a coming-soon placeholder.
+- Sensitive student, faculty, admin, case, progress, planner, profile, patient
+  request, status, and file mutations are routed through DentBridge API/service
+  boundaries.
 
 ## Authentication
 
@@ -83,12 +86,17 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 OPENAI_API_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+OTP_HASH_SECRET=
+FILE_TICKET_SECRET=
 ```
 
 Notes:
 
 - `OPENAI_API_KEY` is required for the public patient chat route.
-- `SUPABASE_SERVICE_ROLE_KEY` is required for admin invitation routes.
+- `SUPABASE_SERVICE_ROLE_KEY` is required for server-side patient, file,
+  profile, case, planner, audit, consent, OTP, and invitation workflows.
+- `OTP_HASH_SECRET` is required for OTP hashing.
+- `FILE_TICKET_SECRET` is required for signed file upload tickets.
 
 ## Local Development
 

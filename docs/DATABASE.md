@@ -28,6 +28,9 @@ Student account profile data linked to invited/authenticated users.
 - Baseline: `20260413_baseline_existing_core_tables.sql`
 - Primary key: `id`
 - Unique key: `email`
+- Phase 6 routes invitation profile completion through
+  `/api/auth/complete-profile/student`; browser clients no longer upsert this
+  table directly.
 
 ### `faculty_profiles`
 
@@ -36,6 +39,9 @@ Faculty account profile data linked to invited/authenticated users.
 - Created by: `20260420010000_faculty_profiles.sql`
 - Primary key: `id`
 - Unique key: `email`
+- Phase 6 routes invitation profile completion through
+  `/api/auth/complete-profile/faculty`; browser clients no longer upsert this
+  table directly.
 
 ### `student_case_requests`
 
@@ -58,6 +64,9 @@ Student planner entries and system-created appointment links.
   `20260424010000_student_planner_case_links.sql`.
 - `lifecycle_state` constraint is managed by
   `20260509010000_case_routing_stages_foundation.sql`.
+- Phase 6 keeps planner reads available to the owning student but moves planner
+  create/update/delete mutations behind `/api/student/planner` service-role
+  routes.
 
 ### `case_progress_entries`
 
@@ -252,6 +261,35 @@ write file metadata directly. The legacy `patient_uploads_insert` Storage policy
 is dropped by a forward migration, and INSERT on `storage.objects` is revoked
 from anon and authenticated. Browser uploads now use server-created signed upload
 tokens only.
+
+Phase 6 moves remaining sensitive profile, case workflow, student progress,
+student case request, planner, and faculty/admin case-action mutations behind
+DentBridge API/service routes. The forward migration
+`20260709030000_phase6_sensitive_mutation_api_rls.sql` revokes or narrows the
+replaced browser-role write paths:
+
+- `student_profiles`: RLS enabled, own-row student SELECT retained, direct
+  browser INSERT/UPDATE/DELETE revoked.
+- `faculty_profiles`: faculty own INSERT/UPDATE policies dropped; profile
+  completion uses the API. Existing faculty/admin SELECT policies and the
+  existing admin update policy are retained.
+- `patient_requests`: direct authenticated UPDATE policies for admin, faculty,
+  and student lifecycle updates dropped; case workflow updates use API services.
+- `student_case_requests`: direct student INSERT and admin/faculty UPDATE
+  policies dropped; student request and faculty decision actions use API
+  services.
+- `case_progress_entries`: direct student INSERT policy dropped; progress
+  creation uses API services.
+- `case_routing_stages`: direct admin/faculty INSERT/UPDATE policies dropped;
+  routing changes use API services.
+- `student_planner_events`: RLS enabled, own-row student SELECT retained, direct
+  browser INSERT/UPDATE/DELETE revoked.
+- `storage.objects`: legacy direct browser SELECT policies for `patient-uploads`
+  are dropped because signed URL minting now goes through the files service.
+
+Service-role code bypasses RLS by design, so every Phase 6 service must enforce
+session identity, role, row ownership, and workflow eligibility explicitly before
+writing.
 
 ## Audit Logging Guidelines
 

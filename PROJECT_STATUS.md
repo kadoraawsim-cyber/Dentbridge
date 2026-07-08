@@ -1,18 +1,20 @@
 # DentBridge Project Status
 
-Last updated: April 2026
+Last updated: July 2026
 
 ## Current State
 
 DentBridge is a working Next.js and Supabase application with:
 
 - public patient intake
-- patient status lookup by phone number
+- OTP-protected patient status lookup
 - role-protected admin/faculty workflow
 - role-protected student workflow
 - invitation-based account setup for students and faculty
 - English and Turkish language support
 - OpenAI-powered public patient chat guidance
+- service-role API boundaries for sensitive patient, file, profile, case,
+  progress, and planner mutations
 
 This file reflects the current checked-in app state.
 
@@ -55,7 +57,9 @@ This file reflects the current checked-in app state.
 
 - Patients do not create accounts.
 - They submit a treatment request from `/patient/request`.
-- The form validates client-side, stores draft progress in session storage, optionally uploads one attachment, and inserts a row into `patient_requests` with `status = 'submitted'`.
+- The form validates client-side, stores draft progress in session storage,
+  optionally uploads one attachment through the Phase 5 signed-upload flow, and
+  submits to `/api/v1/patient/requests`.
 
 ### 2. Patient status lookup
 
@@ -72,7 +76,11 @@ This file reflects the current checked-in app state.
 
 - Students authenticate through Supabase Auth.
 - Middleware protects `/student/*`.
-- Students can browse matched pool cases, submit case requests, track request outcomes, manage approved active cases from the dashboard, and use the private planner.
+- Students can browse matched pool cases, submit case requests, track request
+  outcomes, manage approved active cases from the dashboard, and use the private
+  planner.
+- Student case request, progress, lifecycle, and planner mutations now go
+  through DentBridge API services instead of direct browser writes.
 - The exchange page is present but currently serves as a coming-soon page.
 
 ### 5. Invitation-based access
@@ -80,6 +88,9 @@ This file reflects the current checked-in app state.
 - Admin can invite students and faculty.
 - Invitations go through Supabase Auth admin APIs.
 - Invite links land on `/auth/callback`, then route users into role-specific set-password flows.
+- Student and faculty profile completion writes go through
+  `/api/auth/complete-profile/*`; browser profile table upserts are no longer
+  used.
 
 ## Architecture Snapshot
 
@@ -91,8 +102,11 @@ This file reflects the current checked-in app state.
 
 ### Backend and data layer
 
-- Supabase browser client for public form submission and some authenticated client actions
-- Supabase server client for server components and route handlers
+- Supabase browser client for Auth session flows and Phase 5 signed upload
+  transport
+- Supabase server client for server component reads and route authentication
+- Supabase service-role clients inside server-only DentBridge services for
+  sensitive workflow mutations
 - Route handlers under `src/app/api` for:
   - admin case actions
   - student case request submission
@@ -104,9 +118,13 @@ This file reflects the current checked-in app state.
 ### Security model
 
 - Middleware checks authenticated role before portal access
-- Supabase RLS is used for `patient_requests`, `student_case_requests`, storage access, and faculty profile access
-- Public patient status lookup uses a dedicated RPC
-- Patient uploads are intended to stay private
+- Supabase RLS is used for browser-role reads and defense in depth.
+- Sensitive workflow writes are routed through DentBridge API/services with
+  explicit authorization because the service role bypasses RLS.
+- Legacy phone-only patient status RPC execution is revoked for browser-facing
+  roles.
+- Patient uploads remain private and are accessed through audited signed URL
+  APIs.
 
 ## Services In Use
 
@@ -130,14 +148,28 @@ This file reflects the current checked-in app state.
 - `student_profiles`
 - `faculty_profiles`
 - `student_planner_events`
+- `case_progress_entries`
+- `case_routing_stages`
+- `audit_logs`
+- `consent_records`
+- `otp_codes`
+- `patient_files`
 
 ### Storage
 
 - private `patient-uploads` bucket
+- direct browser upload uses only server-created signed upload tokens; direct
+  anon/authenticated Storage INSERT is revoked
 
-### RPC
+### API Boundary
 
-- Legacy phone-only patient status RPC execution is revoked for browser-facing roles; patient status lookup now uses the OTP-protected API flow.
+- Public patient request submission uses `/api/v1/patient/requests`.
+- Patient status lookup uses `/api/v1/patient/status/request-otp` and
+  `/api/v1/patient/status`.
+- File upload preparation, confirmation, and signed URL minting use
+  `/api/v1/files/*`.
+- Phase 6 profile, case workflow, progress, and planner mutations use
+  DentBridge API/services rather than browser table writes.
 
 ## Known Current Limitations
 
@@ -158,9 +190,12 @@ Expected environment variables for local or deployed environments:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `OPENAI_API_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
+- `OTP_HASH_SECRET`
+- `FILE_TICKET_SECRET`
 
 ## Recommended Next Work
 
-- apply the database migration to remove obsolete columns only after confirming production data needs
-- address the existing lint errors in targeted cleanup passes
+- run Phase 6 Preview QA before applying the direct-write RLS cleanup migration
+  to Production
+- address existing lint issues in targeted cleanup passes
 - keep route, auth, and data-flow docs aligned with future changes

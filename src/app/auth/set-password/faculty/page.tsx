@@ -80,20 +80,19 @@ export default function FacultySetPasswordPage() {
       return
     }
 
-    const { error: profileError } = await supabase
-      .from('faculty_profiles')
-      .upsert({
-        id: user.id,
-        email: user.email,
-        full_name: fullName.trim(),
+    const profileResponse = await fetch('/api/auth/complete-profile/faculty', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fullName: fullName.trim(),
         phone: phone.trim(),
-        updated_at: new Date().toISOString(),
-      })
+      }),
+    })
 
     setLoading(false)
 
-    if (profileError) {
-      setError(profileError.message)
+    if (!profileResponse.ok) {
+      setError('We could not complete your profile. Please try again.')
       return
     }
 

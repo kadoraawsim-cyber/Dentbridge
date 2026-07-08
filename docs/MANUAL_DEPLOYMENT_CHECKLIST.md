@@ -1,14 +1,14 @@
 # Manual Deployment Checklist
 
 This checklist covers manual work outside the codebase before running the
-Phase 2-5 DentBridge changes in Preview or Production.
+Phase 2-6 DentBridge changes in Preview or Production.
 
 Do not treat this as a deployment script. It is an operator checklist for
 Vercel, Supabase, SMS, QA, and rollback decisions.
 
 ## Critical Deployment Gate
 
-Do not deploy Phase 3, Phase 4, or Phase 5 code to Production unless all of the following
+Do not deploy Phase 3, Phase 4, Phase 5, or Phase 6 code to Production unless all of the following
 are true:
 
 - `SUPABASE_SERVICE_ROLE_KEY` is configured in the target Vercel environment.
@@ -19,6 +19,8 @@ are true:
   gated off until real OTP delivery is ready.
 - The `patient-uploads` bucket is private, and the legacy anon/authenticated
   Storage INSERT path has been revoked by the Phase 5 migration.
+- Phase 6 service-role API routes have been verified in Preview before the
+  Phase 6 direct-write RLS cleanup migration is applied to Production.
 
 If any item is uncertain, stop the deployment.
 
@@ -56,7 +58,8 @@ Required Preview environment variables:
 Variable notes:
 
 - `SUPABASE_SERVICE_ROLE_KEY` is server-only. It is required for patient request
-  API inserts, OTP operations, consent records, and audit logs.
+  API inserts, OTP operations, consent records, audit logs, Phase 5 file
+  services, and Phase 6 sensitive mutation services.
 - `OTP_HASH_SECRET` is server-only. Generate a strong random secret and keep it
   stable for the environment. Rotating it invalidates verification for existing
   unconsumed OTP rows.
@@ -102,8 +105,8 @@ Storage verification:
 - Confirm the bucket is private.
 - Confirm existing objects remain readable only through intended server/admin
   paths or reviewed storage policies.
-- Confirm direct browser upload is still an accepted temporary risk until the
-  later upload-security phase.
+- Confirm browser uploads use only the Phase 5 signed-upload-token flow; open
+  anon/authenticated Storage INSERT must remain revoked.
 
 Running migrations:
 
@@ -124,6 +127,24 @@ Post-migration verification:
 - Confirm the legacy `get_request_status_by_phone(text)` RPC is not executable
   by `anon`, `authenticated`, or `public`.
 - Confirm the `patient-uploads` bucket remains private.
+- Confirm the Phase 6 migration has removed direct browser write policies that
+  were replaced by APIs:
+  - `student_can_insert_own_request`
+  - `student_can_update_own_active_case_status`
+  - `student_can_insert_own_case_progress_entries`
+  - admin/faculty direct workflow update policies on `patient_requests`,
+    `student_case_requests`, and `case_routing_stages`
+  - faculty own direct profile insert/update policies
+- Confirm RLS is enabled on `student_profiles` and `student_planner_events`.
+- Confirm students can still SELECT only their own `student_profiles` and
+  `student_planner_events` rows.
+- Confirm browser roles cannot directly INSERT/UPDATE/DELETE:
+  `student_profiles`, `student_case_requests`, `patient_requests`,
+  `case_progress_entries`, `case_routing_stages`, or
+  `student_planner_events`.
+- Confirm direct browser Storage SELECT policies for `patient-uploads` are
+  removed and signed URLs are still minted only through
+  `/api/v1/files/[id]/signed-url`.
 
 ## 3. SMS Provider Setup
 
@@ -218,6 +239,14 @@ Audit logs:
 - Confirm audit metadata does not include complaint text, medical condition,
   file contents, OTP, OTP hash, secrets, tokens, or full phone numbers.
 - Confirm browser roles cannot select or insert audit logs directly.
+- Confirm Phase 6 workflow actions write audit rows where applicable:
+  `profile_completed`, `invitation_sent`, `student_case_requested`,
+  `student_progress_added`, `student_case_status_changed`,
+  `admin_case_status_changed`, `student_case_approved`,
+  `student_case_rejected`, and `case_returned_to_pool`.
+- Confirm Phase 6 audit metadata does not include full names, phone numbers,
+  complaint text, medical condition details, clinical notes, file paths,
+  filenames, OTPs, secrets, tokens, or passwords.
 
 Patient status OTP:
 
@@ -235,12 +264,30 @@ Admin login:
 - Confirm admin login still works.
 - Confirm admin request list loads.
 - Confirm admin request detail loads.
+- Confirm an admin/faculty test user can save draft triage, approve/reject a
+  case, approve/reject a student request, return a case to the pool, and advance
+  or close a case through the existing UI.
+- Confirm those admin/faculty actions continue to work after direct browser
+  write policies are removed.
 
 Student login:
 
 - Confirm student login still works.
 - Confirm student dashboard loads.
 - Confirm student case/request views still work.
+- Confirm a newly invited test student completes profile setup through
+  `/auth/set-password/student`.
+- Confirm a newly invited test faculty user completes profile setup through
+  `/auth/set-password/faculty`.
+- Confirm direct browser upserts to `student_profiles` and `faculty_profiles`
+  are blocked after the Phase 6 migration.
+- Confirm a student can request a matched case through the UI and cannot insert
+  directly into `student_case_requests` using the browser role.
+- Confirm an approved student can mark contacted, schedule appointment, mark in
+  treatment, add progress, reschedule, and submit for faculty review through the
+  UI.
+- Confirm direct browser writes to `patient_requests` and
+  `case_progress_entries` are blocked for the student browser role.
 
 Dashboard:
 
@@ -252,6 +299,8 @@ Planner:
 - Confirm student planner loads.
 - Confirm planner create/update/delete flows still work if they are in scope
   for the environment being tested.
+- Confirm direct browser INSERT/UPDATE/DELETE to `student_planner_events` is
+  blocked while own-row SELECT still works.
 
 ## 6. Production Deployment Sequence
 
@@ -312,10 +361,13 @@ Planner:
    If code fails but migrations are healthy, roll back the Vercel deployment.
    If migrations caused data or access issues, follow the documented database
    restore/forward-fix plan. Do not improvise destructive SQL in Production.
+   For Phase 6, if the RLS cleanup migration blocks a verified workflow, prefer
+   a reviewed forward migration that restores the minimum required policy while
+   the API issue is fixed; do not disable RLS globally.
 
 ## 7. Explicit Production Warning
 
-Do not deploy Phase 3/4/5 code to Production without:
+Do not deploy Phase 3/4/5/6 code to Production without:
 
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `OTP_HASH_SECRET`
@@ -324,6 +376,10 @@ Do not deploy Phase 3/4/5 code to Production without:
 - SMS provider configured, or the status page intentionally gated off
 - Confirmed private `patient-uploads` bucket and revoked anon/authenticated
   Storage INSERT path
+- Verified Phase 6 Preview QA for profile completion, admin/faculty case
+  actions, student case requests, student progress/status, planner CRUD, direct
+  mutation denial, and audit rows
 
 These items are hard gates. Skipping any of them can break patient intake,
-status lookup, consent logging, audit logging, or privacy expectations.
+status lookup, consent logging, audit logging, clinical workflow mutations, or
+privacy expectations.

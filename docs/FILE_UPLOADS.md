@@ -190,7 +190,8 @@ Transition compatibility: `patient_requests.attachment_path` and
 `attachment_name` are retained and kept in sync with `object_path` /
 `original_filename` at confirm. This keeps the existing admin/faculty/student
 read code and the `attachment_path = name` student RLS policy working during the
-transition. Those columns are marked legacy and removed later (Phase 6/8).
+transition. Those columns are marked legacy and must not be removed during
+Phase 6; removal belongs in a later, separately reviewed compatibility cleanup.
 
 ---
 
@@ -483,8 +484,9 @@ Deferred, with structure in place:
 - 5E full `file_viewed` / download audit beyond `file_signed_url_created`.
 - 5F real malware scanning engine and `scan-callback`.
 - Cleanup/retention automation (cron) and the clinical retention value.
-- Phase 6: remove client storage SELECT policies; case-scope faculty reads;
-  drop legacy `attachment_path` / `attachment_name`.
+- Phase 6: remove client storage SELECT policies after signed URL APIs are
+  verified. Case-scoped faculty file authorization and removal of legacy
+  `attachment_path` / `attachment_name` remain separate future cleanups.
 - Phase 12: durable rate limiting for file endpoints.
 
 ---

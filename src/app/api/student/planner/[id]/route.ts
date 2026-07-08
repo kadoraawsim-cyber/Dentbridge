@@ -1,55 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+
+import {
+  deleteStudentPlannerEvent,
+  updateStudentPlannerEvent,
+} from '@/lib/planner/student-planner.service'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
-
-const ACTIVE_CASE_STATUSES = [
-  'student_approved',
-  'contacted',
-  'appointment_scheduled',
-  'in_treatment',
-]
-
-const END_MARKER_REGEX = /\n?\[\[planner_end:([^\]]+)\]\]\s*$/
-const CASE_APPOINTMENT_SOURCE_KIND = 'case_appointment'
-const LOCAL_DATE_TIME_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/
-
-function encodeDescription(description: string | null, endAt: string | null) {
-  const cleanDescription = (description || '').replace(END_MARKER_REGEX, '').trim()
-
-  if (!endAt) {
-    return cleanDescription || null
-  }
-
-  if (!cleanDescription) {
-    return `[[planner_end:${endAt}]]`
-  }
-
-  return `${cleanDescription}\n\n[[planner_end:${endAt}]]`
-}
-
-function normalizeLocalDateTime(value: string | null | undefined) {
-  if (!value) {
-    return null
-  }
-
-  const cleanValue = value.trim()
-  if (!LOCAL_DATE_TIME_REGEX.test(cleanValue)) {
-    return null
-  }
-
-  return cleanValue.length === 16 ? `${cleanValue}:00` : cleanValue
-}
-
-function parseLocalDateTime(value: string) {
-  return new Date(value)
-}
-
-function isCurrentStageRequest(
-  requestStageId: string | null | undefined,
-  currentStageId: string | null | undefined
-) {
-  return !requestStageId || !currentStageId || requestStageId === currentStageId
-}
 
 async function getAuthorizedStudent() {
   const cookieStore = await cookies()
@@ -60,79 +16,14 @@ async function getAuthorizedStudent() {
   } = await supabase.auth.getUser()
 
   if (error || !user) {
-    return { supabase, user: null, response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
+    return { user: null, response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
   }
 
   if (user.app_metadata?.role !== 'student') {
-    return { supabase, user: null, response: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) }
+    return { user: null, response: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) }
   }
 
-  return { supabase, user, response: undefined as NextResponse | undefined }
-}
-
-async function validatePatientLink(
-  supabase: ReturnType<typeof createSupabaseServerClient>,
-  studentId: string,
-  patientId: string | null
-) {
-  if (!patientId) {
-    return { stageId: null as string | null }
-  }
-
-  const { data: approvedRequest, error: requestError } = await supabase
-    .from('student_case_requests')
-    .select('case_id, stage_id')
-    .eq('student_id', studentId)
-    .eq('status', 'approved')
-    .eq('case_id', patientId)
-    .maybeSingle()
-
-  if (requestError) {
-    return {
-      response: NextResponse.json({ error: requestError.message }, { status: 500 }),
-      stageId: null as string | null,
-    }
-  }
-
-  if (!approvedRequest) {
-    return {
-      response: NextResponse.json({ error: 'Selected patient is not available to link.' }, { status: 403 }),
-      stageId: null as string | null,
-    }
-  }
-
-  const { data: activePatient, error: patientError } = await supabase
-    .from('patient_requests')
-    .select('id, current_stage_id')
-    .eq('id', patientId)
-    .in('status', ACTIVE_CASE_STATUSES)
-    .maybeSingle()
-
-  if (patientError) {
-    return {
-      response: NextResponse.json({ error: patientError.message }, { status: 500 }),
-      stageId: null as string | null,
-    }
-  }
-
-  if (!activePatient) {
-    return {
-      response: NextResponse.json({ error: 'Selected patient is no longer active.' }, { status: 409 }),
-      stageId: null as string | null,
-    }
-  }
-
-  if (!isCurrentStageRequest(approvedRequest.stage_id, activePatient.current_stage_id)) {
-    return {
-      response: NextResponse.json(
-        { error: 'Selected patient is no longer active for your stage.' },
-        { status: 409 }
-      ),
-      stageId: null as string | null,
-    }
-  }
-
-  return { stageId: activePatient.current_stage_id ?? approvedRequest.stage_id ?? null }
+  return { user, response: undefined as NextResponse | undefined }
 }
 
 export async function PATCH(
@@ -140,118 +31,29 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
-  const { supabase, user, response } = await getAuthorizedStudent()
+  const { user, response } = await getAuthorizedStudent()
   if (response) return response
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  let body: {
-    title?: string
-    description?: string
-    start_at?: string
-    end_at?: string | null
-    patient_id?: string | null
-  }
-
+  let body: unknown
   try {
-    body = (await request.json()) as typeof body
+    body = await request.json()
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
 
-  const title = (body.title || '').trim()
-  const description = (body.description || '').trim() || null
-  const startAtValue = normalizeLocalDateTime(body.start_at)
-  const endAtValue = normalizeLocalDateTime(body.end_at)
-  const startAt = startAtValue ? parseLocalDateTime(startAtValue) : null
-  const endAt = endAtValue ? parseLocalDateTime(endAtValue) : null
-  const patientId = body.patient_id || null
-
-  if (!title) {
-    return NextResponse.json({ error: 'Event title is required.' }, { status: 400 })
-  }
-
-  if (!startAtValue || !startAt || Number.isNaN(startAt.getTime())) {
-    return NextResponse.json({ error: 'A valid start date is required.' }, { status: 400 })
-  }
-
-  if (body.end_at && (!endAtValue || !endAt || Number.isNaN(endAt.getTime()))) {
-    return NextResponse.json({ error: 'A valid end date is required.' }, { status: 400 })
-  }
-
-  if (endAt && endAt <= startAt) {
-    return NextResponse.json({ error: 'End time must be after start time.' }, { status: 400 })
-  }
-
-  const patientValidation = await validatePatientLink(supabase, user.id, patientId)
-  if (patientValidation.response) return patientValidation.response
-
-  const { data: existingEvent, error: existingEventError } = await supabase
-    .from('student_planner_events')
-    .select('id, source_kind')
-    .eq('id', id)
-    .eq('student_id', user.id)
-    .maybeSingle()
-
-  if (existingEventError) {
-    return NextResponse.json({ error: existingEventError.message }, { status: 500 })
-  }
-
-  if (!existingEvent) {
-    return NextResponse.json({ error: 'Planner event not found.' }, { status: 404 })
-  }
-
-  if (existingEvent.source_kind === CASE_APPOINTMENT_SOURCE_KIND) {
-    return NextResponse.json({ error: 'Linked case appointments are managed from the case card.' }, { status: 409 })
-  }
-
-  const { data: updatedRow, error: updateError } = await supabase
-    .from('student_planner_events')
-    .update({
-      title,
-      description: encodeDescription(description, endAtValue),
-      event_date: startAtValue,
-      patient_id: patientId,
-      stage_id: patientValidation.stageId,
-      lifecycle_state: patientId ? 'active' : null,
-    })
-    .eq('id', id)
-    .eq('student_id', user.id)
-    .select(
-      'id, title, description, event_date, patient_id, language, created_at, source_kind, source_case_id, stage_id, lifecycle_state'
-    )
-    .maybeSingle()
-
-  if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 })
-  }
-
-  if (!updatedRow) {
-    return NextResponse.json({ error: 'Planner event not found.' }, { status: 404 })
-  }
-
-  const match = updatedRow.description?.match(END_MARKER_REGEX)
-  const cleanDescription = updatedRow.description?.replace(END_MARKER_REGEX, '').trim() || null
-
-  return NextResponse.json({
-    data: {
-      id: updatedRow.id,
-      title: updatedRow.title,
-      description: cleanDescription,
-      start_at: startAtValue,
-      end_at: match?.[1] ?? endAtValue,
-      patient_id: updatedRow.patient_id,
-      language: updatedRow.language,
-      created_at: updatedRow.created_at,
-      source_kind: updatedRow.source_kind,
-      source_case_id: updatedRow.source_case_id,
-      stage_id: updatedRow.stage_id,
-      lifecycle_state: updatedRow.lifecycle_state,
-      linked_appointment_date: null,
-      linked_appointment_time: null,
+  const result = await updateStudentPlannerEvent({
+    eventId: id,
+    actor: {
+      userId: user.id,
+      role: user.app_metadata?.role,
     },
+    body,
   })
+
+  return NextResponse.json(result.body, { status: result.status })
 }
 
 export async function DELETE(
@@ -259,46 +61,19 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
-  const { supabase, user, response } = await getAuthorizedStudent()
+  const { user, response } = await getAuthorizedStudent()
   if (response) return response
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { data: existingEvent, error: existingEventError } = await supabase
-    .from('student_planner_events')
-    .select('id, source_kind')
-    .eq('id', id)
-    .eq('student_id', user.id)
-    .maybeSingle()
+  const result = await deleteStudentPlannerEvent({
+    eventId: id,
+    actor: {
+      userId: user.id,
+      role: user.app_metadata?.role,
+    },
+  })
 
-  if (existingEventError) {
-    return NextResponse.json({ error: existingEventError.message }, { status: 500 })
-  }
-
-  if (!existingEvent) {
-    return NextResponse.json({ error: 'Planner event not found.' }, { status: 404 })
-  }
-
-  if (existingEvent.source_kind === CASE_APPOINTMENT_SOURCE_KIND) {
-    return NextResponse.json({ error: 'Linked case appointments are managed from the case card.' }, { status: 409 })
-  }
-
-  const { data: deletedRow, error: deleteError } = await supabase
-    .from('student_planner_events')
-    .delete()
-    .eq('id', id)
-    .eq('student_id', user.id)
-    .select('id')
-    .maybeSingle()
-
-  if (deleteError) {
-    return NextResponse.json({ error: deleteError.message }, { status: 500 })
-  }
-
-  if (!deletedRow) {
-    return NextResponse.json({ error: 'Planner event not found.' }, { status: 404 })
-  }
-
-  return NextResponse.json({ success: true, data: { id: deletedRow.id } })
+  return NextResponse.json(result.body, { status: result.status })
 }

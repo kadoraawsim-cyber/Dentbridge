@@ -1,0 +1,168 @@
+import 'server-only'
+
+import {
+  auditStudentCaseRequested,
+  type AuditRequestContext,
+} from '@/lib/audit/audit.service'
+import { createSupabaseAdminClient } from '@/lib/supabase-admin'
+
+type SupabaseAdminClient = ReturnType<typeof createSupabaseAdminClient>
+
+interface StudentActor {
+  userId: string
+  email: string | null
+  role: unknown
+}
+
+export interface CreateStudentCaseRequestInput {
+  caseId: string
+  actor: StudentActor
+  context: AuditRequestContext
+  supabase?: SupabaseAdminClient
+}
+
+export interface ServiceResponse {
+  status: number
+  body: Record<string, unknown>
+}
+
+async function resolveReleasedCurrentStage({
+  supabase,
+  caseId,
+  currentStageId,
+}: {
+  supabase: SupabaseAdminClient
+  caseId: string
+  currentStageId: string | null
+}) {
+  if (currentStageId) {
+    const { data: currentStage, error: currentStageError } = await supabase
+      .from('case_routing_stages')
+      .select('id, status')
+      .eq('id', currentStageId)
+      .eq('case_id', caseId)
+      .maybeSingle()
+
+    if (currentStageError) {
+      return { stageId: null, error: 'Unable to verify case stage. Please try again.', status: 500 }
+    }
+
+    if (currentStage && (currentStage.status || '').toLowerCase() !== 'released') {
+      return {
+        stageId: null,
+        error: 'This case stage is not currently available for requests',
+        status: 409,
+      }
+    }
+
+    return { stageId: currentStageId, error: null, status: 200 }
+  }
+
+  const { data: fallbackStage, error: fallbackStageError } = await supabase
+    .from('case_routing_stages')
+    .select('id, status')
+    .eq('case_id', caseId)
+    .eq('sequence', 1)
+    .maybeSingle()
+
+  if (fallbackStageError) {
+    return { stageId: null, error: fallbackStageError.message, status: 500 }
+  }
+
+  if (!fallbackStage) {
+    return { stageId: null, error: null, status: 200 }
+  }
+
+  if ((fallbackStage.status || '').toLowerCase() !== 'released') {
+    return {
+      stageId: null,
+      error: 'This case stage is not currently available for requests',
+      status: 409,
+    }
+  }
+
+  const stageId = fallbackStage.id as string
+
+  const { error: linkStageError } = await supabase
+    .from('patient_requests')
+    .update({ current_stage_id: stageId })
+    .eq('id', caseId)
+    .is('current_stage_id', null)
+
+  if (linkStageError) {
+    return { stageId: null, error: linkStageError.message, status: 500 }
+  }
+
+  return { stageId, error: null, status: 200 }
+}
+
+export async function createStudentCaseRequest(
+  input: CreateStudentCaseRequestInput
+): Promise<ServiceResponse> {
+  if (input.actor.role !== 'student') {
+    return { status: 403, body: { error: 'Forbidden' } }
+  }
+
+  const supabase = input.supabase ?? createSupabaseAdminClient()
+
+  const { data: caseRow, error: caseError } = await supabase
+    .from('patient_requests')
+    .select('id, status, current_stage_id')
+    .eq('id', input.caseId)
+    .single()
+
+  if (caseError || !caseRow) {
+    return { status: 404, body: { error: 'Case not found' } }
+  }
+
+  if (caseRow.status !== 'matched') {
+    return {
+      status: 409,
+      body: { error: 'This case is not currently available for requests' },
+    }
+  }
+
+  const stageResult = await resolveReleasedCurrentStage({
+    supabase,
+    caseId: input.caseId,
+    currentStageId: caseRow.current_stage_id ?? null,
+  })
+
+  if (stageResult.error) {
+    return { status: stageResult.status, body: { error: stageResult.error } }
+  }
+
+  const { data: inserted, error: insertError } = await supabase
+    .from('student_case_requests')
+    .insert({
+      case_id: input.caseId,
+      student_id: input.actor.userId,
+      student_email: input.actor.email ?? '',
+      status: 'pending',
+      stage_id: stageResult.stageId,
+    })
+    .select('id, case_id, stage_id, status, created_at')
+    .single()
+
+  if (insertError) {
+    if (insertError.code === '23505') {
+      return {
+        status: 409,
+        body: { error: 'You have already submitted a request for this case' },
+      }
+    }
+    return { status: 500, body: { error: insertError.message } }
+  }
+
+  await auditStudentCaseRequested({
+    requestId: inserted.id,
+    caseId: input.caseId,
+    stageId: inserted.stage_id,
+    actorUserId: input.actor.userId,
+    actorEmail: input.actor.email,
+    context: input.context,
+    supabase,
+  })
+
+  return { status: 201, body: { success: true, data: inserted } }
+}
