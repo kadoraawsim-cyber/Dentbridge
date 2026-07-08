@@ -2,6 +2,16 @@ import 'server-only'
 
 import { createSupabaseAdminClient } from '@/lib/supabase-admin'
 
+/**
+ * Log the underlying failure server-side and return a stable, generic error
+ * token for the client. Raw database/Supabase error messages must never be
+ * returned to authenticated users.
+ */
+function logServerError(context: string, detail: string): string {
+  console.error(context, { error: detail })
+  return 'server_error'
+}
+
 type SupabaseAdminClient = ReturnType<typeof createSupabaseAdminClient>
 
 interface StudentActor {
@@ -120,7 +130,7 @@ async function validatePatientLink(
 
   if (requestError) {
     return {
-      response: { status: 500, body: { error: requestError.message } },
+      response: { status: 500, body: { error: logServerError('[student-planner] requestError', requestError.message) } },
       stageId: null as string | null,
     }
   }
@@ -141,7 +151,7 @@ async function validatePatientLink(
 
   if (patientError) {
     return {
-      response: { status: 500, body: { error: patientError.message } },
+      response: { status: 500, body: { error: logServerError('[student-planner] patientError', patientError.message) } },
       stageId: null as string | null,
     }
   }
@@ -192,11 +202,11 @@ export async function getStudentPlannerData(input: PlannerServiceInput): Promise
   const { data: approvedRequests, error: requestsError } = requestsResult
 
   if (plannerError) {
-    return { status: 500, body: { error: plannerError.message } }
+    return { status: 500, body: { error: logServerError('[student-planner] plannerError', plannerError.message) } }
   }
 
   if (requestsError) {
-    return { status: 500, body: { error: requestsError.message } }
+    return { status: 500, body: { error: logServerError('[student-planner] requestsError', requestsError.message) } }
   }
 
   const approvedCaseIds = (approvedRequests ?? []).map((row) => row.case_id)
@@ -256,7 +266,7 @@ export async function getStudentPlannerData(input: PlannerServiceInput): Promise
   ])
 
   if (patientsResult?.error) {
-    return { status: 500, body: { error: patientsResult.error.message } }
+    return { status: 500, body: { error: logServerError('[student-planner] patientsResult.error', patientsResult.error.message) } }
   }
 
   activePatients = (patientsResult?.data ?? []).filter((patient) =>
@@ -264,7 +274,7 @@ export async function getStudentPlannerData(input: PlannerServiceInput): Promise
   )
 
   if (linkedAppointmentsResult?.error) {
-    return { status: 500, body: { error: linkedAppointmentsResult.error.message } }
+    return { status: 500, body: { error: logServerError('[student-planner] linkedAppointmentsResult.error', linkedAppointmentsResult.error.message) } }
   }
 
   for (const row of linkedAppointmentsResult?.data ?? []) {
@@ -385,7 +395,7 @@ export async function createStudentPlannerEvent(
     .single()
 
   if (insertError) {
-    return { status: 500, body: { error: insertError.message } }
+    return { status: 500, body: { error: logServerError('[student-planner] insertError', insertError.message) } }
   }
 
   const { description: cleanDescription, endAt: parsedEndAt } = stripEndMarker(insertedRow.description)
@@ -467,7 +477,7 @@ export async function updateStudentPlannerEvent(
     .maybeSingle()
 
   if (existingEventError) {
-    return { status: 500, body: { error: existingEventError.message } }
+    return { status: 500, body: { error: logServerError('[student-planner] existingEventError', existingEventError.message) } }
   }
 
   if (!existingEvent) {
@@ -496,7 +506,7 @@ export async function updateStudentPlannerEvent(
     .maybeSingle()
 
   if (updateError) {
-    return { status: 500, body: { error: updateError.message } }
+    return { status: 500, body: { error: logServerError('[student-planner] updateError', updateError.message) } }
   }
 
   if (!updatedRow) {
@@ -544,7 +554,7 @@ export async function deleteStudentPlannerEvent(
     .maybeSingle()
 
   if (existingEventError) {
-    return { status: 500, body: { error: existingEventError.message } }
+    return { status: 500, body: { error: logServerError('[student-planner] existingEventError', existingEventError.message) } }
   }
 
   if (!existingEvent) {
@@ -564,7 +574,7 @@ export async function deleteStudentPlannerEvent(
     .maybeSingle()
 
   if (deleteError) {
-    return { status: 500, body: { error: deleteError.message } }
+    return { status: 500, body: { error: logServerError('[student-planner] deleteError', deleteError.message) } }
   }
 
   if (!deletedRow) {

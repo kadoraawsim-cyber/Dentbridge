@@ -49,7 +49,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result)
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to send invitation.'
-    return NextResponse.json({ error: message }, { status: 400 })
+    console.error('[admin-invitations:students] Failed to send invitation', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    })
+    return NextResponse.json({ error: 'server_error' }, { status: 500 })
   }
 }

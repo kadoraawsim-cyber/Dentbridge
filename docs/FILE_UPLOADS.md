@@ -378,7 +378,7 @@ defense in depth.
 | Actor | Access |
 | --- | --- |
 | anon / patient | No read. Write only via prepare/confirm token. |
-| student | Signed URL only for `clean` files on cases `matched` (pool) or `approved` to them. |
+| student | Signed URL only for `clean` files on cases `approved` to them (post-approval only; no `matched`-pool raw-file access). |
 | faculty | Signed URL for `clean` files (current parity); recommend case-scoping in a follow-up. |
 | admin | Signed URL for any `clean` file; audited. |
 
@@ -386,10 +386,12 @@ Download hardening: force `Content-Disposition`, set an explicit content type,
 and send `X-Content-Type-Options: nosniff` to neutralize active-content (PDF)
 risk.
 
-Open decision (roadmap 5A): should students see raw attachments before approval
-(the current `matched` pool behavior)? Recommendation is to restrict pre-approval
-students to no raw-file access to minimize PHI exposure. This is a clinical
-stakeholder decision and must not be changed unilaterally.
+Resolved decision (roadmap 5A): students do not get raw-file access before
+approval. The implemented behavior mints signed URLs only for `clean` files on
+cases that are `approved` to the requesting student (`canActorReadFile` in
+`src/lib/files/files.service.ts`) — the stricter, minimum-PHI option. Any future
+change to allow pre-approval (`matched` pool) access is a clinical stakeholder
+decision and must not be changed unilaterally.
 
 ---
 
@@ -408,12 +410,11 @@ These fit the existing DB CHECK constraints for `category`
 (`auth|consent|privacy|security|workflow`) and `actor_type`, so no audit schema
 change is required.
 
-Metadata safety: the sanitizer already drops `attachment_name` and
-`attachment_path` and the fragments `otp|hash|secret|token|password`. It does not
-currently drop `object_path`, `original_filename`, or `filename`. Callers must
-therefore reference files by `file_id` only. Recommended small hardening: add
-`object_path`, `original_filename`, and `filename` to `SENSITIVE_METADATA_KEYS`
-so a future careless caller cannot leak them.
+Metadata safety: the sanitizer (`SENSITIVE_METADATA_KEYS` in
+`src/lib/audit/audit.service.ts`) drops `attachment_name`, `attachment_path`,
+`object_path`, `original_filename`, `filename`, `checksum`, and `checksum_sha256`,
+plus the fragments `otp|hash|secret|token|password`, so a careless caller cannot
+leak file paths or names. Callers should still reference files by `file_id` only.
 
 ---
 
@@ -599,8 +600,9 @@ SELECT policies; case-scope faculty; drop legacy `attachment_path` /
 
 ## 20. Open decisions to confirm before 5B
 
-1. Student pre-approval raw-file access: keep current (visible on `matched`
-   pool) or restrict to post-approval only (recommended)?
+1. Student pre-approval raw-file access: RESOLVED — restricted to post-approval
+   only. Signed URLs are minted only for cases `approved` to the student; there
+   is no `matched`-pool raw-file access.
 2. Size caps: implemented as 10 MB images / 15 MB PDF.
 3. Signed-URL expiries: implemented as preview 120s and download 300s.
 4. Whether to fold 5C/5D into 5B (recommended) or keep them as separate

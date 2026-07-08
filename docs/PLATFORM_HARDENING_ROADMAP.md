@@ -64,6 +64,20 @@ phases.
 9. Security + API + audit come before large refactoring.
 10. The goal is platform-grade quality, not more features.
 
+## Module Path Convention
+
+The implemented codebase organizes shared server/service code under `src/lib/**`
+(for example `src/lib/audit/audit.service.ts`, `src/lib/cases/*.service.ts`,
+`src/lib/files/files.service.ts`, `src/lib/planner/student-planner.service.ts`),
+not `src/modules/**`.
+
+Some phase sections below (notably Phase 4, 7, 8, 9, and 15) were written
+referencing `src/modules/**` paths. Those paths are illustrative only. Follow the
+existing `src/lib/**` convention when implementing later phases — for example, the
+Phase 7 case lifecycle belongs at `src/lib/cases/case-lifecycle.ts`, not
+`src/modules/cases/case-lifecycle.ts`. Do not create a parallel `src/modules`
+tree.
+
 ## Correct Phase Order
 
 Phase 0 - Preparation & Safety
@@ -726,7 +740,7 @@ Centralize all case statuses in one place.
 
 ### Tasks
 
-1. Create `src/modules/cases/case-lifecycle.ts`.
+1. Create `src/lib/cases/case-lifecycle.ts`.
 2. Define statuses:
 
 - submitted

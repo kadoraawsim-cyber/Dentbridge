@@ -175,7 +175,7 @@ This file reflects the current checked-in app state.
 
 - `student/exchange` is still a placeholder page, not a complete workflow.
 - `README.md` and project docs were previously stale and have now been refreshed to match the current codebase.
-- There are existing lint issues in unrelated areas, mainly React purity, set-state-in-effect, and `img` optimization warnings. These were not changed as part of the recent documentation update.
+- `npm run build`, `npx tsc --noEmit`, and `npm run lint` currently pass clean.
 
 ## Recent Cleanup Notes
 
@@ -197,5 +197,4 @@ Expected environment variables for local or deployed environments:
 
 - run Phase 6 Preview QA before applying the direct-write RLS cleanup migration
   to Production
-- address existing lint issues in targeted cleanup passes
 - keep route, auth, and data-flow docs aligned with future changes

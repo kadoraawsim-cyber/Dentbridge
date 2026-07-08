@@ -7,6 +7,16 @@ import {
 } from '@/lib/audit/audit.service'
 import { createSupabaseAdminClient } from '@/lib/supabase-admin'
 
+/**
+ * Log the underlying failure server-side and return a stable, generic error
+ * token for the client. Raw database/Supabase error messages must never be
+ * returned to authenticated users.
+ */
+function logServerError(context: string, detail: string): string {
+  console.error(context, { error: detail })
+  return 'server_error'
+}
+
 type LifecycleAction = 'mark_contacted' | 'mark_appointment_scheduled' | 'mark_in_treatment'
 type StudentAction = LifecycleAction | 'reschedule_appointment' | 'submit_stage_for_review'
 type SupabaseAdminClient = ReturnType<typeof createSupabaseAdminClient>
@@ -111,7 +121,7 @@ async function getAuthorizedStageContext({
   ])
 
   if (requestError) {
-    return { context: null, response: { status: 500, body: { error: requestError.message } } }
+    return { context: null, response: { status: 500, body: { error: logServerError('[student-case-status] requestError', requestError.message) } } }
   }
 
   if (!approvedRequest) {
@@ -122,7 +132,7 @@ async function getAuthorizedStageContext({
   }
 
   if (currentCaseError) {
-    return { context: null, response: { status: 500, body: { error: currentCaseError.message } } }
+    return { context: null, response: { status: 500, body: { error: logServerError('[student-case-status] currentCaseError', currentCaseError.message) } } }
   }
 
   if (!currentCase) {
@@ -156,7 +166,7 @@ async function getAuthorizedStageContext({
     if (currentStageError) {
       return {
         context: null,
-        response: { status: 500, body: { error: currentStageError.message } },
+        response: { status: 500, body: { error: logServerError('[student-case-status] currentStageError', currentStageError.message) } },
       }
     }
 
@@ -179,7 +189,7 @@ async function getAuthorizedStageContext({
       if (linkCaseStageError) {
         return {
           context: null,
-          response: { status: 500, body: { error: linkCaseStageError.message } },
+          response: { status: 500, body: { error: logServerError('[student-case-status] linkCaseStageError', linkCaseStageError.message) } },
         }
       }
     }
@@ -194,7 +204,7 @@ async function getAuthorizedStageContext({
       if (linkRequestStageError) {
         return {
           context: null,
-          response: { status: 500, body: { error: linkRequestStageError.message } },
+          response: { status: 500, body: { error: logServerError('[student-case-status] linkRequestStageError', linkRequestStageError.message) } },
         }
       }
     }
@@ -324,7 +334,7 @@ export async function updateStudentCaseStatus(
       .single()
 
     if (rescheduleInsertError) {
-      return { status: 500, body: { error: rescheduleInsertError.message } }
+      return { status: 500, body: { error: logServerError('[student-case-status] rescheduleInsertError', rescheduleInsertError.message) } }
     }
 
     const { error: plannerUpdateError } = await supabase
@@ -340,7 +350,7 @@ export async function updateStudentCaseStatus(
 
     if (plannerUpdateError) {
       await supabase.from('case_progress_entries').delete().eq('id', rescheduleEntry.id)
-      return { status: 500, body: { error: plannerUpdateError.message } }
+      return { status: 500, body: { error: logServerError('[student-case-status] plannerUpdateError', plannerUpdateError.message) } }
     }
 
     await auditStudentProgressAdded({
@@ -398,7 +408,7 @@ export async function updateStudentCaseStatus(
       .eq('case_id', input.caseId)
 
     if (stageUpdateError) {
-      return { status: 500, body: { error: stageUpdateError.message } }
+      return { status: 500, body: { error: logServerError('[student-case-status] stageUpdateError', stageUpdateError.message) } }
     }
 
     const { error: caseUpdateError } = await supabase
@@ -411,7 +421,7 @@ export async function updateStudentCaseStatus(
       .eq('id', input.caseId)
 
     if (caseUpdateError) {
-      return { status: 500, body: { error: caseUpdateError.message } }
+      return { status: 500, body: { error: logServerError('[student-case-status] caseUpdateError', caseUpdateError.message) } }
     }
 
     await auditStudentCaseStatusChanged({
@@ -487,7 +497,7 @@ export async function updateStudentCaseStatus(
       .single()
 
     if (progressInsertError) {
-      return { status: 500, body: { error: progressInsertError.message } }
+      return { status: 500, body: { error: logServerError('[student-case-status] progressInsertError', progressInsertError.message) } }
     }
 
     progressEntry = insertedEntry
@@ -518,7 +528,7 @@ export async function updateStudentCaseStatus(
       if (progressEntry) {
         await supabase.from('case_progress_entries').delete().eq('id', progressEntry.id)
       }
-      return { status: 500, body: { error: plannerUpsertError.message } }
+      return { status: 500, body: { error: logServerError('[student-case-status] plannerUpsertError', plannerUpsertError.message) } }
     }
 
     plannerEventUpserted = true
@@ -546,7 +556,7 @@ export async function updateStudentCaseStatus(
           .eq('source_kind', CASE_APPOINTMENT_SOURCE_KIND)
           .eq('source_case_id', input.caseId)
       }
-      return { status: 500, body: { error: stageUpdateError.message } }
+      return { status: 500, body: { error: logServerError('[student-case-status] stageUpdateError', stageUpdateError.message) } }
     }
   }
 
@@ -571,7 +581,7 @@ export async function updateStudentCaseStatus(
         .eq('source_kind', CASE_APPOINTMENT_SOURCE_KIND)
         .eq('source_case_id', input.caseId)
     }
-    return { status: 500, body: { error: updateError.message } }
+    return { status: 500, body: { error: logServerError('[student-case-status] updateError', updateError.message) } }
   }
 
   if (progressEntry) {

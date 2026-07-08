@@ -12,6 +12,16 @@ import {
 import { canAccessFacultyPortal } from '@/lib/roles'
 import { createSupabaseAdminClient } from '@/lib/supabase-admin'
 
+/**
+ * Log the underlying failure server-side and return a stable, generic error
+ * token for the client. Raw database/Supabase error messages must never be
+ * returned to authenticated users.
+ */
+function logServerError(context: string, detail: string): string {
+  console.error(context, { error: detail })
+  return 'server_error'
+}
+
 type Action =
   | 'save_draft'
   | 'update_triage'
@@ -96,7 +106,7 @@ async function ensureReleasedRoutingStage({
 
   if (currentCaseError || !currentCase) {
     return {
-      error: currentCaseError?.message ?? 'Case not found',
+      error: currentCaseError ? logServerError('[admin-case-actions] currentCaseError', currentCaseError.message) : 'Case not found',
       status: currentCaseError ? 500 : 404,
     }
   }
@@ -125,7 +135,7 @@ async function ensureReleasedRoutingStage({
       .eq('case_id', caseId)
 
     if (updateStageError) {
-      return { error: updateStageError.message, status: 500 }
+      return { error: logServerError('[admin-case-actions] updateStageError', updateStageError.message), status: 500 }
     }
 
     return { error: null, status: 200, stageId: currentCase.current_stage_id as string }
@@ -139,7 +149,7 @@ async function ensureReleasedRoutingStage({
     .maybeSingle()
 
   if (existingStageError) {
-    return { error: existingStageError.message, status: 500 }
+    return { error: logServerError('[admin-case-actions] existingStageError', existingStageError.message), status: 500 }
   }
 
   let stageId = existingStage?.id ?? null
@@ -152,7 +162,7 @@ async function ensureReleasedRoutingStage({
       .eq('case_id', caseId)
 
     if (updateExistingStageError) {
-      return { error: updateExistingStageError.message, status: 500 }
+      return { error: logServerError('[admin-case-actions] updateExistingStageError', updateExistingStageError.message), status: 500 }
     }
   } else {
     const { data: insertedStage, error: insertStageError } = await supabase
@@ -166,7 +176,7 @@ async function ensureReleasedRoutingStage({
       .single()
 
     if (insertStageError) {
-      return { error: insertStageError.message, status: 500 }
+      return { error: logServerError('[admin-case-actions] insertStageError', insertStageError.message), status: 500 }
     }
 
     stageId = insertedStage.id
@@ -178,7 +188,7 @@ async function ensureReleasedRoutingStage({
     .eq('id', caseId)
 
   if (linkStageError) {
-    return { error: linkStageError.message, status: 500 }
+    return { error: logServerError('[admin-case-actions] linkStageError', linkStageError.message), status: 500 }
   }
 
   return { error: null, status: 200, stageId: stageId as string | null }
@@ -266,14 +276,14 @@ export async function executeAdminCaseAction(
 
     if (studentRequestError || !studentRequest) {
       return NextResponse.json(
-        { error: studentRequestError?.message ?? 'Student request not found' },
+        { error: studentRequestError ? logServerError('[admin-case-actions] studentRequestError', studentRequestError.message) : 'Student request not found' },
         { status: studentRequestError ? 500 : 404 }
       )
     }
 
     if (currentCaseError || !currentCase) {
       return NextResponse.json(
-        { error: currentCaseError?.message ?? 'Case not found' },
+        { error: currentCaseError ? logServerError('[admin-case-actions] currentCaseError', currentCaseError.message) : 'Case not found' },
         { status: currentCaseError ? 500 : 404 }
       )
     }
@@ -300,7 +310,12 @@ export async function executeAdminCaseAction(
 
       if (stageForReviewError) {
         return NextResponse.json(
-          { error: 'Unable to verify routing stage. Please try again.' },
+          {
+            error: logServerError(
+              '[admin-case-actions] stageForReviewError',
+              stageForReviewError.message
+            ),
+          },
           { status: 500 }
         )
       }
@@ -320,7 +335,7 @@ export async function executeAdminCaseAction(
           .is('current_stage_id', null)
 
         if (linkStageError) {
-          return NextResponse.json({ error: linkStageError.message }, { status: 500 })
+          return NextResponse.json({ error: logServerError('[admin-case-actions] linkStageError', linkStageError.message) }, { status: 500 })
         }
       }
     }
@@ -347,7 +362,7 @@ export async function executeAdminCaseAction(
       .eq('case_id', caseId)
 
     if (updateRequestError) {
-      return NextResponse.json({ error: updateRequestError.message }, { status: 500 })
+      return NextResponse.json({ error: logServerError('[admin-case-actions] updateRequestError', updateRequestError.message) }, { status: 500 })
     }
 
     if (action === 'approve_student_request') {
@@ -361,7 +376,7 @@ export async function executeAdminCaseAction(
         .eq('id', caseId)
 
       if (caseStatusError) {
-        return NextResponse.json({ error: caseStatusError.message }, { status: 500 })
+        return NextResponse.json({ error: logServerError('[admin-case-actions] caseStatusError', caseStatusError.message) }, { status: 500 })
       }
 
       if (stageIdForReview) {
@@ -380,7 +395,7 @@ export async function executeAdminCaseAction(
           .eq('case_id', caseId)
 
         if (updateStageError) {
-          return NextResponse.json({ error: updateStageError.message }, { status: 500 })
+          return NextResponse.json({ error: logServerError('[admin-case-actions] updateStageError', updateStageError.message) }, { status: 500 })
         }
       }
 
@@ -463,7 +478,7 @@ export async function executeAdminCaseAction(
       .eq('case_id', caseId)
 
     if (updateRequestError) {
-      return NextResponse.json({ error: updateRequestError.message }, { status: 500 })
+      return NextResponse.json({ error: logServerError('[admin-case-actions] updateRequestError', updateRequestError.message) }, { status: 500 })
     }
 
     return NextResponse.json({
@@ -487,7 +502,7 @@ export async function executeAdminCaseAction(
 
     if (currentCaseError || !currentCase) {
       return NextResponse.json(
-        { error: currentCaseError?.message ?? 'Case not found' },
+        { error: currentCaseError ? logServerError('[admin-case-actions] currentCaseError', currentCaseError.message) : 'Case not found' },
         { status: currentCaseError ? 500 : 404 }
       )
     }
@@ -508,7 +523,7 @@ export async function executeAdminCaseAction(
       .maybeSingle()
 
     if (approvedRequestError) {
-      return NextResponse.json({ error: approvedRequestError.message }, { status: 500 })
+      return NextResponse.json({ error: logServerError('[admin-case-actions] approvedRequestError', approvedRequestError.message) }, { status: 500 })
     }
 
     if (!approvedRequest) {
@@ -529,7 +544,7 @@ export async function executeAdminCaseAction(
       .eq('case_id', caseId)
 
     if (revokeRequestError) {
-      return NextResponse.json({ error: revokeRequestError.message }, { status: 500 })
+      return NextResponse.json({ error: logServerError('[admin-case-actions] revokeRequestError', revokeRequestError.message) }, { status: 500 })
     }
 
     const { error: returnCaseError } = await supabase
@@ -546,7 +561,7 @@ export async function executeAdminCaseAction(
       .eq('id', caseId)
 
     if (returnCaseError) {
-      return NextResponse.json({ error: returnCaseError.message }, { status: 500 })
+      return NextResponse.json({ error: logServerError('[admin-case-actions] returnCaseError', returnCaseError.message) }, { status: 500 })
     }
 
     await auditCaseReturnedToPool({
@@ -597,7 +612,7 @@ export async function executeAdminCaseAction(
 
     if (currentCaseError || !currentCase) {
       return NextResponse.json(
-        { error: currentCaseError?.message ?? 'Case not found' },
+        { error: currentCaseError ? logServerError('[admin-case-actions] currentCaseError', currentCaseError.message) : 'Case not found' },
         { status: currentCaseError ? 500 : 404 }
       )
     }
@@ -621,7 +636,7 @@ export async function executeAdminCaseAction(
         .eq('case_id', caseId)
 
       if (reviewStageError) {
-        return NextResponse.json({ error: reviewStageError.message }, { status: 500 })
+        return NextResponse.json({ error: logServerError('[admin-case-actions] reviewStageError', reviewStageError.message) }, { status: 500 })
       }
     }
 
@@ -634,7 +649,7 @@ export async function executeAdminCaseAction(
       .maybeSingle()
 
     if (latestStageError) {
-      return NextResponse.json({ error: latestStageError.message }, { status: 500 })
+      return NextResponse.json({ error: logServerError('[admin-case-actions] latestStageError', latestStageError.message) }, { status: 500 })
     }
 
     const nextSequence = Number(latestStage?.sequence ?? 0) + 1
@@ -657,7 +672,7 @@ export async function executeAdminCaseAction(
       .single()
 
     if (insertStageError) {
-      return NextResponse.json({ error: insertStageError.message }, { status: 500 })
+      return NextResponse.json({ error: logServerError('[admin-case-actions] insertStageError', insertStageError.message) }, { status: 500 })
     }
 
     const { error: updateCaseError } = await supabase
@@ -675,7 +690,7 @@ export async function executeAdminCaseAction(
       .eq('id', caseId)
 
     if (updateCaseError) {
-      return NextResponse.json({ error: updateCaseError.message }, { status: 500 })
+      return NextResponse.json({ error: logServerError('[admin-case-actions] updateCaseError', updateCaseError.message) }, { status: 500 })
     }
 
     await auditAdminCaseStatusChanged({
@@ -740,7 +755,7 @@ export async function executeAdminCaseAction(
       .eq('id', caseId)
 
     if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 })
+      return NextResponse.json({ error: logServerError('[admin-case-actions] updateError', updateError.message) }, { status: 500 })
     }
 
     await auditAdminCaseStatusChanged({
@@ -770,7 +785,7 @@ export async function executeAdminCaseAction(
       .single()
 
     if (currentCaseError) {
-      return NextResponse.json({ error: currentCaseError.message }, { status: 500 })
+      return NextResponse.json({ error: logServerError('[admin-case-actions] currentCaseError', currentCaseError.message) }, { status: 500 })
     }
 
     const currentDepartment =
@@ -795,7 +810,7 @@ export async function executeAdminCaseAction(
       .eq('id', caseId)
 
     if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 })
+      return NextResponse.json({ error: logServerError('[admin-case-actions] updateError', updateError.message) }, { status: 500 })
     }
 
     return NextResponse.json({
@@ -872,7 +887,7 @@ export async function executeAdminCaseAction(
     .eq('id', caseId)
 
   if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 })
+    return NextResponse.json({ error: logServerError('[admin-case-actions] updateError', updateError.message) }, { status: 500 })
   }
 
   await auditAdminCaseStatusChanged({

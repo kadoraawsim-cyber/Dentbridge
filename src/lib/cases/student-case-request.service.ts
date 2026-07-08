@@ -6,6 +6,16 @@ import {
 } from '@/lib/audit/audit.service'
 import { createSupabaseAdminClient } from '@/lib/supabase-admin'
 
+/**
+ * Log the underlying failure server-side and return a stable, generic error
+ * token for the client. Raw database/Supabase error messages must never be
+ * returned to authenticated users.
+ */
+function logServerError(context: string, detail: string): string {
+  console.error(context, { error: detail })
+  return 'server_error'
+}
+
 type SupabaseAdminClient = ReturnType<typeof createSupabaseAdminClient>
 
 interface StudentActor {
@@ -44,7 +54,14 @@ async function resolveReleasedCurrentStage({
       .maybeSingle()
 
     if (currentStageError) {
-      return { stageId: null, error: 'Unable to verify case stage. Please try again.', status: 500 }
+      return {
+        stageId: null,
+        error: logServerError(
+          '[student-case-request] currentStageError',
+          currentStageError.message
+        ),
+        status: 500,
+      }
     }
 
     if (currentStage && (currentStage.status || '').toLowerCase() !== 'released') {
@@ -66,7 +83,7 @@ async function resolveReleasedCurrentStage({
     .maybeSingle()
 
   if (fallbackStageError) {
-    return { stageId: null, error: fallbackStageError.message, status: 500 }
+    return { stageId: null, error: logServerError('[student-case-request] fallbackStageError', fallbackStageError.message), status: 500 }
   }
 
   if (!fallbackStage) {
@@ -90,7 +107,7 @@ async function resolveReleasedCurrentStage({
     .is('current_stage_id', null)
 
   if (linkStageError) {
-    return { stageId: null, error: linkStageError.message, status: 500 }
+    return { stageId: null, error: logServerError('[student-case-request] linkStageError', linkStageError.message), status: 500 }
   }
 
   return { stageId, error: null, status: 200 }
@@ -151,7 +168,7 @@ export async function createStudentCaseRequest(
         body: { error: 'You have already submitted a request for this case' },
       }
     }
-    return { status: 500, body: { error: insertError.message } }
+    return { status: 500, body: { error: logServerError('[student-case-request] insertError', insertError.message) } }
   }
 
   await auditStudentCaseRequested({

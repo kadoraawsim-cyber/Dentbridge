@@ -6,6 +6,16 @@ import {
 } from '@/lib/audit/audit.service'
 import { createSupabaseAdminClient } from '@/lib/supabase-admin'
 
+/**
+ * Log the underlying failure server-side and return a stable, generic error
+ * token for the client. Raw database/Supabase error messages must never be
+ * returned to authenticated users.
+ */
+function logServerError(context: string, detail: string): string {
+  console.error(context, { error: detail })
+  return 'server_error'
+}
+
 type SupabaseAdminClient = ReturnType<typeof createSupabaseAdminClient>
 
 interface StudentActor {
@@ -63,7 +73,7 @@ async function getAuthorizedStageContext({
   ])
 
   if (requestError) {
-    return { context: null, response: { status: 500, body: { error: requestError.message } } }
+    return { context: null, response: { status: 500, body: { error: logServerError('[student-progress] requestError', requestError.message) } } }
   }
 
   if (!approvedRequest) {
@@ -74,7 +84,7 @@ async function getAuthorizedStageContext({
   }
 
   if (currentCaseError) {
-    return { context: null, response: { status: 500, body: { error: currentCaseError.message } } }
+    return { context: null, response: { status: 500, body: { error: logServerError('[student-progress] currentCaseError', currentCaseError.message) } } }
   }
 
   if (!currentCase) {
@@ -108,7 +118,7 @@ async function getAuthorizedStageContext({
     if (currentStageError) {
       return {
         context: null,
-        response: { status: 500, body: { error: currentStageError.message } },
+        response: { status: 500, body: { error: logServerError('[student-progress] currentStageError', currentStageError.message) } },
       }
     }
 
@@ -131,7 +141,7 @@ async function getAuthorizedStageContext({
       if (linkCaseStageError) {
         return {
           context: null,
-          response: { status: 500, body: { error: linkCaseStageError.message } },
+          response: { status: 500, body: { error: logServerError('[student-progress] linkCaseStageError', linkCaseStageError.message) } },
         }
       }
     }
@@ -146,7 +156,7 @@ async function getAuthorizedStageContext({
       if (linkRequestStageError) {
         return {
           context: null,
-          response: { status: 500, body: { error: linkRequestStageError.message } },
+          response: { status: 500, body: { error: logServerError('[student-progress] linkRequestStageError', linkRequestStageError.message) } },
         }
       }
     }
@@ -248,7 +258,7 @@ export async function addStudentProgress(
     .single()
 
   if (insertError) {
-    return { status: 500, body: { error: insertError.message } }
+    return { status: 500, body: { error: logServerError('[student-progress] insertError', insertError.message) } }
   }
 
   await auditStudentProgressAdded({
