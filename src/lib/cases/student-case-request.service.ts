@@ -5,6 +5,13 @@ import {
   type AuditRequestContext,
 } from '@/lib/audit/audit.service'
 import { createSupabaseAdminClient } from '@/lib/supabase-admin'
+import {
+  isCaseAvailableForRequests,
+  isStageAvailableForRequests,
+  isStudentActor,
+  LIFECYCLE_MESSAGES,
+  STUDENT_REQUEST_STATUS,
+} from './case-lifecycle'
 
 /**
  * Log the underlying failure server-side and return a stable, generic error
@@ -64,10 +71,10 @@ async function resolveReleasedCurrentStage({
       }
     }
 
-    if (currentStage && (currentStage.status || '').toLowerCase() !== 'released') {
+    if (currentStage && !isStageAvailableForRequests(currentStage.status)) {
       return {
         stageId: null,
-        error: 'This case stage is not currently available for requests',
+        error: LIFECYCLE_MESSAGES.STAGE_NOT_AVAILABLE_FOR_REQUESTS,
         status: 409,
       }
     }
@@ -90,10 +97,10 @@ async function resolveReleasedCurrentStage({
     return { stageId: null, error: null, status: 200 }
   }
 
-  if ((fallbackStage.status || '').toLowerCase() !== 'released') {
+  if (!isStageAvailableForRequests(fallbackStage.status)) {
     return {
       stageId: null,
-      error: 'This case stage is not currently available for requests',
+      error: LIFECYCLE_MESSAGES.STAGE_NOT_AVAILABLE_FOR_REQUESTS,
       status: 409,
     }
   }
@@ -116,8 +123,8 @@ async function resolveReleasedCurrentStage({
 export async function createStudentCaseRequest(
   input: CreateStudentCaseRequestInput
 ): Promise<ServiceResponse> {
-  if (input.actor.role !== 'student') {
-    return { status: 403, body: { error: 'Forbidden' } }
+  if (!isStudentActor(input.actor.role)) {
+    return { status: 403, body: { error: LIFECYCLE_MESSAGES.FORBIDDEN } }
   }
 
   const supabase = input.supabase ?? createSupabaseAdminClient()
@@ -132,10 +139,10 @@ export async function createStudentCaseRequest(
     return { status: 404, body: { error: 'Case not found' } }
   }
 
-  if (caseRow.status !== 'matched') {
+  if (!isCaseAvailableForRequests(caseRow.status)) {
     return {
       status: 409,
-      body: { error: 'This case is not currently available for requests' },
+      body: { error: LIFECYCLE_MESSAGES.CASE_NOT_AVAILABLE_FOR_REQUESTS },
     }
   }
 
@@ -155,7 +162,7 @@ export async function createStudentCaseRequest(
       case_id: input.caseId,
       student_id: input.actor.userId,
       student_email: input.actor.email ?? '',
-      status: 'pending',
+      status: STUDENT_REQUEST_STATUS.PENDING,
       stage_id: stageResult.stageId,
     })
     .select('id, case_id, stage_id, status, created_at')
@@ -165,7 +172,7 @@ export async function createStudentCaseRequest(
     if (insertError.code === '23505') {
       return {
         status: 409,
-        body: { error: 'You have already submitted a request for this case' },
+        body: { error: LIFECYCLE_MESSAGES.DUPLICATE_CASE_REQUEST },
       }
     }
     return { status: 500, body: { error: logServerError('[student-case-request] insertError', insertError.message) } }

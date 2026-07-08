@@ -9,8 +9,18 @@ import {
   auditStudentCaseRejected,
   type AuditRequestContext,
 } from '@/lib/audit/audit.service'
-import { canAccessFacultyPortal } from '@/lib/roles'
 import { createSupabaseAdminClient } from '@/lib/supabase-admin'
+import {
+  ADMIN_LIFECYCLE_ACTION_TO_STATUS,
+  canReleaseNextStage,
+  canReturnCaseToPool,
+  isAdminCaseAction,
+  isAdminLifecycleAction,
+  isFacultyActor,
+  LIFECYCLE_MESSAGES,
+  STAGE_STATUS,
+  type AdminCaseAction,
+} from './case-lifecycle'
 
 /**
  * Log the underlying failure server-side and return a stable, generic error
@@ -22,21 +32,7 @@ function logServerError(context: string, detail: string): string {
   return 'server_error'
 }
 
-type Action =
-  | 'save_draft'
-  | 'update_triage'
-  | 'approve'
-  | 'reject'
-  | 'return_to_pool'
-  | 'approve_student_request'
-  | 'reject_student_request'
-  | 'undo_reject_student_request'
-  | 'mark_contacted'
-  | 'mark_appointment_scheduled'
-  | 'mark_in_treatment'
-  | 'release_next_stage'
-  | 'mark_completed'
-  | 'mark_cancelled'
+type Action = AdminCaseAction
 
 interface RequestBody {
   action: Action
@@ -120,7 +116,7 @@ async function ensureReleasedRoutingStage({
   const stagePayload = {
     department,
     target_student_level: targetStudentLevel ?? null,
-    status: 'released',
+    status: STAGE_STATUS.RELEASED,
     faculty_notes: clinicalNotes ?? null,
     released_by: releasedBy,
     released_at: releasedAt,
@@ -205,8 +201,8 @@ function parseBody(body: unknown): RequestBody | null {
 export async function executeAdminCaseAction(
   input: ExecuteAdminCaseActionInput
 ): Promise<NextResponse> {
-  if (!canAccessFacultyPortal(input.actor.role)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!isFacultyActor(input.actor.role)) {
+    return NextResponse.json({ error: LIFECYCLE_MESSAGES.FORBIDDEN }, { status: 403 })
   }
 
   const actorRole = input.actor.role
@@ -218,23 +214,7 @@ export async function executeAdminCaseAction(
   const { action, assigned_department, urgency, target_student_level, clinical_notes } = body
   const reason = (body.reason || '').trim()
 
-  const validActions: Action[] = [
-    'save_draft',
-    'update_triage',
-    'approve',
-    'reject',
-    'return_to_pool',
-    'approve_student_request',
-    'reject_student_request',
-    'undo_reject_student_request',
-    'mark_contacted',
-    'mark_appointment_scheduled',
-    'mark_in_treatment',
-    'release_next_stage',
-    'mark_completed',
-    'mark_cancelled',
-  ]
-  if (!validActions.includes(action)) {
+  if (!isAdminCaseAction(action)) {
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
   }
 
@@ -507,10 +487,9 @@ export async function executeAdminCaseAction(
       )
     }
 
-    const eligibleStatuses = ['student_approved', 'contacted', 'appointment_scheduled']
-    if (!eligibleStatuses.includes((currentCase.status || '').toLowerCase())) {
+    if (!canReturnCaseToPool(currentCase.status)) {
       return NextResponse.json(
-        { error: 'This case can no longer be returned to the pool from its current stage.' },
+        { error: LIFECYCLE_MESSAGES.RETURN_TO_POOL_INELIGIBLE },
         { status: 409 }
       )
     }
@@ -617,9 +596,9 @@ export async function executeAdminCaseAction(
       )
     }
 
-    if ((currentCase.status || '').toLowerCase() !== 'faculty_review') {
+    if (!canReleaseNextStage(currentCase.status)) {
       return NextResponse.json(
-        { error: 'Next stage routing is only available while the case is awaiting faculty review.' },
+        { error: LIFECYCLE_MESSAGES.RELEASE_ONLY_FACULTY_REVIEW },
         { status: 409 }
       )
     }
@@ -661,7 +640,7 @@ export async function executeAdminCaseAction(
         sequence: nextSequence,
         department,
         target_student_level: target_student_level ?? null,
-        status: 'released',
+        status: STAGE_STATUS.RELEASED,
         faculty_notes: clinical_notes ?? currentCase.clinical_notes ?? null,
         released_by: reviewedBy,
         released_at: reviewedAt,
@@ -718,16 +697,8 @@ export async function executeAdminCaseAction(
     })
   }
 
-  const lifecycleActions: Record<string, string> = {
-    mark_contacted: 'contacted',
-    mark_appointment_scheduled: 'appointment_scheduled',
-    mark_in_treatment: 'in_treatment',
-    mark_completed: 'completed',
-    mark_cancelled: 'cancelled',
-  }
-
-  if (action in lifecycleActions) {
-    const newStatus = lifecycleActions[action]
+  if (isAdminLifecycleAction(action)) {
+    const newStatus = ADMIN_LIFECYCLE_ACTION_TO_STATUS[action]
     const updatePayload: {
       status: string
       reviewed_by: string | null

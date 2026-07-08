@@ -6,6 +6,19 @@ import {
   type AuditRequestContext,
 } from '@/lib/audit/audit.service'
 import { createSupabaseAdminClient } from '@/lib/supabase-admin'
+import { getAuthorizedStageContext } from './case-stage-context'
+import {
+  canRescheduleFromStatus,
+  canSubmitStageForReview,
+  CASE_STATUS,
+  isStudentActor,
+  isStudentCaseAction,
+  LIFECYCLE_MESSAGES,
+  PLANNER_LIFECYCLE_STATE,
+  resolveStudentLifecycleTransition,
+  STAGE_STATUS,
+  type StudentCaseAction,
+} from './case-lifecycle'
 
 /**
  * Log the underlying failure server-side and return a stable, generic error
@@ -17,33 +30,11 @@ function logServerError(context: string, detail: string): string {
   return 'server_error'
 }
 
-type LifecycleAction = 'mark_contacted' | 'mark_appointment_scheduled' | 'mark_in_treatment'
-type StudentAction = LifecycleAction | 'reschedule_appointment' | 'submit_stage_for_review'
 type SupabaseAdminClient = ReturnType<typeof createSupabaseAdminClient>
-
-const VALID_ACTIONS: StudentAction[] = [
-  'mark_contacted',
-  'mark_appointment_scheduled',
-  'mark_in_treatment',
-  'reschedule_appointment',
-  'submit_stage_for_review',
-]
-
-const ACTION_TO_STATUS: Record<LifecycleAction, string> = {
-  mark_contacted: 'contacted',
-  mark_appointment_scheduled: 'appointment_scheduled',
-  mark_in_treatment: 'in_treatment',
-}
 
 const CASE_APPOINTMENT_SOURCE_KIND = 'case_appointment'
 const DEFAULT_APPOINTMENT_TIME = '09:00:00'
 const CLINIC_TIMEZONE_OFFSET = '+03:00'
-
-const EXPECTED_CURRENT_STATUS: Record<LifecycleAction, string> = {
-  mark_contacted: 'student_approved',
-  mark_appointment_scheduled: 'contacted',
-  mark_in_treatment: 'appointment_scheduled',
-}
 
 interface StudentActor {
   userId: string
@@ -93,139 +84,11 @@ function buildPlannerEventTitle(patientName: string | null) {
     : 'Scheduled appointment'
 }
 
-async function getAuthorizedStageContext({
-  supabase,
-  caseId,
-  studentId,
-}: {
-  supabase: SupabaseAdminClient
-  caseId: string
-  studentId: string
-}) {
-  const [
-    { data: approvedRequest, error: requestError },
-    { data: currentCase, error: currentCaseError },
-  ] = await Promise.all([
-    supabase
-      .from('student_case_requests')
-      .select('id, stage_id')
-      .eq('case_id', caseId)
-      .eq('student_id', studentId)
-      .eq('status', 'approved')
-      .maybeSingle(),
-    supabase
-      .from('patient_requests')
-      .select('status, full_name, current_stage_id, assigned_department')
-      .eq('id', caseId)
-      .maybeSingle(),
-  ])
-
-  if (requestError) {
-    return { context: null, response: { status: 500, body: { error: logServerError('[student-case-status] requestError', requestError.message) } } }
-  }
-
-  if (!approvedRequest) {
-    return {
-      context: null,
-      response: { status: 403, body: { error: 'No approved request found for this case.' } },
-    }
-  }
-
-  if (currentCaseError) {
-    return { context: null, response: { status: 500, body: { error: logServerError('[student-case-status] currentCaseError', currentCaseError.message) } } }
-  }
-
-  if (!currentCase) {
-    return { context: null, response: { status: 404, body: { error: 'Case not found.' } } }
-  }
-
-  const currentStageId = currentCase.current_stage_id ?? null
-  const requestStageId = approvedRequest.stage_id ?? null
-
-  if (currentStageId && requestStageId && currentStageId !== requestStageId) {
-    return {
-      context: null,
-      response: {
-        status: 409,
-        body: { error: 'This assignment belongs to a different routing stage.' },
-      },
-    }
-  }
-
-  const stageId = currentStageId ?? requestStageId
-  let stageDepartment = currentCase.assigned_department ?? null
-
-  if (stageId) {
-    const { data: currentStage, error: currentStageError } = await supabase
-      .from('case_routing_stages')
-      .select('id, department')
-      .eq('id', stageId)
-      .eq('case_id', caseId)
-      .maybeSingle()
-
-    if (currentStageError) {
-      return {
-        context: null,
-        response: { status: 500, body: { error: logServerError('[student-case-status] currentStageError', currentStageError.message) } },
-      }
-    }
-
-    if (!currentStage) {
-      return {
-        context: null,
-        response: { status: 409, body: { error: 'Routing stage not found.' } },
-      }
-    }
-
-    stageDepartment = currentStage.department ?? stageDepartment
-
-    if (!currentStageId) {
-      const { error: linkCaseStageError } = await supabase
-        .from('patient_requests')
-        .update({ current_stage_id: stageId })
-        .eq('id', caseId)
-        .is('current_stage_id', null)
-
-      if (linkCaseStageError) {
-        return {
-          context: null,
-          response: { status: 500, body: { error: logServerError('[student-case-status] linkCaseStageError', linkCaseStageError.message) } },
-        }
-      }
-    }
-
-    if (!requestStageId) {
-      const { error: linkRequestStageError } = await supabase
-        .from('student_case_requests')
-        .update({ stage_id: stageId })
-        .eq('id', approvedRequest.id)
-        .is('stage_id', null)
-
-      if (linkRequestStageError) {
-        return {
-          context: null,
-          response: { status: 500, body: { error: logServerError('[student-case-status] linkRequestStageError', linkRequestStageError.message) } },
-        }
-      }
-    }
-  }
-
-  return {
-    context: {
-      approvedRequestId: approvedRequest.id as string,
-      currentCase,
-      stageId: stageId as string | null,
-      stageDepartment,
-    },
-    response: null,
-  }
-}
-
 export async function updateStudentCaseStatus(
   input: UpdateStudentCaseStatusInput
 ): Promise<ServiceResponse> {
-  if (input.actor.role !== 'student') {
-    return { status: 403, body: { error: 'Forbidden' } }
+  if (!isStudentActor(input.actor.role)) {
+    return { status: 403, body: { error: LIFECYCLE_MESSAGES.FORBIDDEN } }
   }
 
   if (!input.body || typeof input.body !== 'object' || Array.isArray(input.body)) {
@@ -243,11 +106,11 @@ export async function updateStudentCaseStatus(
     next_appointment_time?: unknown
   }
 
-  if (!body.action || !VALID_ACTIONS.includes(body.action as StudentAction)) {
+  if (!body.action || !isStudentCaseAction(body.action)) {
     return { status: 400, body: { error: 'Invalid action' } }
   }
 
-  const action = body.action as StudentAction
+  const action = body.action as StudentCaseAction
   const appointmentDate =
     typeof body.appointment_date === 'string' ? body.appointment_date : undefined
   const appointmentTime =
@@ -298,10 +161,10 @@ export async function updateStudentCaseStatus(
   }
 
   if (action === 'reschedule_appointment') {
-    if (!['appointment_scheduled', 'in_treatment'].includes(context.currentCase.status)) {
+    if (!canRescheduleFromStatus(context.currentCase.status)) {
       return {
         status: 409,
-        body: { error: 'Rescheduling is only available for scheduled or active cases.' },
+        body: { error: LIFECYCLE_MESSAGES.RESCHEDULE_ONLY_SCHEDULED_OR_ACTIVE },
       }
     }
 
@@ -342,7 +205,7 @@ export async function updateStudentCaseStatus(
       .update({
         event_date: buildPlannerEventDate(appointmentDate!, appointmentTime),
         stage_id: context.stageId,
-        lifecycle_state: 'active',
+        lifecycle_state: PLANNER_LIFECYCLE_STATE.ACTIVE,
       })
       .eq('student_id', input.actor.userId)
       .eq('source_kind', CASE_APPOINTMENT_SOURCE_KIND)
@@ -380,17 +243,17 @@ export async function updateStudentCaseStatus(
   }
 
   if (action === 'submit_stage_for_review') {
-    if (context.currentCase.status !== 'in_treatment') {
+    if (!canSubmitStageForReview(context.currentCase.status)) {
       return {
         status: 409,
-        body: { error: 'Only cases in treatment can be submitted for faculty review.' },
+        body: { error: LIFECYCLE_MESSAGES.SUBMIT_ONLY_IN_TREATMENT },
       }
     }
 
     if (!context.stageId) {
       return {
         status: 409,
-        body: { error: 'A routing stage is required before submitting for faculty review.' },
+        body: { error: LIFECYCLE_MESSAGES.STAGE_REQUIRED_FOR_REVIEW },
       }
     }
 
@@ -399,7 +262,7 @@ export async function updateStudentCaseStatus(
     const { error: stageUpdateError } = await supabase
       .from('case_routing_stages')
       .update({
-        status: 'faculty_review',
+        status: STAGE_STATUS.FACULTY_REVIEW,
         stage_submitted_by: input.actor.userId,
         stage_submitted_at: submittedAt,
         updated_at: submittedAt,
@@ -414,7 +277,7 @@ export async function updateStudentCaseStatus(
     const { error: caseUpdateError } = await supabase
       .from('patient_requests')
       .update({
-        status: 'faculty_review',
+        status: CASE_STATUS.FACULTY_REVIEW,
         reviewed_by: input.actor.email,
         reviewed_at: submittedAt,
       })
@@ -429,24 +292,25 @@ export async function updateStudentCaseStatus(
       stageId: context.stageId,
       action,
       fromStatus: context.currentCase.status,
-      toStatus: 'faculty_review',
+      toStatus: CASE_STATUS.FACULTY_REVIEW,
       actorUserId: input.actor.userId,
       actorEmail: input.actor.email,
       context: input.context,
       supabase,
     })
 
-    return { status: 200, body: { success: true, data: { status: 'faculty_review' } } }
+    return { status: 200, body: { success: true, data: { status: CASE_STATUS.FACULTY_REVIEW } } }
   }
 
-  if (context.currentCase.status !== EXPECTED_CURRENT_STATUS[action]) {
+  const transition = resolveStudentLifecycleTransition(action, context.currentCase.status)
+  if (!transition.ok) {
     return {
       status: 409,
-      body: { error: 'This case is no longer in the expected stage for this action.' },
+      body: { error: transition.error },
     }
   }
 
-  const newStatus = ACTION_TO_STATUS[action]
+  const newStatus = transition.toStatus
   let progressEntry:
     | {
         id: string
@@ -517,7 +381,7 @@ export async function updateStudentCaseStatus(
           source_kind: CASE_APPOINTMENT_SOURCE_KIND,
           source_case_id: input.caseId,
           stage_id: context.stageId,
-          lifecycle_state: 'active',
+          lifecycle_state: PLANNER_LIFECYCLE_STATE.ACTIVE,
         },
         {
           onConflict: 'student_id,source_kind,source_case_id',

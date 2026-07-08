@@ -121,6 +121,9 @@ This file reflects the current checked-in app state.
 - Supabase RLS is used for browser-role reads and defense in depth.
 - Sensitive workflow writes are routed through DentBridge API/services with
   explicit authorization because the service role bypasses RLS.
+- Case lifecycle rules (statuses, transitions, actor permissions) are centralized
+  in `src/lib/cases/case-lifecycle.ts`; the sensitive case services consult it.
+  See `docs/CASE_LIFECYCLE.md`.
 - Legacy phone-only patient status RPC execution is revoked for browser-facing
   roles.
 - Patient uploads remain private and are accessed through audited signed URL

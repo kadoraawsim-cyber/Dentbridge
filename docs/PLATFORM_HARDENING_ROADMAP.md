@@ -730,6 +730,16 @@ Example:
 
 ## Phase 7 - Case Lifecycle State Machine
 
+### Implementation Status
+
+DONE. Implemented at `src/lib/cases/case-lifecycle.ts` (pure state machine) plus
+the shared `src/lib/cases/case-stage-context.ts` helper. The admin/student case
+services consult the module instead of local status/action maps and duplicated
+stage-authorization logic. No new statuses, schema, RLS, API shapes, UI,
+generated types, or test framework were introduced. See
+[CASE_LIFECYCLE.md](./CASE_LIFECYCLE.md). Formal transition tests are deferred to
+Phase 10.
+
 ### Goal
 
 Centralize all case statuses in one place.

@@ -205,6 +205,15 @@ Other important constraints include:
 - `otp_codes_attempts_check` (`attempts >= 0`)
 - `otp_codes_max_attempts_check` (`max_attempts > 0`)
 
+## Case Lifecycle Source Of Truth
+
+The database CHECK constraints above are the storage-layer source of truth for
+which status values are legal. The application-layer source of truth for case
+lifecycle rules — statuses, allowed transitions, actor permissions, and safe
+messages — is `src/lib/cases/case-lifecycle.ts` (Phase 7). It mirrors these
+constraints and must stay in sync with them; do not add a status in code without
+a supporting migration here. See [CASE_LIFECYCLE.md](./CASE_LIFECYCLE.md).
+
 ## Indexes
 
 Basic indexes cover the roadmap categories:

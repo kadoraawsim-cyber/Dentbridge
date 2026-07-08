@@ -5,6 +5,8 @@ import {
   type AuditRequestContext,
 } from '@/lib/audit/audit.service'
 import { createSupabaseAdminClient } from '@/lib/supabase-admin'
+import { getAuthorizedStageContext } from './case-stage-context'
+import { canAddProgressFromStatus, isStudentActor, LIFECYCLE_MESSAGES } from './case-lifecycle'
 
 /**
  * Log the underlying failure server-side and return a stable, generic error
@@ -45,138 +47,11 @@ function isValidTime(value: string | undefined) {
   return Boolean(value && /^\d{2}:\d{2}(:\d{2})?$/.test(value))
 }
 
-async function getAuthorizedStageContext({
-  supabase,
-  caseId,
-  studentId,
-}: {
-  supabase: SupabaseAdminClient
-  caseId: string
-  studentId: string
-}) {
-  const [
-    { data: approvedRequest, error: requestError },
-    { data: currentCase, error: currentCaseError },
-  ] = await Promise.all([
-    supabase
-      .from('student_case_requests')
-      .select('id, stage_id')
-      .eq('case_id', caseId)
-      .eq('student_id', studentId)
-      .eq('status', 'approved')
-      .maybeSingle(),
-    supabase
-      .from('patient_requests')
-      .select('status, current_stage_id, assigned_department')
-      .eq('id', caseId)
-      .maybeSingle(),
-  ])
-
-  if (requestError) {
-    return { context: null, response: { status: 500, body: { error: logServerError('[student-progress] requestError', requestError.message) } } }
-  }
-
-  if (!approvedRequest) {
-    return {
-      context: null,
-      response: { status: 403, body: { error: 'No approved request found for this case.' } },
-    }
-  }
-
-  if (currentCaseError) {
-    return { context: null, response: { status: 500, body: { error: logServerError('[student-progress] currentCaseError', currentCaseError.message) } } }
-  }
-
-  if (!currentCase) {
-    return { context: null, response: { status: 404, body: { error: 'Case not found.' } } }
-  }
-
-  const currentStageId = currentCase.current_stage_id ?? null
-  const requestStageId = approvedRequest.stage_id ?? null
-
-  if (currentStageId && requestStageId && currentStageId !== requestStageId) {
-    return {
-      context: null,
-      response: {
-        status: 409,
-        body: { error: 'This assignment belongs to a different routing stage.' },
-      },
-    }
-  }
-
-  const stageId = currentStageId ?? requestStageId
-  let stageDepartment = currentCase.assigned_department ?? null
-
-  if (stageId) {
-    const { data: currentStage, error: currentStageError } = await supabase
-      .from('case_routing_stages')
-      .select('id, department')
-      .eq('id', stageId)
-      .eq('case_id', caseId)
-      .maybeSingle()
-
-    if (currentStageError) {
-      return {
-        context: null,
-        response: { status: 500, body: { error: logServerError('[student-progress] currentStageError', currentStageError.message) } },
-      }
-    }
-
-    if (!currentStage) {
-      return {
-        context: null,
-        response: { status: 409, body: { error: 'Routing stage not found.' } },
-      }
-    }
-
-    stageDepartment = currentStage.department ?? stageDepartment
-
-    if (!currentStageId) {
-      const { error: linkCaseStageError } = await supabase
-        .from('patient_requests')
-        .update({ current_stage_id: stageId })
-        .eq('id', caseId)
-        .is('current_stage_id', null)
-
-      if (linkCaseStageError) {
-        return {
-          context: null,
-          response: { status: 500, body: { error: logServerError('[student-progress] linkCaseStageError', linkCaseStageError.message) } },
-        }
-      }
-    }
-
-    if (!requestStageId) {
-      const { error: linkRequestStageError } = await supabase
-        .from('student_case_requests')
-        .update({ stage_id: stageId })
-        .eq('id', approvedRequest.id)
-        .is('stage_id', null)
-
-      if (linkRequestStageError) {
-        return {
-          context: null,
-          response: { status: 500, body: { error: logServerError('[student-progress] linkRequestStageError', linkRequestStageError.message) } },
-        }
-      }
-    }
-  }
-
-  return {
-    context: {
-      currentCase,
-      stageId: stageId as string | null,
-      stageDepartment,
-    },
-    response: null,
-  }
-}
-
 export async function addStudentProgress(
   input: AddStudentProgressInput
 ): Promise<ServiceResponse> {
-  if (input.actor.role !== 'student') {
-    return { status: 403, body: { error: 'Forbidden' } }
+  if (!isStudentActor(input.actor.role)) {
+    return { status: 403, body: { error: LIFECYCLE_MESSAGES.FORBIDDEN } }
   }
 
   if (!input.body || typeof input.body !== 'object' || Array.isArray(input.body)) {
@@ -224,10 +99,10 @@ export async function addStudentProgress(
     return { status: 500, body: { error: 'Unable to load case context.' } }
   }
 
-  if (context.currentCase.status !== 'in_treatment') {
+  if (!canAddProgressFromStatus(context.currentCase.status)) {
     return {
       status: 409,
-      body: { error: 'Progress notes can only be added while the case is in treatment.' },
+      body: { error: LIFECYCLE_MESSAGES.PROGRESS_ONLY_IN_TREATMENT },
     }
   }
 
