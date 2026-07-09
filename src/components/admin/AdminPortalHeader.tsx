@@ -1,0 +1,92 @@
+'use client'
+
+import Image from 'next/image'
+import Link from 'next/link'
+import { LogOut, ShieldCheck } from 'lucide-react'
+import { useI18n } from '@/lib/i18n'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
+
+interface AdminPortalHeaderProps {
+  adminEmail: string
+  onSignOut: () => void
+  /**
+   * The triage list historically renders the email chip before the language
+   * switcher while the case detail renders the switcher first. Preserved as a
+   * prop so this Phase 8 extraction changes no visual order; unifying the
+   * order is a separate design decision.
+   */
+  emailBeforeSwitcher?: boolean
+}
+
+/**
+ * Shared header for the admin triage list and case detail screens (Phase 8
+ * dedup of two previously identical inline headers). The admin dashboard has
+ * its own richer header (profile dropdown) and does not use this component.
+ */
+export function AdminPortalHeader({
+  adminEmail,
+  onSignOut,
+  emailBeforeSwitcher = false,
+}: AdminPortalHeaderProps) {
+  const { t } = useI18n()
+
+  const emailChip = adminEmail ? (
+    <div className="hidden items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 sm:flex">
+      <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-teal-500" />
+      <span className="max-w-[200px] truncate">{adminEmail}</span>
+    </div>
+  ) : null
+
+  return (
+    <header className="border-b border-slate-200 bg-white">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+        <Link href="/" className="flex items-center gap-3">
+          <Image
+            src="/dentbridge-icon.webp"
+            alt="DentBridge icon"
+            width={40}
+            height={40}
+            className="h-10 w-10 object-contain"
+          />
+          <div>
+            <p className="text-lg font-bold leading-none text-slate-900">DentBridge</p>
+            <p className="text-[11px] uppercase tracking-wide text-slate-500">
+              {t('admin.shared.clinicalPlatform')}
+            </p>
+          </div>
+        </Link>
+
+        <nav className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
+          <Link href="/admin" className="hover:text-slate-900">
+            {t('admin.shared.navDashboard')}
+          </Link>
+          <Link href="/admin/requests" className="text-slate-900">
+            {t('admin.shared.navTriageReview')}
+          </Link>
+        </nav>
+
+        <div className="flex items-center gap-3">
+          {emailBeforeSwitcher ? (
+            <>
+              {emailChip}
+              <LanguageSwitcher />
+            </>
+          ) : (
+            <>
+              <LanguageSwitcher />
+              {emailChip}
+            </>
+          )}
+          <button
+            type="button"
+            onClick={onSignOut}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            {t('admin.shared.signOut')}
+          </button>
+        </div>
+      </div>
+    </header>
+  )
+}
