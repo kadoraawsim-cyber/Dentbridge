@@ -30,6 +30,8 @@ available for local development.
   mocked Supabase writes.
 - Student progress service authorization, lifecycle guard, and generic server
   error behavior.
+- Observability redaction, request context generation, error-monitor no-op
+  behavior, and the health endpoint response shape.
 
 These tests do not connect to Supabase. Route/service tests mock the service-role
 boundary and assert the behavior DentBridge owns.

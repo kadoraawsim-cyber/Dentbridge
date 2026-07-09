@@ -130,6 +130,10 @@ This file reflects the current checked-in app state.
 - Focused Vitest coverage protects lifecycle rules, patient upload/OTP
   primitives, patient request validation, public error mapping, and student
   progress guards. See `docs/TESTING.md`.
+- Structured operational logging, request correlation, a no-op error-monitoring
+  seam, and `/api/health` are implemented for Phase 11. Operational logs are
+  separate from audit logs and must remain PHI-free. See
+  `docs/OBSERVABILITY.md`.
 - Legacy phone-only patient status RPC execution is revoked for browser-facing
   roles.
 - Patient uploads remain private and are accessed through audited signed URL
@@ -149,6 +153,7 @@ This file reflects the current checked-in app state.
 - Vercel Speed Insights
 - Vitest
 - GitHub Actions CI
+- Structured operational logging
 
 ## Tables and Features In Use
 
@@ -179,6 +184,7 @@ This file reflects the current checked-in app state.
   `/api/v1/patient/status`.
 - File upload preparation, confirmation, and signed URL minting use
   `/api/v1/files/*`.
+- Health checks use `/api/health`.
 - Phase 6 profile, case workflow, progress, and planner mutations use
   DentBridge API/services rather than browser table writes.
 

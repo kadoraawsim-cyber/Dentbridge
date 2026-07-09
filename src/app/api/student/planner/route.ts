@@ -5,6 +5,13 @@ import {
   createStudentPlannerEvent,
   getStudentPlannerData,
 } from '@/lib/planner/student-planner.service'
+import { captureException } from '@/lib/observability/error-monitor'
+import {
+  createRequestContext,
+  logRequestEnd,
+  logRequestStart,
+  type RequestEndMetadata,
+} from '@/lib/observability/request-context'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 async function getAuthorizedStudent() {
@@ -26,44 +33,111 @@ async function getAuthorizedStudent() {
   return { user, response: undefined as NextResponse | undefined }
 }
 
-export async function GET(): Promise<NextResponse> {
-  const { user, response } = await getAuthorizedStudent()
-  if (response) return response
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const requestContext = createRequestContext(request, { route: 'api.student.planner.list' })
+  logRequestStart(requestContext)
+  const finish = (
+    response: NextResponse,
+    metadata?: Omit<RequestEndMetadata, 'statusCode'>
+  ): NextResponse => {
+    logRequestEnd(requestContext, { statusCode: response.status, ...metadata })
+    return response
   }
 
-  const result = await getStudentPlannerData({
-    actor: {
-      userId: user.id,
-      role: user.app_metadata?.role,
-    },
-  })
+  try {
+    const { user, response } = await getAuthorizedStudent()
+    if (response) return finish(response, { errorCode: response.status >= 400 ? 'auth_failed' : null })
+    if (!user) {
+      return finish(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), {
+        errorCode: 'unauthorized',
+      })
+    }
 
-  return NextResponse.json(result.body, { status: result.status })
+    const actorRole = typeof user.app_metadata?.role === 'string' ? user.app_metadata.role : null
+    const result = await getStudentPlannerData({
+      actor: {
+        userId: user.id,
+        role: actorRole,
+      },
+    })
+
+    return finish(NextResponse.json(result.body, { status: result.status }), {
+      actorRole,
+      errorCode: result.status >= 400 ? 'student_planner_list_failed' : null,
+    })
+  } catch (error) {
+    void captureException(error, {
+      correlationId: requestContext.correlationId,
+      requestId: requestContext.requestId,
+      route: requestContext.route,
+      actorType: 'student',
+      metadata: { error_code: 'server_error' },
+    })
+    logRequestEnd(requestContext, {
+      statusCode: 500,
+      errorCode: 'server_error',
+      outcome: 'failure',
+    })
+    throw error
+  }
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const { user, response } = await getAuthorizedStudent()
-  if (response) return response
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const requestContext = createRequestContext(request, { route: 'api.student.planner.create' })
+  logRequestStart(requestContext)
+  const finish = (
+    response: NextResponse,
+    metadata?: Omit<RequestEndMetadata, 'statusCode'>
+  ): NextResponse => {
+    logRequestEnd(requestContext, { statusCode: response.status, ...metadata })
+    return response
   }
 
-  let body: unknown
   try {
-    body = await request.json()
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+    const { user, response } = await getAuthorizedStudent()
+    if (response) return finish(response, { errorCode: response.status >= 400 ? 'auth_failed' : null })
+    if (!user) {
+      return finish(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), {
+        errorCode: 'unauthorized',
+      })
+    }
+
+    const actorRole = typeof user.app_metadata?.role === 'string' ? user.app_metadata.role : null
+    let body: unknown
+    try {
+      body = await request.json()
+    } catch {
+      return finish(NextResponse.json({ error: 'Invalid request body' }, { status: 400 }), {
+        actorRole,
+        errorCode: 'invalid_request',
+      })
+    }
+
+    const result = await createStudentPlannerEvent({
+      actor: {
+        userId: user.id,
+        role: actorRole,
+      },
+      body,
+    })
+
+    return finish(NextResponse.json(result.body, { status: result.status }), {
+      actorRole,
+      errorCode: result.status >= 400 ? 'student_planner_create_failed' : null,
+    })
+  } catch (error) {
+    void captureException(error, {
+      correlationId: requestContext.correlationId,
+      requestId: requestContext.requestId,
+      route: requestContext.route,
+      actorType: 'student',
+      metadata: { error_code: 'server_error' },
+    })
+    logRequestEnd(requestContext, {
+      statusCode: 500,
+      errorCode: 'server_error',
+      outcome: 'failure',
+    })
+    throw error
   }
-
-  const result = await createStudentPlannerEvent({
-    actor: {
-      userId: user.id,
-      role: user.app_metadata?.role,
-    },
-    body,
-  })
-
-  return NextResponse.json(result.body, { status: result.status })
 }

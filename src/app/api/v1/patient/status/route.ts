@@ -13,6 +13,13 @@ import {
   createAuditRequestContext,
   getPhoneLast4,
 } from '@/lib/audit/audit.service'
+import { captureException } from '@/lib/observability/error-monitor'
+import {
+  createRequestContext,
+  logRequestEnd,
+  logRequestStart,
+  type RequestEndMetadata,
+} from '@/lib/observability/request-context'
 import { OTP_CODE_LENGTH, verifyOtpCode } from '@/lib/otp/otp.service'
 import { normalizePatientStatusPhone } from '@/lib/patient-status/phone'
 
@@ -124,25 +131,46 @@ function isOtpUsable(row: OtpCodeRow, now: Date): boolean {
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const headerLocale = getHeaderLocale(request)
+  const requestContext = createRequestContext(request, { route: 'api.v1.patient.status.verify' })
+  logRequestStart(requestContext, { actor_type: 'anonymous' })
+  const finish = (
+    response: NextResponse,
+    metadata?: Omit<RequestEndMetadata, 'statusCode'>
+  ): NextResponse => {
+    logRequestEnd(requestContext, { statusCode: response.status, ...metadata })
+    return response
+  }
 
   try {
     if (!isAllowedSameOriginRequest(request)) {
-      return errorResponse('invalid_request', headerLocale)
+      return finish(errorResponse('invalid_request', headerLocale), {
+        actorType: 'anonymous',
+        errorCode: 'invalid_request',
+      })
     }
 
     if (!isJsonContentType(request)) {
-      return errorResponse('invalid_request', headerLocale, { status: 415 })
+      return finish(errorResponse('invalid_request', headerLocale, { status: 415 }), {
+        actorType: 'anonymous',
+        errorCode: 'invalid_request',
+      })
     }
 
     let body: unknown
     try {
       body = await request.json()
     } catch {
-      return errorResponse('invalid_request', headerLocale)
+      return finish(errorResponse('invalid_request', headerLocale), {
+        actorType: 'anonymous',
+        errorCode: 'invalid_request',
+      })
     }
 
     if (!body || typeof body !== 'object' || Array.isArray(body)) {
-      return errorResponse('invalid_request', headerLocale)
+      return finish(errorResponse('invalid_request', headerLocale), {
+        actorType: 'anonymous',
+        errorCode: 'invalid_request',
+      })
     }
 
     const { phone: rawPhone, otp: rawOtp, locale: rawLocale } = body as {
@@ -154,7 +182,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const phone = normalizePatientStatusPhone(rawPhone)
 
     if (!phone) {
-      return errorResponse('invalid_request', locale)
+      return finish(errorResponse('invalid_request', locale), {
+        actorType: 'anonymous',
+        errorCode: 'invalid_request',
+      })
     }
 
     const clientIp = getClientIp(request)
@@ -162,14 +193,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const phoneLast4 = getPhoneLast4(phone)
     const ipLimit = ipRateLimiter.check(clientIp)
     if (!ipLimit.allowed) {
-      return errorResponse('rate_limited', locale, { retryAfterSeconds: ipLimit.retryAfterSeconds })
+      return finish(
+        errorResponse('rate_limited', locale, { retryAfterSeconds: ipLimit.retryAfterSeconds }),
+        { actorType: 'anonymous', errorCode: 'rate_limited' }
+      )
     }
 
     const phoneLimit = phoneRateLimiter.check(phone)
     if (!phoneLimit.allowed) {
-      return errorResponse('rate_limited', locale, {
-        retryAfterSeconds: phoneLimit.retryAfterSeconds,
-      })
+      return finish(
+        errorResponse('rate_limited', locale, {
+          retryAfterSeconds: phoneLimit.retryAfterSeconds,
+        }),
+        { actorType: 'anonymous', errorCode: 'rate_limited' }
+      )
     }
 
     const admin = createSupabaseAdminClient()
@@ -200,7 +237,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         context: auditContext,
         supabase: admin,
       })
-      return errorResponse('verification_failed', locale)
+      return finish(errorResponse('verification_failed', locale), {
+        actorType: 'anonymous',
+        errorCode: 'verification_failed',
+      })
     }
 
     const verified = verifyOtpCode(rawOtp, latestOtp.code_hash)
@@ -214,7 +254,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         context: auditContext,
         supabase: admin,
       })
-      return errorResponse('verification_failed', locale)
+      return finish(errorResponse('verification_failed', locale), {
+        actorType: 'anonymous',
+        errorCode: 'verification_failed',
+      })
     }
 
     const { data: statusRow, error: statusLookupError } = await admin
@@ -238,7 +281,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         context: auditContext,
         supabase: admin,
       })
-      return errorResponse('verification_failed', locale)
+      return finish(errorResponse('verification_failed', locale), {
+        actorType: 'anonymous',
+        errorCode: 'verification_failed',
+      })
     }
 
     const consumedAt = new Date().toISOString()
@@ -261,11 +307,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       supabase: admin,
     })
 
-    return successResponse(statusRow)
+    return finish(successResponse(statusRow), { actorType: 'anonymous' })
   } catch (error) {
-    console.error('[patient-status] Unexpected error', {
-      error: error instanceof Error ? error.message : 'Unknown error',
+    void captureException(error, {
+      actorType: 'anonymous',
+      correlationId: requestContext.correlationId,
+      requestId: requestContext.requestId,
+      route: requestContext.route,
+      metadata: { error_code: 'server_error' },
     })
-    return errorResponse('server_error', headerLocale)
+    return finish(errorResponse('server_error', headerLocale), {
+      actorType: 'anonymous',
+      errorCode: 'server_error',
+    })
   }
 }

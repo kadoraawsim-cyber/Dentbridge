@@ -294,6 +294,19 @@ Dashboard:
 - Confirm main dashboard pages render without auth or data errors.
 - Confirm no new public API errors appear in browser console for normal flows.
 
+Observability:
+
+- Confirm `GET /api/health` returns `status: ok`, an ISO timestamp,
+  environment, version commit if available, and shallow app readiness only.
+- Confirm API logs include stable `api.request.start` / `api.request.end`
+  events with request/correlation IDs, route, status, and duration.
+- Confirm operational logs do not include patient names, full phone numbers,
+  OTPs, OTP hashes, passwords, tokens, signed URLs, upload tickets, complaint
+  text, medical condition details, clinical notes, attachment paths, object
+  paths, filenames, or raw request bodies.
+- Confirm audit logging remains separate from operational logging; use audit
+  rows for accountability and structured logs for debugging.
+
 Planner:
 
 - Confirm student planner loads.

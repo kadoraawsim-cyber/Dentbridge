@@ -17,6 +17,14 @@ import {
   attachConfirmedFileToPatientRequest,
   deletePreparedFileObject,
 } from '@/lib/files/files.service'
+import { captureException } from '@/lib/observability/error-monitor'
+import { logger } from '@/lib/observability/logger'
+import {
+  createRequestContext,
+  logRequestEnd,
+  logRequestStart,
+  type RequestEndMetadata,
+} from '@/lib/observability/request-context'
 
 export const runtime = 'nodejs'
 
@@ -302,48 +310,78 @@ function errorResponse(
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const headerLocale = getHeaderLocale(request)
+  const requestContext = createRequestContext(request, { route: 'api.v1.patient.requests' })
+  logRequestStart(requestContext, { actor_type: 'anonymous' })
+  const finish = (
+    response: NextResponse,
+    metadata?: Omit<RequestEndMetadata, 'statusCode'>
+  ): NextResponse => {
+    logRequestEnd(requestContext, { statusCode: response.status, ...metadata })
+    return response
+  }
 
   try {
     if (!isAllowedSameOriginRequest(request)) {
-      return errorResponse('invalid_request', headerLocale)
+      return finish(errorResponse('invalid_request', headerLocale), {
+        actorType: 'anonymous',
+        errorCode: 'invalid_request',
+      })
     }
 
     if (!isJsonContentType(request)) {
-      return errorResponse('invalid_request', headerLocale, { status: 415 })
+      return finish(errorResponse('invalid_request', headerLocale, { status: 415 }), {
+        actorType: 'anonymous',
+        errorCode: 'invalid_request',
+      })
     }
 
     const clientIp = getClientIp(request)
     const auditContext = createAuditRequestContext(request, { ipAddress: clientIp })
     const ipLimit = ipRateLimiter.check(clientIp)
     if (!ipLimit.allowed) {
-      return errorResponse('rate_limited', headerLocale, {
-        retryAfterSeconds: ipLimit.retryAfterSeconds,
-      })
+      return finish(
+        errorResponse('rate_limited', headerLocale, {
+          retryAfterSeconds: ipLimit.retryAfterSeconds,
+        }),
+        { actorType: 'anonymous', errorCode: 'rate_limited' }
+      )
     }
 
     let body: unknown
     try {
       body = await request.json()
     } catch {
-      return errorResponse('invalid_request', headerLocale)
+      return finish(errorResponse('invalid_request', headerLocale), {
+        actorType: 'anonymous',
+        errorCode: 'invalid_request',
+      })
     }
 
     if (!body || typeof body !== 'object' || Array.isArray(body)) {
-      return errorResponse('invalid_request', headerLocale)
+      return finish(errorResponse('invalid_request', headerLocale), {
+        actorType: 'anonymous',
+        errorCode: 'invalid_request',
+      })
     }
 
     const payload = body as PatientRequestPayload
     const locale = resolveLocale(payload.locale, headerLocale)
     const validated = validatePayload(payload)
     if (!validated) {
-      return errorResponse('invalid_request', locale)
+      return finish(errorResponse('invalid_request', locale), {
+        actorType: 'anonymous',
+        errorCode: 'invalid_request',
+      })
     }
 
     const phoneLimit = phoneRateLimiter.check(validated.phone)
     if (!phoneLimit.allowed) {
-      return errorResponse('rate_limited', locale, {
-        retryAfterSeconds: phoneLimit.retryAfterSeconds,
-      })
+      return finish(
+        errorResponse('rate_limited', locale, {
+          retryAfterSeconds: phoneLimit.retryAfterSeconds,
+        }),
+        { actorType: 'anonymous', errorCode: 'rate_limited' }
+      )
     }
 
     const admin = createSupabaseAdminClient()
@@ -410,13 +448,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           .eq('id', patientRequestId)
 
         if (cleanupError) {
-          console.error('[patient-request] Failed to clean up request after file attach failure', {
-            patientRequestId,
-            error: cleanupError.message,
+          logger.error('patient_request.cleanup_failed', {
+            actorType: 'anonymous',
+            correlationId: requestContext.correlationId,
+            requestId: requestContext.requestId,
+            route: requestContext.route,
+            metadata: {
+              cleanup_stage: 'file_attach_failure',
+              error_code: 'cleanup_failed',
+            },
           })
         }
 
-        return errorResponse('invalid_request', locale)
+        return finish(errorResponse('invalid_request', locale), {
+          actorType: 'anonymous',
+          errorCode: 'invalid_request',
+        })
       }
 
       linkedFileId = attachResult.data.fileId
@@ -442,9 +489,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           .eq('id', patientRequestId)
 
         if (cleanupError) {
-          console.error('[patient-request] Failed to clean up request after file link failure', {
-            patientRequestId,
-            error: cleanupError.message,
+          logger.error('patient_request.cleanup_failed', {
+            actorType: 'anonymous',
+            correlationId: requestContext.correlationId,
+            requestId: requestContext.requestId,
+            route: requestContext.route,
+            metadata: {
+              cleanup_stage: 'file_link_failure',
+              error_code: 'cleanup_failed',
+            },
           })
         }
 
@@ -490,9 +543,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     ])
 
     if (consentError) {
-      console.error('[patient-request] Failed to create consent records', {
-        patientRequestId,
-        error: consentError.message,
+      logger.error('patient_request.consent_records_failed', {
+        actorType: 'anonymous',
+        correlationId: requestContext.correlationId,
+        requestId: requestContext.requestId,
+        route: requestContext.route,
+        metadata: {
+          error_code: 'consent_records_failed',
+        },
       })
 
       if (validated.fileId && validated.fileTicket) {
@@ -509,9 +567,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         .eq('id', patientRequestId)
 
       if (cleanupError) {
-        console.error('[patient-request] Failed to clean up request after consent failure', {
-          patientRequestId,
-          error: cleanupError.message,
+        logger.error('patient_request.cleanup_failed', {
+          actorType: 'anonymous',
+          correlationId: requestContext.correlationId,
+          requestId: requestContext.requestId,
+          route: requestContext.route,
+          metadata: {
+            cleanup_stage: 'consent_failure',
+            error_code: 'cleanup_failed',
+          },
         })
       }
 
@@ -528,11 +592,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       supabase: admin,
     })
 
-    return NextResponse.json({ success: true }, { status: 200, headers: SECURITY_HEADERS })
+    return finish(
+      NextResponse.json({ success: true }, { status: 200, headers: SECURITY_HEADERS }),
+      { actorType: 'anonymous' }
+    )
   } catch (error) {
-    console.error('[patient-request] Unexpected error', {
-      error: error instanceof Error ? error.message : 'Unknown error',
+    void captureException(error, {
+      actorType: 'anonymous',
+      correlationId: requestContext.correlationId,
+      requestId: requestContext.requestId,
+      route: requestContext.route,
+      metadata: { error_code: 'server_error' },
     })
-    return errorResponse('server_error', headerLocale)
+    return finish(errorResponse('server_error', headerLocale), {
+      actorType: 'anonymous',
+      errorCode: 'server_error',
+    })
   }
 }

@@ -9,6 +9,13 @@ import { createRateLimiter, getClientIp } from '@/lib/api/rate-limit'
 import { isAllowedSameOriginRequest } from '@/lib/api/same-origin'
 import { createAuditRequestContext } from '@/lib/audit/audit.service'
 import { confirmUpload } from '@/lib/files/files.service'
+import { captureException } from '@/lib/observability/error-monitor'
+import {
+  createRequestContext,
+  logRequestEnd,
+  logRequestStart,
+  type RequestEndMetadata,
+} from '@/lib/observability/request-context'
 
 // node:crypto (ticket/service) and the service-role client require Node.js.
 export const runtime = 'nodejs'
@@ -68,16 +75,31 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   const headerLocale = getHeaderLocale(request)
+  const requestContext = createRequestContext(request, { route: 'api.v1.files.confirm' })
+  logRequestStart(requestContext, { actor_type: 'anonymous' })
+  const finish = (
+    response: NextResponse,
+    metadata?: Omit<RequestEndMetadata, 'statusCode'>
+  ): NextResponse => {
+    logRequestEnd(requestContext, { statusCode: response.status, ...metadata })
+    return response
+  }
 
   try {
     const { id } = await params
 
     if (!isAllowedSameOriginRequest(request)) {
-      return errorResponse('invalid_request', headerLocale)
+      return finish(errorResponse('invalid_request', headerLocale), {
+        actorType: 'anonymous',
+        errorCode: 'invalid_request',
+      })
     }
 
     if (!isJsonContentType(request)) {
-      return errorResponse('invalid_request', headerLocale, { status: 415 })
+      return finish(errorResponse('invalid_request', headerLocale, { status: 415 }), {
+        actorType: 'anonymous',
+        errorCode: 'invalid_request',
+      })
     }
 
     const clientIp = getClientIp(request)
@@ -85,27 +107,39 @@ export async function POST(
 
     const ipLimit = ipRateLimiter.check(clientIp)
     if (!ipLimit.allowed) {
-      return errorResponse('rate_limited', headerLocale, {
-        retryAfterSeconds: ipLimit.retryAfterSeconds,
-      })
+      return finish(
+        errorResponse('rate_limited', headerLocale, {
+          retryAfterSeconds: ipLimit.retryAfterSeconds,
+        }),
+        { actorType: 'anonymous', errorCode: 'rate_limited' }
+      )
     }
 
     let body: unknown
     try {
       body = await request.json()
     } catch {
-      return errorResponse('invalid_request', headerLocale)
+      return finish(errorResponse('invalid_request', headerLocale), {
+        actorType: 'anonymous',
+        errorCode: 'invalid_request',
+      })
     }
 
     if (!body || typeof body !== 'object' || Array.isArray(body)) {
-      return errorResponse('invalid_request', headerLocale)
+      return finish(errorResponse('invalid_request', headerLocale), {
+        actorType: 'anonymous',
+        errorCode: 'invalid_request',
+      })
     }
 
     const { ticket, locale: rawLocale } = body as { ticket?: unknown; locale?: unknown }
     const locale = resolveLocale(rawLocale, headerLocale)
 
     if (!id) {
-      return errorResponse('invalid_request', locale)
+      return finish(errorResponse('invalid_request', locale), {
+        actorType: 'anonymous',
+        errorCode: 'invalid_request',
+      })
     }
 
     const result = await confirmUpload({
@@ -116,17 +150,31 @@ export async function POST(
     })
 
     if (!result.ok) {
-      return errorResponse(mapServiceError(result.reason), locale)
+      const errorCode = mapServiceError(result.reason)
+      return finish(errorResponse(errorCode, locale), {
+        actorType: 'anonymous',
+        errorCode,
+      })
     }
 
-    return NextResponse.json(
-      { success: true, ...result.data },
-      { status: 200, headers: SECURITY_HEADERS }
+    return finish(
+      NextResponse.json(
+        { success: true, ...result.data },
+        { status: 200, headers: SECURITY_HEADERS }
+      ),
+      { actorType: 'anonymous' }
     )
   } catch (error) {
-    console.error('[files:confirm] Unexpected error', {
-      error: error instanceof Error ? error.message : 'Unknown error',
+    void captureException(error, {
+      correlationId: requestContext.correlationId,
+      requestId: requestContext.requestId,
+      route: requestContext.route,
+      actorType: 'anonymous',
+      metadata: { error_code: 'server_error' },
     })
-    return errorResponse('server_error', headerLocale)
+    return finish(errorResponse('server_error', headerLocale), {
+      actorType: 'anonymous',
+      errorCode: 'server_error',
+    })
   }
 }

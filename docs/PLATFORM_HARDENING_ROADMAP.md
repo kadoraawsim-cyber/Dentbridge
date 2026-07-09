@@ -1099,6 +1099,17 @@ Minimum test coverage must exist before Phase 8 large refactoring.
 
 ## Phase 11 - Monitoring + Logging
 
+### Implementation Status
+
+DONE. Phase 11 added `src/lib/observability/logger.ts`,
+`request-context.ts`, and `error-monitor.ts`; instrumented the critical patient,
+file, admin case, student case, and planner API routes with structured
+PHI-free operational request logs; added `GET /api/health`; documented the
+logging policy in [OBSERVABILITY.md](./OBSERVABILITY.md); and added focused
+tests for redaction, request context, error-monitor no-op behavior, and health
+response shape. Sentry/external monitoring, uptime provider setup, database
+health probing, retention policy, and dashboards are intentionally deferred.
+
 ### Goal
 
 Know when the site breaks, where, and why.

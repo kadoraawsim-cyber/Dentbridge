@@ -11,6 +11,13 @@ import { createRateLimiter, getClientIp } from '@/lib/api/rate-limit'
 import { isAllowedSameOriginRequest } from '@/lib/api/same-origin'
 import { createAuditRequestContext } from '@/lib/audit/audit.service'
 import { createPatientFileSignedUrl } from '@/lib/files/files.service'
+import { captureException } from '@/lib/observability/error-monitor'
+import {
+  createRequestContext,
+  logRequestEnd,
+  logRequestStart,
+  type RequestEndMetadata,
+} from '@/lib/observability/request-context'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 export const runtime = 'nodejs'
@@ -62,41 +69,63 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   const headerLocale = getHeaderLocale(request)
+  const requestContext = createRequestContext(request, { route: 'api.v1.files.signed_url' })
+  logRequestStart(requestContext)
+  const finish = (
+    response: NextResponse,
+    metadata?: Omit<RequestEndMetadata, 'statusCode'>
+  ): NextResponse => {
+    logRequestEnd(requestContext, { statusCode: response.status, ...metadata })
+    return response
+  }
 
   try {
     const { id } = await params
 
     if (!isAllowedSameOriginRequest(request)) {
-      return errorResponse('invalid_request', headerLocale)
+      return finish(errorResponse('invalid_request', headerLocale), {
+        errorCode: 'invalid_request',
+      })
     }
 
     if (!isJsonContentType(request)) {
-      return errorResponse('invalid_request', headerLocale, { status: 415 })
+      return finish(errorResponse('invalid_request', headerLocale, { status: 415 }), {
+        errorCode: 'invalid_request',
+      })
     }
 
     const clientIp = getClientIp(request)
     const auditContext = createAuditRequestContext(request, { ipAddress: clientIp })
     const ipLimit = ipRateLimiter.check(clientIp)
     if (!ipLimit.allowed) {
-      return errorResponse('rate_limited', headerLocale, {
-        retryAfterSeconds: ipLimit.retryAfterSeconds,
-      })
+      return finish(
+        errorResponse('rate_limited', headerLocale, {
+          retryAfterSeconds: ipLimit.retryAfterSeconds,
+        }),
+        { errorCode: 'rate_limited' }
+      )
     }
 
     let body: unknown
     try {
       body = await request.json()
     } catch {
-      return errorResponse('invalid_request', headerLocale)
+      return finish(errorResponse('invalid_request', headerLocale), {
+        errorCode: 'invalid_request',
+      })
     }
 
     if (!body || typeof body !== 'object' || Array.isArray(body)) {
-      return errorResponse('invalid_request', headerLocale)
+      return finish(errorResponse('invalid_request', headerLocale), {
+        errorCode: 'invalid_request',
+      })
     }
 
     const purpose = parsePurpose((body as { purpose?: unknown }).purpose)
     if (!id || !purpose) {
-      return errorResponse('invalid_request', headerLocale)
+      return finish(errorResponse('invalid_request', headerLocale), {
+        errorCode: 'invalid_request',
+      })
     }
 
     const cookieStore = await cookies()
@@ -106,30 +135,45 @@ export async function POST(
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return errorResponse('invalid_request', headerLocale, { status: 401 })
+      return finish(errorResponse('invalid_request', headerLocale, { status: 401 }), {
+        errorCode: 'unauthorized',
+      })
     }
+    const actorRole = typeof user.app_metadata?.role === 'string' ? user.app_metadata.role : null
 
     const result = await createPatientFileSignedUrl({
       fileId: id,
       purpose,
       actorUserId: user.id,
       actorEmail: user.email,
-      actorRole: user.app_metadata?.role,
+      actorRole,
       context: auditContext,
     })
 
     if (!result.ok) {
-      return errorResponse(mapServiceError(result.reason), headerLocale)
+      const errorCode = mapServiceError(result.reason)
+      return finish(errorResponse(errorCode, headerLocale), {
+        actorRole,
+        errorCode,
+      })
     }
 
-    return NextResponse.json(
-      { success: true, ...result.data },
-      { status: 200, headers: SECURITY_HEADERS }
+    return finish(
+      NextResponse.json(
+        { success: true, ...result.data },
+        { status: 200, headers: SECURITY_HEADERS }
+      ),
+      { actorRole }
     )
   } catch (error) {
-    console.error('[files:signed-url] Unexpected error', {
-      error: error instanceof Error ? error.message : 'Unknown error',
+    void captureException(error, {
+      correlationId: requestContext.correlationId,
+      requestId: requestContext.requestId,
+      route: requestContext.route,
+      metadata: { error_code: 'server_error' },
     })
-    return errorResponse('server_error', headerLocale)
+    return finish(errorResponse('server_error', headerLocale), {
+      errorCode: 'server_error',
+    })
   }
 }

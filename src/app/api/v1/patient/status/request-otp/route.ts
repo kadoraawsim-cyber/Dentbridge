@@ -19,6 +19,14 @@ import {
   hashOtpCode,
   OTP_TTL_MINUTES,
 } from '@/lib/otp/otp.service'
+import { captureException } from '@/lib/observability/error-monitor'
+import { logger } from '@/lib/observability/logger'
+import {
+  createRequestContext,
+  logRequestEnd,
+  logRequestStart,
+  type RequestEndMetadata,
+} from '@/lib/observability/request-context'
 import { getSmsSender } from '@/lib/otp/sms-sender'
 import { normalizePatientStatusPhone } from '@/lib/patient-status/phone'
 
@@ -100,27 +108,50 @@ function errorResponse(
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const headerLocale = getHeaderLocale(request)
+  const requestContext = createRequestContext(request, {
+    route: 'api.v1.patient.status.request_otp',
+  })
+  logRequestStart(requestContext, { actor_type: 'anonymous' })
+  const finish = (
+    response: NextResponse,
+    metadata?: Omit<RequestEndMetadata, 'statusCode'>
+  ): NextResponse => {
+    logRequestEnd(requestContext, { statusCode: response.status, ...metadata })
+    return response
+  }
 
   try {
     // ── 1. Same-origin browser request guard ────────────────────────────────
     if (!isAllowedSameOriginRequest(request)) {
-      return errorResponse('invalid_request', headerLocale)
+      return finish(errorResponse('invalid_request', headerLocale), {
+        actorType: 'anonymous',
+        errorCode: 'invalid_request',
+      })
     }
 
     // ── 2. Content-Type + body parsing ───────────────────────────────────────
     if (!isJsonContentType(request)) {
-      return errorResponse('invalid_request', headerLocale, { status: 415 })
+      return finish(errorResponse('invalid_request', headerLocale, { status: 415 }), {
+        actorType: 'anonymous',
+        errorCode: 'invalid_request',
+      })
     }
 
     let body: unknown
     try {
       body = await request.json()
     } catch {
-      return errorResponse('invalid_request', headerLocale)
+      return finish(errorResponse('invalid_request', headerLocale), {
+        actorType: 'anonymous',
+        errorCode: 'invalid_request',
+      })
     }
 
     if (!body || typeof body !== 'object' || Array.isArray(body)) {
-      return errorResponse('invalid_request', headerLocale)
+      return finish(errorResponse('invalid_request', headerLocale), {
+        actorType: 'anonymous',
+        errorCode: 'invalid_request',
+      })
     }
 
     const { phone: rawPhone, locale: rawLocale } = body as { phone?: unknown; locale?: unknown }
@@ -130,7 +161,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // ── 3. Phone validation (format only — not existence) ────────────────────
     const phone = normalizePatientStatusPhone(rawPhone)
     if (!phone) {
-      return errorResponse('invalid_request', locale)
+      return finish(errorResponse('invalid_request', locale), {
+        actorType: 'anonymous',
+        errorCode: 'invalid_request',
+      })
     }
 
     // ── 4. Rate limiting by IP then phone (identical response for all phones) ─
@@ -139,14 +173,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const ipLimit = ipRateLimiter.check(clientIp)
     if (!ipLimit.allowed) {
-      return errorResponse('rate_limited', locale, { retryAfterSeconds: ipLimit.retryAfterSeconds })
+      return finish(
+        errorResponse('rate_limited', locale, { retryAfterSeconds: ipLimit.retryAfterSeconds }),
+        { actorType: 'anonymous', errorCode: 'rate_limited' }
+      )
     }
 
     const phoneLimit = phoneRateLimiter.check(phone)
     if (!phoneLimit.allowed) {
-      return errorResponse('rate_limited', locale, {
-        retryAfterSeconds: phoneLimit.retryAfterSeconds,
-      })
+      return finish(
+        errorResponse('rate_limited', locale, {
+          retryAfterSeconds: phoneLimit.retryAfterSeconds,
+        }),
+        { actorType: 'anonymous', errorCode: 'rate_limited' }
+      )
     }
 
     // ── 5. Existence lookup (service role; bypasses RLS) ─────────────────────
@@ -197,13 +237,32 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         smsProvider = sendResult.provider
 
         if (!sendResult.delivered) {
-          console.warn('[request-otp] OTP was not delivered by the SMS sender', {
-            provider: sendResult.provider,
+          logger.warn('patient_status.otp_delivery_failed', {
+            actorType: 'anonymous',
+            correlationId: requestContext.correlationId,
+            requestId: requestContext.requestId,
+            route: requestContext.route,
+            metadata: {
+              provider: sendResult.provider,
+            },
           })
         }
       } catch (issueError) {
-        console.error('[request-otp] Failed to issue OTP for an existing request', {
-          error: issueError instanceof Error ? issueError.message : 'Unknown error',
+        void captureException(issueError, {
+          actorType: 'anonymous',
+          correlationId: requestContext.correlationId,
+          requestId: requestContext.requestId,
+          route: requestContext.route,
+          metadata: { error_code: 'otp_issue_failed' },
+        })
+        logger.error('patient_status.otp_issue_failed', {
+          actorType: 'anonymous',
+          correlationId: requestContext.correlationId,
+          requestId: requestContext.requestId,
+          route: requestContext.route,
+          metadata: {
+            error_code: 'otp_issue_failed',
+          },
         })
       }
     }
@@ -219,11 +278,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     })
 
     // ── 7. Identical generic success ─────────────────────────────────────────
-    return successResponse(locale)
+    return finish(successResponse(locale), { actorType: 'anonymous' })
   } catch (error) {
-    console.error('[request-otp] Unexpected error', {
-      error: error instanceof Error ? error.message : 'Unknown error',
+    void captureException(error, {
+      actorType: 'anonymous',
+      correlationId: requestContext.correlationId,
+      requestId: requestContext.requestId,
+      route: requestContext.route,
+      metadata: { error_code: 'server_error' },
     })
-    return errorResponse('server_error', headerLocale)
+    return finish(errorResponse('server_error', headerLocale), {
+      actorType: 'anonymous',
+      errorCode: 'server_error',
+    })
   }
 }

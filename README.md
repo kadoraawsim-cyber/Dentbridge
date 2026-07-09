@@ -117,12 +117,16 @@ npm run build
 ```
 
 See [docs/TESTING.md](./docs/TESTING.md) for the Phase 10 test and CI setup.
+See [docs/OBSERVABILITY.md](./docs/OBSERVABILITY.md) for structured logging,
+health checks, and safe production debugging.
 
 ## Important Directories
 
 - `src/app` - routes, pages, and route handlers
 - `src/components` - shared UI components
 - `src/lib` - Supabase clients, roles, chat context, and i18n
+- `src/lib/observability` - structured operational logging, request context,
+  and error-monitoring seam
 - `tests` - focused Vitest tests for lifecycle, security, and patient workflows
 - `supabase/migrations` - checked-in SQL migrations and policy changes
 - `.github/workflows` - CI verification workflow
