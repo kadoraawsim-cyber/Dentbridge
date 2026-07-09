@@ -21,9 +21,6 @@ const FILE_SIGNATURES: readonly FileSignature[] = [
   { mime: 'application/pdf', bytes: [0x25, 0x50, 0x44, 0x46, 0x2d] }, // "%PDF-"
 ]
 
-/** Number of leading bytes required to identify any supported type. */
-export const MAGIC_BYTES_PREFIX_LENGTH = 8
-
 /**
  * Return the detected MIME type from the leading bytes, or null if the prefix
  * does not match any supported signature.

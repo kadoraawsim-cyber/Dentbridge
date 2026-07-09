@@ -1,3 +1,5 @@
+import 'server-only'
+
 /**
  * Same-origin guard for public POST endpoints.
  *
@@ -44,7 +46,7 @@ function isLocalDevelopmentOrigin(origin: string): boolean {
   }
 }
 
-export function getAllowedSameOrigins(env: NodeJS.ProcessEnv = process.env): Set<string> {
+function getAllowedSameOrigins(env: NodeJS.ProcessEnv = process.env): Set<string> {
   const origins = new Set<string>()
 
   addConfiguredOrigin(origins, env.APP_URL)

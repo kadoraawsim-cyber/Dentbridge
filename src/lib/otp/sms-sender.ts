@@ -6,9 +6,12 @@
  * without touching callers — consistent with the database/vendor portability
  * principle in the hardening roadmap.
  *
- * This commit ships ONLY the interface and a dev/mock sender. No paid provider
- * (Twilio or otherwise) is integrated yet; that is a later Phase 3 commit.
+ * Only the interface and a dev/mock sender exist today; no real provider is
+ * integrated. This is intentional, documented technical debt: in production the
+ * mock sender fails closed (reports `delivered: false`) instead of delivering.
  */
+
+import 'server-only'
 
 export interface SmsMessage {
   /** Destination phone number in combined E.164-style form (e.g. +90...). */
@@ -51,7 +54,7 @@ function redactPhone(phone: string): string {
  * `delivered: false`, so a misconfiguration (no real provider wired) fails
  * closed rather than silently swallowing codes.
  */
-export function createMockSmsSender(): SmsSender {
+function createMockSmsSender(): SmsSender {
   return {
     name: 'mock',
     async send(message: SmsMessage): Promise<SmsSendResult> {
@@ -75,11 +78,9 @@ export function createMockSmsSender(): SmsSender {
 }
 
 /**
- * Resolve the SMS sender to use.
- *
- * Placeholder for Phase 3 Commit 2: only the mock sender exists. A real provider
- * will be wired behind this same function in a later commit. Do not integrate a
- * paid provider here.
+ * Resolve the SMS sender to use. Only the mock sender exists; a real provider
+ * must be wired behind this same function before OTP delivery can work in
+ * production.
  */
 export function getSmsSender(): SmsSender {
   return createMockSmsSender()

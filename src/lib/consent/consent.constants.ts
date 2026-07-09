@@ -3,8 +3,6 @@ export const CONSENT_TYPES = {
   EXPLICIT_CONSENT: 'explicit_consent',
 } as const
 
-export type ConsentType = (typeof CONSENT_TYPES)[keyof typeof CONSENT_TYPES]
-
 export const CONSENT_STATUS = {
   ACCEPTED: 'accepted',
 } as const

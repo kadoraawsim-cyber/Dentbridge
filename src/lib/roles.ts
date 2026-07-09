@@ -20,10 +20,6 @@ export function isAdminRole(value: unknown): value is 'admin' {
   return value === 'admin'
 }
 
-export function isRecognizedRole(value: unknown): value is AppRole {
-  return getAppRole(value) !== null
-}
-
 export function canAccessFacultyPortal(value: unknown): value is 'faculty' | 'admin' {
   return value === 'faculty' || value === 'admin'
 }

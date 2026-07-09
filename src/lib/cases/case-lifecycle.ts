@@ -85,9 +85,6 @@ export const PLANNER_LIFECYCLE_STATE = {
   CANCELLED: 'cancelled',
 } as const
 
-export type PlannerLifecycleState =
-  (typeof PLANNER_LIFECYCLE_STATE)[keyof typeof PLANNER_LIFECYCLE_STATE]
-
 // ─── Actions ────────────────────────────────────────────────────────────────
 
 /** Student lifecycle actions that advance the case status directly. */
@@ -229,12 +226,6 @@ export function isStudentRequestStatus(value: unknown): value is StudentRequestS
 
 export function isStudentCaseAction(value: unknown): value is StudentCaseAction {
   return typeof value === 'string' && (STUDENT_CASE_ACTIONS as readonly string[]).includes(value)
-}
-
-export function isStudentLifecycleAction(value: unknown): value is StudentLifecycleAction {
-  return (
-    typeof value === 'string' && (STUDENT_LIFECYCLE_ACTIONS as readonly string[]).includes(value)
-  )
 }
 
 export function isAdminCaseAction(value: unknown): value is AdminCaseAction {

@@ -1,11 +1,11 @@
 /**
  * OTP service primitives for secure patient status verification.
  *
- * Responsibilities in this commit are intentionally limited to pure, stateless
- * primitives: generating a numeric code, hashing it with a server-only secret,
- * verifying a code against a stored hash, and computing expiry. Persistence,
- * attempt counting, and delivery are handled by the upcoming OTP endpoints and
- * the `otp_codes` table (Commit 1) / SMS sender.
+ * This module is intentionally limited to pure, stateless primitives:
+ * generating a numeric code, hashing it with a server-only secret, verifying a
+ * code against a stored hash, and computing expiry. Persistence and attempt
+ * counting live in the patient status routes and the `otp_codes` table;
+ * delivery lives in the SMS sender.
  *
  * Security rules enforced here:
  *   - Codes are hashed with HMAC-SHA256 keyed by a server-only secret
@@ -14,6 +14,8 @@
  *   - Verification uses a constant-time comparison to avoid timing oracles.
  */
 
+import 'server-only'
+
 import { createHmac, randomInt, timingSafeEqual } from 'node:crypto'
 
 /** Number of digits in a generated OTP code. */
@@ -21,12 +23,6 @@ export const OTP_CODE_LENGTH = 6
 
 /** Code lifetime in minutes (roadmap range: 5–10 minutes). */
 export const OTP_TTL_MINUTES = 10
-
-/**
- * Maximum verification attempts per issued code. Mirrors the `max_attempts`
- * default on the `otp_codes` table so application logic and schema agree.
- */
-export const OTP_MAX_ATTEMPTS = 5
 
 /**
  * Generate a numeric OTP code of the given length.

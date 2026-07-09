@@ -33,8 +33,6 @@ export const SCAN_STATE = {
   INFECTED: 'infected',
 } as const
 
-export type ScanState = (typeof SCAN_STATE)[keyof typeof SCAN_STATE]
-
 const MB = 1024 * 1024
 
 /** Per-type size caps (Phase 5B decision: 10 MB images, 15 MB PDF). */
@@ -59,8 +57,6 @@ export const ALLOWED_FILE_TYPES: readonly AllowedFileType[] = [
   { mime: 'image/png', extensions: ['png'], canonicalExtension: 'png', maxBytes: MAX_IMAGE_BYTES },
   { mime: 'application/pdf', extensions: ['pdf'], canonicalExtension: 'pdf', maxBytes: MAX_PDF_BYTES },
 ]
-
-export const ALLOWED_MIME_TYPES: readonly string[] = ALLOWED_FILE_TYPES.map((type) => type.mime)
 
 export const ALLOWED_EXTENSIONS: readonly string[] = ALLOWED_FILE_TYPES.flatMap(
   (type) => type.extensions

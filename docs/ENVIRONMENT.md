@@ -138,9 +138,9 @@ Introduced with the server-side OTP primitives:
 - `OTP_HASH_SECRET` — server-only secret used to hash (HMAC-SHA256) patient
   status OTP codes before they are stored. Plaintext codes are never stored or
   logged. A placeholder is present in `.env.example`. It is consumed by the OTP
-  service and by the upcoming OTP endpoints; it is not yet wired to any route.
+  service and patient status OTP endpoints.
 
-Still to come in later Phase 3 commits (not present in `.env.example` yet):
+Still required before production SMS delivery (not present in `.env.example` yet):
 
 - Server-only SMS provider credentials for delivering OTP codes. Only a
   dev/mock SMS sender exists so far; no paid provider is integrated.
