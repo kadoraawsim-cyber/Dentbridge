@@ -10,6 +10,8 @@ DROP POLICY IF EXISTS "Allow anon uploads to patient-uploads" ON storage.objects
 DROP POLICY IF EXISTS "Allow authenticated uploads to patient-uploads" ON storage.objects;
 DROP POLICY IF EXISTS "Allow anon read patient-uploads" ON storage.objects;
 DROP POLICY IF EXISTS "Allow authenticated read patient-uploads" ON storage.objects;
+DROP POLICY IF EXISTS "admin_can_read_patient_uploads" ON storage.objects;
+DROP POLICY IF EXISTS "anon_can_upload_to_patient_requests_prefix" ON storage.objects;
 DROP POLICY IF EXISTS "patient_uploads_insert" ON storage.objects;
 DROP POLICY IF EXISTS "patient_uploads_admin_read" ON storage.objects;
 DROP POLICY IF EXISTS "faculty_can_read_patient_uploads" ON storage.objects;
