@@ -1,3 +1,5 @@
+import type { StudentCaseAction } from '@/lib/cases/case-lifecycle'
+
 export type PoolCase = {
   id: string
   treatment_type: string
@@ -36,7 +38,7 @@ export type ActiveCase = {
   caseId: string
   treatment_type: string
   assigned_department: string | null
-  status: string
+  status: string | null
   full_name: string
   phone: string
   progressEntries: ProgressEntry[]
@@ -59,11 +61,12 @@ export type ProgressFormValues = {
   nextAppointmentTime: string
 }
 
-export type LifecycleAction =
-  | 'mark_contacted'
-  | 'mark_appointment_scheduled'
-  | 'mark_in_treatment'
-  | 'submit_stage_for_review'
+/**
+ * Student dashboard actions: every student case action except rescheduling,
+ * which has its own dedicated composer flow. Derived from the Phase 7 state
+ * machine so new actions cannot silently diverge from the source of truth.
+ */
+export type LifecycleAction = Exclude<StudentCaseAction, 'reschedule_appointment'>
 
 export type DashboardUiText = {
   heroHeading: string

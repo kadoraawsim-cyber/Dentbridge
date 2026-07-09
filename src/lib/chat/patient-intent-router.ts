@@ -17,7 +17,7 @@ export const PATIENT_CHAT_INTENTS = [
 
 export type PatientChatIntent = (typeof PATIENT_CHAT_INTENTS)[number]
 
-type Locale = 'en' | 'tr'
+import type { Locale } from '@/lib/i18n'
 
 const EMERGENCY_RESPONSES: Record<Locale, string> = {
   en: 'DentiBridge is not for urgent or emergency dental/medical situations. If you have severe pain, swelling, bleeding, trauma, difficulty breathing, difficulty swallowing, or signs of spreading infection, please seek urgent medical/dental care or contact emergency services immediately.',

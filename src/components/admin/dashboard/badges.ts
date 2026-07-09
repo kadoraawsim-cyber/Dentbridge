@@ -20,7 +20,7 @@ export function getUrgencyBadgeClass(urgency: string) {
   }
 }
 
-export function getStatusBadgeClass(status: string) {
+export function getStatusBadgeClass(status: string | null) {
   switch ((status || '').toLowerCase()) {
     case 'submitted':
       return 'bg-slate-100 text-slate-700 border border-slate-200'

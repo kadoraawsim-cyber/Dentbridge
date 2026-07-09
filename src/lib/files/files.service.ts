@@ -10,7 +10,7 @@ import {
   type AuditRequestContext,
 } from '@/lib/audit/audit.service'
 import { canAccessFacultyPortal, isStudentRole } from '@/lib/roles'
-import { createSupabaseAdminClient } from '@/lib/supabase-admin'
+import { createSupabaseAdminClient, type SupabaseAdminClient } from '@/lib/supabase-admin'
 import {
   buildPatientFileObjectPath,
   FILE_STATUS,
@@ -27,7 +27,6 @@ import {
 import { detectMimeFromBytes } from './magic-bytes'
 import { createUploadTicket, verifyUploadTicket } from './ticket'
 
-type SupabaseAdminClient = ReturnType<typeof createSupabaseAdminClient>
 
 type ServiceErrorReason =
   | 'invalid_request'

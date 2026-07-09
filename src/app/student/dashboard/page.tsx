@@ -2,6 +2,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { DashboardClient } from './dashboard-client'
+import type { MyRequest } from '@/components/student/dashboard/types'
 
 export default async function StudentDashboardPage() {
   const cookieStore = await cookies()
@@ -63,7 +64,7 @@ export default async function StudentDashboardPage() {
     caseId: string
     treatment_type: string
     assigned_department: string | null
-    status: string
+    status: string | null
     full_name: string
     phone: string
     progressEntries: {
@@ -156,7 +157,9 @@ export default async function StudentDashboardPage() {
       poolCases={poolCases ?? []}
       poolCaseCount={poolCaseCount ?? poolCases?.length ?? 0}
       urgentPoolCaseCount={urgentPoolCaseCount ?? 0}
-      myRequests={myRequests ?? []}
+      // status values are constrained by student_case_requests_status_check,
+      // so narrowing the generated `string` to the MyRequest union is sound.
+      myRequests={(myRequests ?? []) as MyRequest[]}
       activeCases={activeCases}
       studentEmail={user.email ?? ''}
       studentFullName={studentProfile?.full_name ?? ''}

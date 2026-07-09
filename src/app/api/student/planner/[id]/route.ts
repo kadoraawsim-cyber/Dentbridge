@@ -29,7 +29,7 @@ async function getAuthorizedStudent() {
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
+): Promise<NextResponse> {
   const { id } = await params
   const { user, response } = await getAuthorizedStudent()
   if (response) return response
@@ -59,7 +59,7 @@ export async function PATCH(
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
+): Promise<NextResponse> {
   const { id } = await params
   const { user, response } = await getAuthorizedStudent()
   if (response) return response

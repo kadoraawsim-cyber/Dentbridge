@@ -33,8 +33,8 @@ export type PatientRequest = {
   contact_method: string | null
   best_contact_time: string | null
   medical_condition: string | null
-  consent: boolean
-  status: string
+  consent: boolean | null
+  status: string | null
   attachment_path: string | null
   attachment_name: string | null
   attachment_file_id: string | null

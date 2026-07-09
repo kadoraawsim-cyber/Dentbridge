@@ -124,6 +124,9 @@ This file reflects the current checked-in app state.
 - Case lifecycle rules (statuses, transitions, actor permissions) are centralized
   in `src/lib/cases/case-lifecycle.ts`; the sensitive case services consult it.
   See `docs/CASE_LIFECYCLE.md`.
+- Supabase clients are typed against generated schema types
+  (`src/lib/database.types.ts`); shared service types live in
+  `src/lib/api/service-types.ts`. See `docs/TYPES.md`.
 - Legacy phone-only patient status RPC execution is revoked for browser-facing
   roles.
 - Patient uploads remain private and are accessed through audited signed URL

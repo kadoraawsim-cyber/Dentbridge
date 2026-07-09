@@ -2,15 +2,9 @@
 
 import { CheckCircle2, XCircle } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
+import type { AdminLifecycleAction } from '@/lib/cases/case-lifecycle'
 import { departmentOptions, STATUS_ORDER, studentLevelOptions } from './helpers'
 import { useAdminCaseLabels } from './useAdminCaseLabels'
-
-type LifecycleAction =
-  | 'mark_contacted'
-  | 'mark_appointment_scheduled'
-  | 'mark_in_treatment'
-  | 'mark_completed'
-  | 'mark_cancelled'
 
 interface LifecyclePanelProps {
   currentStatus: string
@@ -26,7 +20,7 @@ interface LifecyclePanelProps {
   onCancelReasonChange: (value: string) => void
   onStartCancel: () => void
   onDismissCancel: () => void
-  onLifecycleAction: (action: LifecycleAction, reason?: string) => void
+  onLifecycleAction: (action: AdminLifecycleAction, reason?: string) => void
   onReleaseNextStage: () => void
 }
 

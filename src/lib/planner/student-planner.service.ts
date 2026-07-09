@@ -1,6 +1,7 @@
 import 'server-only'
 
-import { createSupabaseAdminClient } from '@/lib/supabase-admin'
+import { createSupabaseAdminClient, type SupabaseAdminClient } from '@/lib/supabase-admin'
+import type { ServiceResponse } from '@/lib/api/service-types'
 
 /**
  * Log the underlying failure server-side and return a stable, generic error
@@ -12,15 +13,26 @@ function logServerError(context: string, detail: string): string {
   return 'server_error'
 }
 
-type SupabaseAdminClient = ReturnType<typeof createSupabaseAdminClient>
+/**
+ * Planner event ids are `bigint` in the database, so the generated types expect
+ * `number` filters, but route params arrive as strings. PostgREST coerces
+ * string filter values to bigint server-side, so we pass the raw string through
+ * unchanged and only bridge the compile-time type here (Phase 9; no runtime
+ * change — the request bytes are identical).
+ */
+function toPlannerEventIdFilter(eventId: string): number {
+  return eventId as unknown as number
+}
 
-interface StudentActor {
+
+/** Planner-only actor shape: the planner routes never need the email. */
+interface PlannerActor {
   userId: string
   role: unknown
 }
 
 export interface PlannerServiceInput {
-  actor: StudentActor
+  actor: PlannerActor
   supabase?: SupabaseAdminClient
 }
 
@@ -34,11 +46,6 @@ export interface PlannerEventMutationInput extends PlannerMutationInput {
 
 export interface PlannerDeleteInput extends PlannerServiceInput {
   eventId: string
-}
-
-export interface ServiceResponse {
-  status: number
-  body: Record<string, unknown>
 }
 
 const ACTIVE_CASE_STATUSES = [
@@ -104,7 +111,7 @@ function isCurrentStageRequest(
   return !requestStageId || !currentStageId || requestStageId === currentStageId
 }
 
-function ensureStudent(actor: StudentActor): ServiceResponse | null {
+function ensureStudent(actor: PlannerActor): ServiceResponse | null {
   if (actor.role !== 'student') {
     return { status: 403, body: { error: 'Forbidden' } }
   }
@@ -226,7 +233,7 @@ export async function getStudentPlannerData(input: PlannerServiceInput): Promise
     full_name: string
     treatment_type: string
     assigned_department: string | null
-    status: string
+    status: string | null
     current_stage_id?: string | null
   }> = []
 
@@ -472,7 +479,7 @@ export async function updateStudentPlannerEvent(
   const { data: existingEvent, error: existingEventError } = await supabase
     .from('student_planner_events')
     .select('id, source_kind')
-    .eq('id', input.eventId)
+    .eq('id', toPlannerEventIdFilter(input.eventId))
     .eq('student_id', input.actor.userId)
     .maybeSingle()
 
@@ -498,7 +505,7 @@ export async function updateStudentPlannerEvent(
       stage_id: patientValidation.stageId,
       lifecycle_state: patientId ? 'active' : null,
     })
-    .eq('id', input.eventId)
+    .eq('id', toPlannerEventIdFilter(input.eventId))
     .eq('student_id', input.actor.userId)
     .select(
       'id, title, description, event_date, patient_id, language, created_at, source_kind, source_case_id, stage_id, lifecycle_state'
@@ -549,7 +556,7 @@ export async function deleteStudentPlannerEvent(
   const { data: existingEvent, error: existingEventError } = await supabase
     .from('student_planner_events')
     .select('id, source_kind')
-    .eq('id', input.eventId)
+    .eq('id', toPlannerEventIdFilter(input.eventId))
     .eq('student_id', input.actor.userId)
     .maybeSingle()
 
@@ -568,7 +575,7 @@ export async function deleteStudentPlannerEvent(
   const { data: deletedRow, error: deleteError } = await supabase
     .from('student_planner_events')
     .delete()
-    .eq('id', input.eventId)
+    .eq('id', toPlannerEventIdFilter(input.eventId))
     .eq('student_id', input.actor.userId)
     .select('id')
     .maybeSingle()

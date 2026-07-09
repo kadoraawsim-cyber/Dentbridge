@@ -5,7 +5,7 @@ export type PatientRequest = {
   full_name: string
   treatment_type: string
   urgency: string
-  status: string
+  status: string | null
   assigned_department: string | null
   created_at: string | null
   reviewed_at: string | null

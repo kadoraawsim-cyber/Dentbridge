@@ -205,6 +205,13 @@ Other important constraints include:
 - `otp_codes_attempts_check` (`attempts >= 0`)
 - `otp_codes_max_attempts_check` (`max_attempts > 0`)
 
+## Generated TypeScript Types
+
+`src/lib/database.types.ts` is generated from this schema with
+`supabase gen types typescript --local` and typed into every Supabase client.
+Regenerate and commit it together with every new migration. See
+[TYPES.md](./TYPES.md).
+
 ## Case Lifecycle Source Of Truth
 
 The database CHECK constraints above are the storage-layer source of truth for

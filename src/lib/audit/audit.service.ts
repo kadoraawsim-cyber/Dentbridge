@@ -2,7 +2,7 @@ import 'server-only'
 
 import { randomUUID } from 'node:crypto'
 
-import { createSupabaseAdminClient } from '@/lib/supabase-admin'
+import { createSupabaseAdminClient, type SupabaseAdminClient } from '@/lib/supabase-admin'
 
 export const AUDIT_ACTIONS = {
   PATIENT_REQUEST_CREATED: 'patient_request_created',
@@ -88,7 +88,6 @@ type AuditActorType = (typeof AUDIT_ACTOR_TYPES)[keyof typeof AUDIT_ACTOR_TYPES]
 type AuditMetadataValue = string | number | boolean | null
 type AuditMetadata = Record<string, AuditMetadataValue>
 type AuditMetadataInput = Record<string, unknown>
-type SupabaseAdminClient = ReturnType<typeof createSupabaseAdminClient>
 
 interface AuditEventDefinition {
   category: AuditCategory

@@ -2,7 +2,7 @@ export type CaseTimelineKind = 'system' | 'appointment' | 'progress' | 'closure'
 
 export type CaseTimelinePatientRequest = {
   id: string
-  status: string
+  status: string | null
   created_at: string | null
   reviewed_at: string | null
   reviewed_by: string | null

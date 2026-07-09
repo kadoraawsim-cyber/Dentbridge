@@ -6,7 +6,7 @@ import { departmentOptions, mapDetailToUrgency, studentLevelOptions } from './he
 import { useAdminCaseLabels } from './useAdminCaseLabels'
 
 interface TriagePanelProps {
-  status: string
+  status: string | null
   isTerminal: boolean
   isTriagePhase: boolean
   canEditTriage: boolean

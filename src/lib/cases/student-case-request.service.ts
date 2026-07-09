@@ -4,7 +4,8 @@ import {
   auditStudentCaseRequested,
   type AuditRequestContext,
 } from '@/lib/audit/audit.service'
-import { createSupabaseAdminClient } from '@/lib/supabase-admin'
+import { createSupabaseAdminClient, type SupabaseAdminClient } from '@/lib/supabase-admin'
+import type { ServiceResponse, StudentActor } from '@/lib/api/service-types'
 import {
   isCaseAvailableForRequests,
   isStageAvailableForRequests,
@@ -23,24 +24,12 @@ function logServerError(context: string, detail: string): string {
   return 'server_error'
 }
 
-type SupabaseAdminClient = ReturnType<typeof createSupabaseAdminClient>
-
-interface StudentActor {
-  userId: string
-  email: string | null
-  role: unknown
-}
 
 export interface CreateStudentCaseRequestInput {
   caseId: string
   actor: StudentActor
   context: AuditRequestContext
   supabase?: SupabaseAdminClient
-}
-
-export interface ServiceResponse {
-  status: number
-  body: Record<string, unknown>
 }
 
 async function resolveReleasedCurrentStage({

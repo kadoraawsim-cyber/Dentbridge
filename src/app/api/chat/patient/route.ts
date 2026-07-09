@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import type { Locale } from '@/lib/i18n'
 import OpenAI, { APIError } from 'openai'
 import { NextRequest, NextResponse } from 'next/server'
 import {
@@ -24,7 +25,6 @@ const MAX_OUTPUT_TOKENS = 400
 const RATE_LIMIT_WINDOW_MS = 60_000
 const RATE_LIMIT_MAX_REQUESTS = 8
 
-type Locale = 'en' | 'tr'
 
 type RouteMessageKey =
   | 'forbidden'
@@ -340,7 +340,7 @@ function createSafetyIdentifier(request: NextRequest) {
   return createHash('sha256').update(getRateLimitIdentifier(request)).digest('hex')
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   const headerLocale = getHeaderLocale(request)
 
   if (!isAllowedBrowserOrigin(request)) {

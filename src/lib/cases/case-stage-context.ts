@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { createSupabaseAdminClient } from '@/lib/supabase-admin'
+import type { SupabaseAdminClient } from '@/lib/supabase-admin'
 
 /**
  * Shared stage-authorization + routing-stage-context resolver for student case
@@ -20,7 +20,6 @@ import { createSupabaseAdminClient } from '@/lib/supabase-admin'
  * this case) that the service role would otherwise bypass.
  */
 
-type SupabaseAdminClient = ReturnType<typeof createSupabaseAdminClient>
 
 function logServerError(context: string, detail: string): string {
   console.error(context, { error: detail })

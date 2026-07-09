@@ -4,7 +4,8 @@ import {
   auditStudentProgressAdded,
   type AuditRequestContext,
 } from '@/lib/audit/audit.service'
-import { createSupabaseAdminClient } from '@/lib/supabase-admin'
+import { createSupabaseAdminClient, type SupabaseAdminClient } from '@/lib/supabase-admin'
+import type { ServiceResponse, StudentActor } from '@/lib/api/service-types'
 import { getAuthorizedStageContext } from './case-stage-context'
 import { canAddProgressFromStatus, isStudentActor, LIFECYCLE_MESSAGES } from './case-lifecycle'
 
@@ -18,13 +19,6 @@ function logServerError(context: string, detail: string): string {
   return 'server_error'
 }
 
-type SupabaseAdminClient = ReturnType<typeof createSupabaseAdminClient>
-
-interface StudentActor {
-  userId: string
-  email: string | null
-  role: unknown
-}
 
 export interface AddStudentProgressInput {
   caseId: string
@@ -32,11 +26,6 @@ export interface AddStudentProgressInput {
   body: unknown
   context: AuditRequestContext
   supabase?: SupabaseAdminClient
-}
-
-export interface ServiceResponse {
-  status: number
-  body: Record<string, unknown>
 }
 
 function isValidDate(value: string | undefined) {

@@ -280,10 +280,16 @@ export type StudentLifecycleTransition =
  * Resolve a student lifecycle action against the case's current status.
  * Mirrors the existing check: the case must already be in the expected status,
  * otherwise a generic 409-style message is returned.
+ *
+ * Phase 9 note: the precondition helpers below accept `string | null` because
+ * the generated database types expose `patient_requests.status` as nullable.
+ * A null status fails every precondition exactly as it always did at runtime;
+ * only the compile-time contract changed. Guards that pass narrow the input to
+ * `CaseStatus` so callers can use the checked status where non-null is required.
  */
 export function resolveStudentLifecycleTransition(
   action: StudentLifecycleAction,
-  currentStatus: string
+  currentStatus: string | null
 ): StudentLifecycleTransition {
   if (currentStatus !== STUDENT_LIFECYCLE_EXPECTED_STATUS[action]) {
     return { ok: false, error: LIFECYCLE_MESSAGES.UNEXPECTED_STAGE_FOR_ACTION }
@@ -291,15 +297,15 @@ export function resolveStudentLifecycleTransition(
   return { ok: true, toStatus: STUDENT_LIFECYCLE_ACTION_TO_STATUS[action] }
 }
 
-export function canRescheduleFromStatus(currentStatus: string): boolean {
-  return (RESCHEDULE_ALLOWED_STATUSES as readonly string[]).includes(currentStatus)
+export function canRescheduleFromStatus(currentStatus: string | null): currentStatus is CaseStatus {
+  return (RESCHEDULE_ALLOWED_STATUSES as readonly string[]).includes(currentStatus ?? '')
 }
 
-export function canSubmitStageForReview(currentStatus: string): boolean {
+export function canSubmitStageForReview(currentStatus: string | null): currentStatus is CaseStatus {
   return currentStatus === SUBMIT_FOR_REVIEW_REQUIRED_STATUS
 }
 
-export function canAddProgressFromStatus(currentStatus: string): boolean {
+export function canAddProgressFromStatus(currentStatus: string | null): currentStatus is CaseStatus {
   return currentStatus === PROGRESS_NOTE_REQUIRED_STATUS
 }
 
@@ -313,7 +319,7 @@ export function canReleaseNextStage(currentStatus: string | null | undefined): b
   return (currentStatus || '').toLowerCase() === RELEASE_NEXT_STAGE_REQUIRED_STATUS
 }
 
-export function isCaseAvailableForRequests(currentStatus: string): boolean {
+export function isCaseAvailableForRequests(currentStatus: string | null): currentStatus is CaseStatus {
   return currentStatus === CASE_REQUEST_REQUIRED_STATUS
 }
 

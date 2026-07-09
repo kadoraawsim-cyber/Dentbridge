@@ -28,7 +28,7 @@ export function useDashboardLabels() {
     return new Date(iso).toLocaleDateString(dateLocale, { month: 'short', day: 'numeric' })
   }
 
-  function tStatus(status: string): string {
+  function tStatus(status: string | null): string {
     switch ((status || '').toLowerCase()) {
       case 'submitted':            return t('admin.db.statusSubmitted')
       case 'under_review':         return t('admin.db.statusUnderReview')
@@ -40,7 +40,7 @@ export function useDashboardLabels() {
       case 'completed':            return t('admin.db.statusCompleted')
       case 'rejected':             return t('admin.db.statusRejected')
       case 'cancelled':            return t('admin.db.statusCancelled')
-      default:                     return status
+      default:                     return status ?? ''
     }
   }
 

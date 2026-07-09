@@ -967,6 +967,19 @@ Extract:
 
 ## Phase 9 - Type Safety
 
+### Implementation Status
+
+DONE. `src/lib/database.types.ts` is generated from the local schema and all
+three Supabase clients (`supabase.ts`, `supabase-server.ts`,
+`supabase-admin.ts`) are typed with `Database`. Shared service types live in
+`src/lib/api/service-types.ts`; duplicated type aliases (`SupabaseAdminClient`,
+`ServiceResponse`, `StudentActor`/`FacultyActor`, `LifecycleAction`, `Locale`)
+were centralized; every API route handler has an explicit
+`Promise<NextResponse>` return type; lifecycle precondition guards are type
+predicates narrowing nullable statuses to `CaseStatus`. The codebase has zero
+`any` and zero `@ts-ignore`. Conventions are documented in
+[TYPES.md](./TYPES.md). Runtime behavior is unchanged.
+
 ### Goal
 
 Make the code typed and serious with Supabase.

@@ -26,7 +26,7 @@ async function getAuthorizedStudent() {
   return { user, response: undefined as NextResponse | undefined }
 }
 
-export async function GET() {
+export async function GET(): Promise<NextResponse> {
   const { user, response } = await getAuthorizedStudent()
   if (response) return response
   if (!user) {
@@ -43,7 +43,7 @@ export async function GET() {
   return NextResponse.json(result.body, { status: result.status })
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   const { user, response } = await getAuthorizedStudent()
   if (response) return response
   if (!user) {

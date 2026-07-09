@@ -4,10 +4,9 @@ import {
   auditProfileCompleted,
   type AuditRequestContext,
 } from '@/lib/audit/audit.service'
-import { createSupabaseAdminClient } from '@/lib/supabase-admin'
+import { createSupabaseAdminClient, type SupabaseAdminClient } from '@/lib/supabase-admin'
 
 type ProfileRole = 'student' | 'faculty'
-type SupabaseAdminClient = ReturnType<typeof createSupabaseAdminClient>
 
 type ServiceErrorReason = 'invalid_request' | 'forbidden' | 'server_error'
 

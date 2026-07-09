@@ -9,7 +9,8 @@ import {
   auditStudentCaseRejected,
   type AuditRequestContext,
 } from '@/lib/audit/audit.service'
-import { createSupabaseAdminClient } from '@/lib/supabase-admin'
+import { createSupabaseAdminClient, type SupabaseAdminClient } from '@/lib/supabase-admin'
+import type { FacultyActor } from '@/lib/api/service-types'
 import {
   ADMIN_LIFECYCLE_ACTION_TO_STATUS,
   canReleaseNextStage,
@@ -44,20 +45,13 @@ interface RequestBody {
   request_id?: string
 }
 
-type SupabaseClient = ReturnType<typeof createSupabaseAdminClient>
-
-interface FacultyActor {
-  userId: string
-  email: string | null
-  role: unknown
-}
 
 export interface ExecuteAdminCaseActionInput {
   caseId: string
   body: unknown
   actor: FacultyActor
   context: AuditRequestContext
-  supabase?: SupabaseClient
+  supabase?: SupabaseAdminClient
 }
 
 function keywordRoutingHint(treatmentType: string, assignedDepartment: string | null) {
@@ -86,7 +80,7 @@ async function ensureReleasedRoutingStage({
   releasedBy,
   releasedAt,
 }: {
-  supabase: SupabaseClient
+  supabase: SupabaseAdminClient
   caseId: string
   assignedDepartment?: string
   targetStudentLevel?: string

@@ -5,7 +5,8 @@ import {
   auditStudentProgressAdded,
   type AuditRequestContext,
 } from '@/lib/audit/audit.service'
-import { createSupabaseAdminClient } from '@/lib/supabase-admin'
+import { createSupabaseAdminClient, type SupabaseAdminClient } from '@/lib/supabase-admin'
+import type { ServiceResponse, StudentActor } from '@/lib/api/service-types'
 import { getAuthorizedStageContext } from './case-stage-context'
 import {
   canRescheduleFromStatus,
@@ -30,17 +31,10 @@ function logServerError(context: string, detail: string): string {
   return 'server_error'
 }
 
-type SupabaseAdminClient = ReturnType<typeof createSupabaseAdminClient>
 
 const CASE_APPOINTMENT_SOURCE_KIND = 'case_appointment'
 const DEFAULT_APPOINTMENT_TIME = '09:00:00'
 const CLINIC_TIMEZONE_OFFSET = '+03:00'
-
-interface StudentActor {
-  userId: string
-  email: string | null
-  role: unknown
-}
 
 export interface UpdateStudentCaseStatusInput {
   caseId: string
@@ -48,11 +42,6 @@ export interface UpdateStudentCaseStatusInput {
   body: unknown
   context: AuditRequestContext
   supabase?: SupabaseAdminClient
-}
-
-export interface ServiceResponse {
-  status: number
-  body: Record<string, unknown>
 }
 
 function isValidDate(value: string | undefined) {

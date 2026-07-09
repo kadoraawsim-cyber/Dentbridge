@@ -241,7 +241,7 @@ export function PlannerClient({ studentEmail, studentFullName, initialEvents, in
   const [showModal, setShowModal] = useState(false)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const [editingEventId, setEditingEventId] = useState<string | null>(null)
+  const [editingEventId, setEditingEventId] = useState<number | null>(null)
   const [form, setForm] = useState<PlannerFormState>(() => {
     const range = buildDefaultRange(new Date())
     return {

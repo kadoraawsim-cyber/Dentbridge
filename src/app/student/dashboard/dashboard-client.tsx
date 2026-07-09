@@ -224,7 +224,9 @@ export function DashboardClient({
   const [actionErrors, setActionErrors] = useState<Record<string, string>>({})
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [localStatuses, setLocalStatuses] = useState<Record<string, string>>(
-    () => Object.fromEntries(activeCases.map((c) => [c.caseId, c.status]))
+    // `status` is nullable in the schema; a null status behaves like '' in every
+    // downstream comparison, so normalize here to keep this map string-valued.
+    () => Object.fromEntries(activeCases.map((c) => [c.caseId, c.status ?? '']))
   )
   const [progressEntriesByCase, setProgressEntriesByCase] = useState<Record<string, ProgressEntry[]>>(
     () => buildProgressEntriesMap(activeCases)

@@ -16,7 +16,7 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
+): Promise<NextResponse> {
   const { id } = await params
   const cookieStore = await cookies()
   const supabase = createSupabaseServerClient(cookieStore)

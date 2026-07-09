@@ -17,7 +17,7 @@ type PatientRequest = {
   treatment_type: string
   complaint_text: string
   urgency: string
-  status: string
+  status: string | null
   assigned_department: string | null
   target_student_level: string | null
   created_at: string | null
@@ -115,7 +115,7 @@ function keywordRoutingHint(treatmentType: string, assignedDepartment: string | 
   return 'Oral Radiology'
 }
 
-function isTriageStatus(status: string): boolean {
+function isTriageStatus(status: string | null): boolean {
   return TRIAGE_STATUSES.includes((status || '').toLowerCase())
 }
 
@@ -303,7 +303,7 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
     }
   }
 
-  function getStatusLabel(status: string) {
+  function getStatusLabel(status: string | null) {
     switch ((status || '').toLowerCase()) {
       case 'submitted':
         return t('admin.requests.statusLabelSubmitted')

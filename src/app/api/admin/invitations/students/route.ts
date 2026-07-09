@@ -14,7 +14,7 @@ interface InviteRequestBody {
   email?: string
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   const cookieStore = await cookies()
   const supabase = createSupabaseServerClient(cookieStore)
 
