@@ -1022,6 +1022,16 @@ Make the code typed and serious with Supabase.
 
 ## Phase 10 - Tests + CI
 
+### Implementation Status
+
+DONE. Vitest is configured for focused Node tests with a no-op `server-only`
+alias for server-only modules. Scripts exist for `test`, `test:watch`,
+`test:coverage`, and `typecheck`. The first test suite protects the Phase 7
+case lifecycle state machine, patient upload security primitives, OTP
+primitives, public API error mapping, patient request route validation, and
+student progress lifecycle/error guards. GitHub Actions CI runs install,
+typecheck, lint, test, and build. See [TESTING.md](./TESTING.md).
+
 ### Goal
 
 Prevent the system from breaking after every change.

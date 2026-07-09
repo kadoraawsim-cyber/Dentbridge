@@ -110,16 +110,22 @@ npm run dev
 Other useful commands:
 
 ```bash
+npm run typecheck
 npm run lint
-npx tsc --noEmit
+npm test
+npm run build
 ```
+
+See [docs/TESTING.md](./docs/TESTING.md) for the Phase 10 test and CI setup.
 
 ## Important Directories
 
 - `src/app` - routes, pages, and route handlers
 - `src/components` - shared UI components
 - `src/lib` - Supabase clients, roles, chat context, and i18n
+- `tests` - focused Vitest tests for lifecycle, security, and patient workflows
 - `supabase/migrations` - checked-in SQL migrations and policy changes
+- `.github/workflows` - CI verification workflow
 - `public` - static assets
 
 ## Deployment Notes

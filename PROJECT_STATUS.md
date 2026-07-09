@@ -127,6 +127,9 @@ This file reflects the current checked-in app state.
 - Supabase clients are typed against generated schema types
   (`src/lib/database.types.ts`); shared service types live in
   `src/lib/api/service-types.ts`. See `docs/TYPES.md`.
+- Focused Vitest coverage protects lifecycle rules, patient upload/OTP
+  primitives, patient request validation, public error mapping, and student
+  progress guards. See `docs/TESTING.md`.
 - Legacy phone-only patient status RPC execution is revoked for browser-facing
   roles.
 - Patient uploads remain private and are accessed through audited signed URL
@@ -144,6 +147,8 @@ This file reflects the current checked-in app state.
 - OpenAI
 - Vercel Analytics
 - Vercel Speed Insights
+- Vitest
+- GitHub Actions CI
 
 ## Tables and Features In Use
 
@@ -181,7 +186,8 @@ This file reflects the current checked-in app state.
 
 - `student/exchange` is still a placeholder page, not a complete workflow.
 - `README.md` and project docs were previously stale and have now been refreshed to match the current codebase.
-- `npm run build`, `npx tsc --noEmit`, and `npm run lint` currently pass clean.
+- `npm run build`, `npm run typecheck`, `npm run lint`, and `npm test`
+  currently pass clean.
 
 ## Recent Cleanup Notes
 
