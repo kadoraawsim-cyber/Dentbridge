@@ -204,6 +204,11 @@ export const LIFECYCLE_MESSAGES = {
   CASE_NOT_AVAILABLE_FOR_REQUESTS: 'This case is not currently available for requests',
   STAGE_NOT_AVAILABLE_FOR_REQUESTS: 'This case stage is not currently available for requests',
   DUPLICATE_CASE_REQUEST: 'You have already submitted a request for this case',
+  INVALID_TRANSITION: 'This action is not allowed from the current case stage.',
+  TERMINAL_CASE_LOCKED:
+    'This case is already completed, cancelled, or rejected and can no longer be changed.',
+  CONFLICT_RETRY:
+    'This case was changed by someone else. Refresh the case and try again.',
 } as const
 
 // ─── Status validation helpers ───────────────────────────────────────────────
@@ -316,4 +321,135 @@ export function isCaseAvailableForRequests(currentStatus: string | null): curren
 
 export function isStageAvailableForRequests(stageStatus: string | null | undefined): boolean {
   return (stageStatus || '').toLowerCase() === CASE_REQUEST_REQUIRED_STAGE_STATUS
+}
+
+// ─── Admin/faculty case-status transition rules ──────────────────────────────
+//
+// Terminal states are absorbing: a completed/cancelled/rejected case can never
+// transition again through the admin API. Every status-changing admin action
+// declares the set of statuses it may run FROM and the single status it moves
+// the case TO. This mirrors (and is independently re-enforced by) the
+// conditional predicates in the atomic lifecycle RPCs; keeping the rules here
+// lets the service fail fast with a stable 409 and gives us a pure, unit-testable
+// specification. Actions that do not change the case status are handled by
+// `adminActionChangesCaseStatus` instead.
+
+/** Absorbing terminal case statuses. No admin transition may leave these. */
+export const TERMINAL_CASE_STATUSES: readonly CaseStatus[] = [
+  CASE_STATUS.COMPLETED,
+  CASE_STATUS.CANCELLED,
+  CASE_STATUS.REJECTED,
+]
+
+export function isTerminalCaseStatus(value: string | null | undefined): boolean {
+  return (TERMINAL_CASE_STATUSES as readonly string[]).includes((value ?? '').toLowerCase())
+}
+
+/** Admin actions that change patient_requests.status, with their legal from→to. */
+export const ADMIN_CASE_TRANSITIONS: Record<
+  string,
+  { from: readonly CaseStatus[]; to: CaseStatus }
+> = {
+  save_draft: {
+    from: [CASE_STATUS.SUBMITTED, CASE_STATUS.UNDER_REVIEW],
+    to: CASE_STATUS.UNDER_REVIEW,
+  },
+  approve: {
+    from: [CASE_STATUS.SUBMITTED, CASE_STATUS.UNDER_REVIEW],
+    to: CASE_STATUS.MATCHED,
+  },
+  reject: {
+    from: [CASE_STATUS.SUBMITTED, CASE_STATUS.UNDER_REVIEW],
+    to: CASE_STATUS.REJECTED,
+  },
+  approve_student_request: {
+    from: [CASE_STATUS.MATCHED],
+    to: CASE_STATUS.STUDENT_APPROVED,
+  },
+  return_to_pool: {
+    from: [
+      CASE_STATUS.STUDENT_APPROVED,
+      CASE_STATUS.CONTACTED,
+      CASE_STATUS.APPOINTMENT_SCHEDULED,
+    ],
+    to: CASE_STATUS.MATCHED,
+  },
+  release_next_stage: {
+    from: [CASE_STATUS.FACULTY_REVIEW],
+    to: CASE_STATUS.MATCHED,
+  },
+  mark_contacted: {
+    from: [CASE_STATUS.STUDENT_APPROVED],
+    to: CASE_STATUS.CONTACTED,
+  },
+  mark_appointment_scheduled: {
+    from: [CASE_STATUS.CONTACTED],
+    to: CASE_STATUS.APPOINTMENT_SCHEDULED,
+  },
+  mark_in_treatment: {
+    from: [CASE_STATUS.APPOINTMENT_SCHEDULED],
+    to: CASE_STATUS.IN_TREATMENT,
+  },
+  mark_completed: {
+    from: [CASE_STATUS.IN_TREATMENT, CASE_STATUS.FACULTY_REVIEW],
+    to: CASE_STATUS.COMPLETED,
+  },
+  mark_cancelled: {
+    from: [
+      CASE_STATUS.SUBMITTED,
+      CASE_STATUS.UNDER_REVIEW,
+      CASE_STATUS.MATCHED,
+      CASE_STATUS.STUDENT_APPROVED,
+      CASE_STATUS.CONTACTED,
+      CASE_STATUS.APPOINTMENT_SCHEDULED,
+      CASE_STATUS.IN_TREATMENT,
+      CASE_STATUS.FACULTY_REVIEW,
+    ],
+    to: CASE_STATUS.CANCELLED,
+  },
+}
+
+/**
+ * Admin actions that operate on a case/request WITHOUT changing the case status
+ * (they still must be blocked once the case is terminal).
+ */
+export const ADMIN_NON_STATUS_ACTIONS: readonly string[] = [
+  'update_triage',
+  'reject_student_request',
+  'undo_reject_student_request',
+]
+
+export type AdminCaseTransition =
+  | { ok: true; toStatus: CaseStatus }
+  | { ok: false; reason: string }
+
+/**
+ * Resolve an admin action against the case's current status. Rejects any action
+ * from a terminal state and any action whose declared `from` set does not
+ * include the current status. Returns a stable, generic message on failure.
+ */
+export function resolveAdminCaseTransition(
+  action: string,
+  currentStatus: string | null | undefined
+): AdminCaseTransition {
+  const status = (currentStatus ?? '').toLowerCase()
+
+  if (isTerminalCaseStatus(status)) {
+    return { ok: false, reason: LIFECYCLE_MESSAGES.TERMINAL_CASE_LOCKED }
+  }
+
+  const transition = ADMIN_CASE_TRANSITIONS[action]
+  if (!transition) {
+    // Non-status-changing action: allowed as long as the case is not terminal.
+    if (ADMIN_NON_STATUS_ACTIONS.includes(action)) {
+      return { ok: true, toStatus: status as CaseStatus }
+    }
+    return { ok: false, reason: LIFECYCLE_MESSAGES.INVALID_TRANSITION }
+  }
+
+  if (!(transition.from as readonly string[]).includes(status)) {
+    return { ok: false, reason: LIFECYCLE_MESSAGES.INVALID_TRANSITION }
+  }
+
+  return { ok: true, toStatus: transition.to }
 }

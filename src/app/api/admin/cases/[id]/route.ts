@@ -78,6 +78,9 @@ export async function PATCH(
         role: actorRole,
       },
       context,
+      // The atomic lifecycle RPCs authorize from auth.uid()/auth.jwt(), so they
+      // must run with the caller's authenticated session, not the service role.
+      rpcClient: supabase,
     })
     return finish(response, {
       actorRole,

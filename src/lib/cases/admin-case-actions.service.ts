@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { NextResponse } from 'next/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 import {
   auditAdminCaseStatusChanged,
@@ -11,14 +12,13 @@ import {
 } from '@/lib/audit/audit.service'
 import { createSupabaseAdminClient, type SupabaseAdminClient } from '@/lib/supabase-admin'
 import type { FacultyActor } from '@/lib/api/service-types'
+import type { Database } from '@/lib/database.types'
 import {
-  ADMIN_LIFECYCLE_ACTION_TO_STATUS,
-  canReleaseNextStage,
-  canReturnCaseToPool,
   isAdminCaseAction,
-  isAdminLifecycleAction,
   isFacultyActor,
+  isTerminalCaseStatus,
   LIFECYCLE_MESSAGES,
+  resolveAdminCaseTransition,
   STAGE_STATUS,
   type AdminCaseAction,
 } from './case-lifecycle'
@@ -35,6 +35,9 @@ function logServerError(context: string, detail: string): string {
 
 type Action = AdminCaseAction
 
+/** Authenticated (user-JWT) client used to invoke SECURITY DEFINER lifecycle RPCs. */
+type LifecycleRpcClient = SupabaseClient<Database>
+
 interface RequestBody {
   action: Action
   assigned_department?: string
@@ -45,14 +48,35 @@ interface RequestBody {
   request_id?: string
 }
 
-
 export interface ExecuteAdminCaseActionInput {
   caseId: string
   body: unknown
   actor: FacultyActor
   context: AuditRequestContext
+  /** Service-role client — used for audit writes and non-RPC guarded updates. */
   supabase?: SupabaseAdminClient
+  /**
+   * Authenticated (user-session) client used to call the atomic lifecycle RPCs.
+   * The RPCs derive actor identity from auth.uid()/auth.jwt(), so they must be
+   * invoked with the caller's session, not the service role.
+   */
+  rpcClient?: LifecycleRpcClient
 }
+
+interface RpcOutcome {
+  ok: boolean
+  code: string
+  data: Record<string, unknown>
+}
+
+/** Actions whose integrity requires the atomic, row-locked lifecycle RPCs. */
+const RPC_BACKED_ACTIONS = new Set<Action>([
+  'approve_student_request',
+  'return_to_pool',
+  'release_next_stage',
+  'mark_completed',
+  'mark_cancelled',
+])
 
 function keywordRoutingHint(treatmentType: string, assignedDepartment: string | null) {
   if (assignedDepartment) return assignedDepartment
@@ -71,6 +95,571 @@ function keywordRoutingHint(treatmentType: string, assignedDepartment: string | 
   return 'Oral Radiology'
 }
 
+function parseBody(body: unknown): RequestBody | null {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return null
+  }
+  return body as RequestBody
+}
+
+function normalizeRpcOutcome(
+  data: unknown,
+  error: { message: string } | null,
+  fn: string
+): RpcOutcome {
+  if (error) {
+    logServerError(`[admin-case-actions] rpc ${fn}`, error.message)
+    return { ok: false, code: 'server_error', data: {} }
+  }
+  const result = (data ?? {}) as Record<string, unknown>
+  return {
+    ok: result.ok === true,
+    code: typeof result.code === 'string' ? result.code : 'server_error',
+    data: result,
+  }
+}
+
+/** Map a failed RPC outcome to a stable, generic HTTP response. */
+function rpcErrorResponse(code: string): NextResponse {
+  switch (code) {
+    case 'forbidden':
+      return NextResponse.json({ error: LIFECYCLE_MESSAGES.FORBIDDEN }, { status: 403 })
+    case 'not_found':
+      return NextResponse.json({ error: 'Case not found' }, { status: 404 })
+    case 'invalid_request':
+      return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
+    case 'invalid_state':
+      return NextResponse.json({ error: LIFECYCLE_MESSAGES.INVALID_TRANSITION }, { status: 409 })
+    case 'conflict':
+      return NextResponse.json({ error: LIFECYCLE_MESSAGES.CONFLICT_RETRY }, { status: 409 })
+    default:
+      return NextResponse.json({ error: 'server_error' }, { status: 500 })
+  }
+}
+
+interface CaseStatusRow {
+  status: string | null
+  current_stage_id: string | null
+}
+
+async function loadCaseStatus(
+  supabase: SupabaseAdminClient,
+  caseId: string
+): Promise<{ row: CaseStatusRow | null; error: string | null }> {
+  const { data, error } = await supabase
+    .from('patient_requests')
+    .select('status, current_stage_id')
+    .eq('id', caseId)
+    .maybeSingle<CaseStatusRow>()
+
+  if (error) {
+    return { row: null, error: logServerError('[admin-case-actions] loadCaseStatus', error.message) }
+  }
+  return { row: data, error: null }
+}
+
+/**
+ * Perform a single-table case status transition with an optimistic-concurrency
+ * guard. The update is conditional on the observed from-status, so a concurrent
+ * change (or an illegal transition) affects zero rows and yields a 409 rather
+ * than silently overwriting state.
+ */
+async function applyGuardedStatusUpdate(params: {
+  supabase: SupabaseAdminClient
+  caseId: string
+  fromStatus: string
+  toStatus: string
+  reviewedBy: string | null
+  reviewedAt: string
+  extraFields?: Record<string, unknown>
+}): Promise<{ ok: boolean; response?: NextResponse }> {
+  const { supabase, caseId, fromStatus, toStatus, reviewedBy, reviewedAt, extraFields } = params
+
+  const { data, error } = await supabase
+    .from('patient_requests')
+    .update({
+      ...(extraFields ?? {}),
+      status: toStatus,
+      reviewed_by: reviewedBy,
+      reviewed_at: reviewedAt,
+    })
+    .eq('id', caseId)
+    .eq('status', fromStatus)
+    .select('id')
+
+  if (error) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { error: logServerError('[admin-case-actions] applyGuardedStatusUpdate', error.message) },
+        { status: 500 }
+      ),
+    }
+  }
+
+  if (!data || data.length === 0) {
+    // The row moved out from under us (concurrent change) or never matched.
+    return {
+      ok: false,
+      response: NextResponse.json({ error: LIFECYCLE_MESSAGES.CONFLICT_RETRY }, { status: 409 }),
+    }
+  }
+
+  return { ok: true }
+}
+
+export async function executeAdminCaseAction(
+  input: ExecuteAdminCaseActionInput
+): Promise<NextResponse> {
+  if (!isFacultyActor(input.actor.role)) {
+    return NextResponse.json({ error: LIFECYCLE_MESSAGES.FORBIDDEN }, { status: 403 })
+  }
+
+  const actorRole = input.actor.role
+  const body = parseBody(input.body)
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+  }
+
+  const { action, assigned_department, urgency, target_student_level, clinical_notes } = body
+  const reason = (body.reason || '').trim()
+
+  if (!isAdminCaseAction(action)) {
+    return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
+  }
+
+  if (
+    ['reject_student_request', 'undo_reject_student_request', 'mark_cancelled', 'return_to_pool'].includes(
+      action
+    ) &&
+    reason.length < 3
+  ) {
+    return NextResponse.json({ error: 'Reason is required' }, { status: 400 })
+  }
+
+  const supabase = input.supabase ?? createSupabaseAdminClient()
+  const reviewedAt = new Date().toISOString()
+  const reviewedBy = input.actor.email
+  const caseId = input.caseId
+
+  // Actions whose integrity depends on locking + a single transaction are
+  // delegated to the atomic SECURITY DEFINER RPCs, invoked with the caller's
+  // authenticated session so the DB derives the actor from auth.uid()/auth.jwt().
+  if (RPC_BACKED_ACTIONS.has(action)) {
+    if (!input.rpcClient) {
+      return NextResponse.json({ error: 'server_error' }, { status: 500 })
+    }
+    const rpcClient = input.rpcClient
+
+    if (action === 'approve_student_request') {
+      if (!body.request_id) {
+        return NextResponse.json({ error: 'request_id is required' }, { status: 400 })
+      }
+      const { data: approveData, error: approveError } = await rpcClient.rpc(
+        'admin_approve_student_request',
+        { p_case_id: caseId, p_request_id: body.request_id }
+      )
+      const outcome = normalizeRpcOutcome(approveData, approveError, 'admin_approve_student_request')
+      if (!outcome.ok) {
+        return rpcErrorResponse(outcome.code)
+      }
+
+      const stageId = (outcome.data.stage_id as string | null) ?? null
+      await auditStudentCaseApproved({
+        requestId: body.request_id,
+        caseId,
+        stageId,
+        actorUserId: input.actor.userId,
+        actorEmail: input.actor.email,
+        actorRole,
+        context: input.context,
+        supabase,
+      })
+      await auditAdminCaseStatusChanged({
+        caseId,
+        stageId,
+        action,
+        fromStatus: (outcome.data.from_status as string | null) ?? null,
+        toStatus: (outcome.data.case_status as string | null) ?? 'student_approved',
+        actorUserId: input.actor.userId,
+        actorEmail: input.actor.email,
+        actorRole,
+        context: input.context,
+        supabase,
+      })
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          status: outcome.data.case_status ?? 'student_approved',
+          reviewed_by: outcome.data.reviewed_by ?? reviewedBy,
+          reviewed_at: outcome.data.reviewed_at ?? reviewedAt,
+        },
+      })
+    }
+
+    if (action === 'return_to_pool') {
+      const { data: returnData, error: returnError } = await rpcClient.rpc(
+        'admin_return_case_to_pool',
+        {
+          p_case_id: caseId,
+          p_assigned_department: assigned_department ?? null,
+          p_urgency: urgency ?? null,
+          p_target_student_level: target_student_level ?? null,
+          p_clinical_notes: clinical_notes ?? null,
+        }
+      )
+      const outcome = normalizeRpcOutcome(returnData, returnError, 'admin_return_case_to_pool')
+      if (!outcome.ok) {
+        return rpcErrorResponse(outcome.code)
+      }
+
+      await auditCaseReturnedToPool({
+        caseId,
+        requestId: (outcome.data.request_id as string | null) ?? null,
+        actorUserId: input.actor.userId,
+        actorEmail: input.actor.email,
+        actorRole,
+        context: input.context,
+        supabase,
+      })
+      await auditAdminCaseStatusChanged({
+        caseId,
+        action,
+        fromStatus: (outcome.data.from_status as string | null) ?? null,
+        toStatus: 'matched',
+        actorUserId: input.actor.userId,
+        actorEmail: input.actor.email,
+        actorRole,
+        context: input.context,
+        supabase,
+      })
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          status: 'matched',
+          reviewed_by: outcome.data.reviewed_by ?? reviewedBy,
+          reviewed_at: outcome.data.reviewed_at ?? reviewedAt,
+          request_id: outcome.data.request_id ?? null,
+          student_email: outcome.data.student_email ?? null,
+        },
+      })
+    }
+
+    if (action === 'release_next_stage') {
+      const department = assigned_department?.trim()
+      if (!department) {
+        return NextResponse.json({ error: 'assigned_department is required' }, { status: 400 })
+      }
+      const { data: releaseData, error: releaseError } = await rpcClient.rpc(
+        'admin_release_next_stage',
+        {
+          p_case_id: caseId,
+          p_department: department,
+          p_target_student_level: target_student_level ?? null,
+          p_urgency: urgency ?? null,
+          p_clinical_notes: clinical_notes ?? null,
+        }
+      )
+      const outcome = normalizeRpcOutcome(releaseData, releaseError, 'admin_release_next_stage')
+      if (!outcome.ok) {
+        return rpcErrorResponse(outcome.code)
+      }
+
+      await auditAdminCaseStatusChanged({
+        caseId,
+        stageId: (outcome.data.stage_id as string | null) ?? null,
+        action,
+        fromStatus: (outcome.data.from_status as string | null) ?? 'faculty_review',
+        toStatus: 'matched',
+        actorUserId: input.actor.userId,
+        actorEmail: input.actor.email,
+        actorRole,
+        context: input.context,
+        supabase,
+      })
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          status: 'matched',
+          reviewed_by: outcome.data.reviewed_by ?? reviewedBy,
+          reviewed_at: outcome.data.reviewed_at ?? reviewedAt,
+          stage_id: outcome.data.stage_id ?? null,
+          sequence: outcome.data.sequence ?? null,
+        },
+      })
+    }
+
+    // mark_completed | mark_cancelled → terminal transition.
+    const terminalAction = action === 'mark_completed' ? 'complete' : 'cancel'
+    const { data: terminalData, error: terminalError } = await rpcClient.rpc(
+      'admin_set_case_terminal_state',
+      { p_case_id: caseId, p_action: terminalAction, p_reason: reason || null }
+    )
+    const outcome = normalizeRpcOutcome(terminalData, terminalError, 'admin_set_case_terminal_state')
+    if (!outcome.ok) {
+      return rpcErrorResponse(outcome.code)
+    }
+
+    const newStatus = (outcome.data.case_status as string | null) ?? null
+    await auditAdminCaseStatusChanged({
+      caseId,
+      action,
+      fromStatus: (outcome.data.from_status as string | null) ?? null,
+      toStatus: newStatus,
+      actorUserId: input.actor.userId,
+      actorEmail: input.actor.email,
+      actorRole,
+      context: input.context,
+      supabase,
+    })
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        status: newStatus,
+        reviewed_by: outcome.data.reviewed_by ?? reviewedBy,
+        reviewed_at: outcome.data.reviewed_at ?? reviewedAt,
+      },
+    })
+  }
+
+  // ── Non-RPC actions ────────────────────────────────────────────────────────
+  // These are single-table (or request-only) writes. They are guarded by the
+  // shared transition rules + a conditional predicate so illegal transitions,
+  // terminal reopening, and concurrent clobbering are all rejected.
+
+  if (action === 'reject_student_request') {
+    if (!body.request_id) {
+      return NextResponse.json({ error: 'request_id is required' }, { status: 400 })
+    }
+
+    const { row, error: loadError } = await loadCaseStatus(supabase, caseId)
+    if (loadError) {
+      return NextResponse.json({ error: loadError }, { status: 500 })
+    }
+    if (!row) {
+      return NextResponse.json({ error: 'Case not found' }, { status: 404 })
+    }
+    if (isTerminalCaseStatus(row.status)) {
+      return NextResponse.json({ error: LIFECYCLE_MESSAGES.TERMINAL_CASE_LOCKED }, { status: 409 })
+    }
+    if (row.status !== 'matched') {
+      return NextResponse.json({ error: LIFECYCLE_MESSAGES.INVALID_TRANSITION }, { status: 409 })
+    }
+
+    const { data: updated, error: updateRequestError } = await supabase
+      .from('student_case_requests')
+      .update({ status: 'rejected', reviewed_by: reviewedBy, reviewed_at: reviewedAt })
+      .eq('id', body.request_id)
+      .eq('case_id', caseId)
+      .eq('status', 'pending')
+      .select('id')
+
+    if (updateRequestError) {
+      return NextResponse.json(
+        { error: logServerError('[admin-case-actions] updateRequestError', updateRequestError.message) },
+        { status: 500 }
+      )
+    }
+    if (!updated || updated.length === 0) {
+      return NextResponse.json({ error: LIFECYCLE_MESSAGES.CONFLICT_RETRY }, { status: 409 })
+    }
+
+    await auditStudentCaseRejected({
+      requestId: body.request_id,
+      caseId,
+      stageId: row.current_stage_id,
+      actorUserId: input.actor.userId,
+      actorEmail: input.actor.email,
+      actorRole,
+      context: input.context,
+      supabase,
+    })
+
+    return NextResponse.json({
+      success: true,
+      data: { status: 'rejected', reviewed_by: reviewedBy, reviewed_at: reviewedAt },
+    })
+  }
+
+  if (action === 'undo_reject_student_request') {
+    if (!body.request_id) {
+      return NextResponse.json({ error: 'request_id is required' }, { status: 400 })
+    }
+
+    const { row, error: loadError } = await loadCaseStatus(supabase, caseId)
+    if (loadError) {
+      return NextResponse.json({ error: loadError }, { status: 500 })
+    }
+    if (!row) {
+      return NextResponse.json({ error: 'Case not found' }, { status: 404 })
+    }
+    if (isTerminalCaseStatus(row.status)) {
+      return NextResponse.json({ error: LIFECYCLE_MESSAGES.TERMINAL_CASE_LOCKED }, { status: 409 })
+    }
+
+    const { data: updated, error: updateRequestError } = await supabase
+      .from('student_case_requests')
+      .update({ status: 'pending', reviewed_by: null, reviewed_at: null })
+      .eq('id', body.request_id)
+      .eq('case_id', caseId)
+      .eq('status', 'rejected')
+      .select('id')
+
+    if (updateRequestError) {
+      return NextResponse.json(
+        { error: logServerError('[admin-case-actions] updateRequestError', updateRequestError.message) },
+        { status: 500 }
+      )
+    }
+    if (!updated || updated.length === 0) {
+      return NextResponse.json({ error: LIFECYCLE_MESSAGES.CONFLICT_RETRY }, { status: 409 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: { status: 'pending', reviewed_by: null, reviewed_at: null },
+    })
+  }
+
+  if (action === 'update_triage') {
+    const { data: currentCase, error: currentCaseError } = await supabase
+      .from('patient_requests')
+      .select('assigned_department, treatment_type, status')
+      .eq('id', caseId)
+      .single()
+
+    if (currentCaseError) {
+      return NextResponse.json(
+        { error: logServerError('[admin-case-actions] currentCaseError', currentCaseError.message) },
+        { status: 500 }
+      )
+    }
+
+    if (isTerminalCaseStatus(currentCase?.status)) {
+      return NextResponse.json({ error: LIFECYCLE_MESSAGES.TERMINAL_CASE_LOCKED }, { status: 409 })
+    }
+
+    const currentDepartment = keywordRoutingHint(
+      currentCase?.treatment_type ?? '',
+      currentCase?.assigned_department ?? null
+    )
+    const departmentChanged = (assigned_department ?? null) !== currentDepartment
+
+    if (departmentChanged && reason.length < 3) {
+      return NextResponse.json({ error: 'Reason is required' }, { status: 400 })
+    }
+
+    const { error: updateError } = await supabase
+      .from('patient_requests')
+      .update({
+        assigned_department,
+        urgency,
+        target_student_level,
+        clinical_notes: clinical_notes ?? null,
+        reviewed_by: reviewedBy,
+        reviewed_at: reviewedAt,
+      })
+      .eq('id', caseId)
+
+    if (updateError) {
+      return NextResponse.json(
+        { error: logServerError('[admin-case-actions] updateError', updateError.message) },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: { reviewed_by: reviewedBy, reviewed_at: reviewedAt },
+    })
+  }
+
+  // Remaining status-changing actions: save_draft, approve, reject,
+  // mark_contacted, mark_appointment_scheduled, mark_in_treatment.
+  const { row: currentCase, error: loadError } = await loadCaseStatus(supabase, caseId)
+  if (loadError) {
+    return NextResponse.json({ error: loadError }, { status: 500 })
+  }
+  if (!currentCase) {
+    return NextResponse.json({ error: 'Case not found' }, { status: 404 })
+  }
+
+  const transition = resolveAdminCaseTransition(action, currentCase.status)
+  if (!transition.ok) {
+    return NextResponse.json({ error: transition.reason }, { status: 409 })
+  }
+  const fromStatus = (currentCase.status ?? '') as string
+  const toStatus = transition.toStatus
+
+  // `approve` also (idempotently) ensures a released routing stage exists before
+  // flipping the case to matched. The case flip itself is conditional on the
+  // observed from-status for concurrency safety.
+  let releasedStageId: string | null = currentCase.current_stage_id
+  if (action === 'approve') {
+    const stageResult = await ensureReleasedRoutingStage({
+      supabase,
+      caseId,
+      assignedDepartment: assigned_department,
+      targetStudentLevel: target_student_level,
+      clinicalNotes: clinical_notes,
+      releasedBy: reviewedBy,
+      releasedAt: reviewedAt,
+    })
+    if (stageResult.error) {
+      return NextResponse.json({ error: stageResult.error }, { status: stageResult.status })
+    }
+    releasedStageId = stageResult.stageId ?? releasedStageId
+  }
+
+  const extraFields: Record<string, unknown> = {}
+  if (action === 'save_draft' || action === 'approve') {
+    extraFields.assigned_department = assigned_department
+    extraFields.urgency = urgency
+    extraFields.target_student_level = target_student_level
+    extraFields.clinical_notes = clinical_notes ?? null
+  }
+
+  const guarded = await applyGuardedStatusUpdate({
+    supabase,
+    caseId,
+    fromStatus,
+    toStatus,
+    reviewedBy,
+    reviewedAt,
+    extraFields,
+  })
+  if (!guarded.ok) {
+    return guarded.response!
+  }
+
+  await auditAdminCaseStatusChanged({
+    caseId,
+    stageId: releasedStageId,
+    action,
+    fromStatus,
+    toStatus,
+    actorUserId: input.actor.userId,
+    actorEmail: input.actor.email,
+    actorRole,
+    context: input.context,
+    supabase,
+  })
+
+  return NextResponse.json({
+    success: true,
+    data: { status: toStatus, reviewed_by: reviewedBy, reviewed_at: reviewedAt },
+  })
+}
+
+/**
+ * Ensure a released routing stage exists for a case being approved into the
+ * pool. Mirrors the pre-existing behavior: update the current/first stage in
+ * place when present, otherwise insert stage sequence 1 and link it.
+ */
 async function ensureReleasedRoutingStage({
   supabase,
   caseId,
@@ -87,7 +676,7 @@ async function ensureReleasedRoutingStage({
   clinicalNotes?: string
   releasedBy: string | null
   releasedAt: string
-}) {
+}): Promise<{ error: string | null; status: number; stageId?: string | null }> {
   const { data: currentCase, error: currentCaseError } = await supabase
     .from('patient_requests')
     .select('id, current_stage_id, treatment_type, assigned_department')
@@ -96,7 +685,9 @@ async function ensureReleasedRoutingStage({
 
   if (currentCaseError || !currentCase) {
     return {
-      error: currentCaseError ? logServerError('[admin-case-actions] currentCaseError', currentCaseError.message) : 'Case not found',
+      error: currentCaseError
+        ? logServerError('[admin-case-actions] currentCaseError', currentCaseError.message)
+        : 'Case not found',
       status: currentCaseError ? 500 : 404,
     }
   }
@@ -125,9 +716,11 @@ async function ensureReleasedRoutingStage({
       .eq('case_id', caseId)
 
     if (updateStageError) {
-      return { error: logServerError('[admin-case-actions] updateStageError', updateStageError.message), status: 500 }
+      return {
+        error: logServerError('[admin-case-actions] updateStageError', updateStageError.message),
+        status: 500,
+      }
     }
-
     return { error: null, status: 200, stageId: currentCase.current_stage_id as string }
   }
 
@@ -139,7 +732,10 @@ async function ensureReleasedRoutingStage({
     .maybeSingle()
 
   if (existingStageError) {
-    return { error: logServerError('[admin-case-actions] existingStageError', existingStageError.message), status: 500 }
+    return {
+      error: logServerError('[admin-case-actions] existingStageError', existingStageError.message),
+      status: 500,
+    }
   }
 
   let stageId = existingStage?.id ?? null
@@ -152,23 +748,27 @@ async function ensureReleasedRoutingStage({
       .eq('case_id', caseId)
 
     if (updateExistingStageError) {
-      return { error: logServerError('[admin-case-actions] updateExistingStageError', updateExistingStageError.message), status: 500 }
+      return {
+        error: logServerError(
+          '[admin-case-actions] updateExistingStageError',
+          updateExistingStageError.message
+        ),
+        status: 500,
+      }
     }
   } else {
     const { data: insertedStage, error: insertStageError } = await supabase
       .from('case_routing_stages')
-      .insert({
-        case_id: caseId,
-        sequence: 1,
-        ...stagePayload,
-      })
+      .insert({ case_id: caseId, sequence: 1, ...stagePayload })
       .select('id')
       .single()
 
     if (insertStageError) {
-      return { error: logServerError('[admin-case-actions] insertStageError', insertStageError.message), status: 500 }
+      return {
+        error: logServerError('[admin-case-actions] insertStageError', insertStageError.message),
+        status: 500,
+      }
     }
-
     stageId = insertedStage.id
   }
 
@@ -178,698 +778,11 @@ async function ensureReleasedRoutingStage({
     .eq('id', caseId)
 
   if (linkStageError) {
-    return { error: logServerError('[admin-case-actions] linkStageError', linkStageError.message), status: 500 }
+    return {
+      error: logServerError('[admin-case-actions] linkStageError', linkStageError.message),
+      status: 500,
+    }
   }
 
   return { error: null, status: 200, stageId: stageId as string | null }
-}
-
-function parseBody(body: unknown): RequestBody | null {
-  if (!body || typeof body !== 'object' || Array.isArray(body)) {
-    return null
-  }
-
-  return body as RequestBody
-}
-
-export async function executeAdminCaseAction(
-  input: ExecuteAdminCaseActionInput
-): Promise<NextResponse> {
-  if (!isFacultyActor(input.actor.role)) {
-    return NextResponse.json({ error: LIFECYCLE_MESSAGES.FORBIDDEN }, { status: 403 })
-  }
-
-  const actorRole = input.actor.role
-  const body = parseBody(input.body)
-  if (!body) {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
-  }
-
-  const { action, assigned_department, urgency, target_student_level, clinical_notes } = body
-  const reason = (body.reason || '').trim()
-
-  if (!isAdminCaseAction(action)) {
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
-  }
-
-  if (
-    ['reject_student_request', 'undo_reject_student_request', 'mark_cancelled', 'return_to_pool'].includes(action) &&
-    reason.length < 3
-  ) {
-    return NextResponse.json({ error: 'Reason is required' }, { status: 400 })
-  }
-
-  const supabase = input.supabase ?? createSupabaseAdminClient()
-  const reviewedAt = new Date().toISOString()
-  const reviewedBy = input.actor.email
-  const caseId = input.caseId
-
-  if (action === 'approve_student_request' || action === 'reject_student_request') {
-    if (!body.request_id) {
-      return NextResponse.json({ error: 'request_id is required' }, { status: 400 })
-    }
-
-    const newStudentStatus = action === 'approve_student_request' ? 'approved' : 'rejected'
-
-    const [
-      { data: studentRequest, error: studentRequestError },
-      { data: currentCase, error: currentCaseError },
-    ] = await Promise.all([
-      supabase
-        .from('student_case_requests')
-        .select('id, case_id, student_id, student_email, stage_id')
-        .eq('id', body.request_id)
-        .eq('case_id', caseId)
-        .single(),
-      supabase
-        .from('patient_requests')
-        .select('id, current_stage_id, status')
-        .eq('id', caseId)
-        .single(),
-    ])
-
-    if (studentRequestError || !studentRequest) {
-      return NextResponse.json(
-        { error: studentRequestError ? logServerError('[admin-case-actions] studentRequestError', studentRequestError.message) : 'Student request not found' },
-        { status: studentRequestError ? 500 : 404 }
-      )
-    }
-
-    if (currentCaseError || !currentCase) {
-      return NextResponse.json(
-        { error: currentCaseError ? logServerError('[admin-case-actions] currentCaseError', currentCaseError.message) : 'Case not found' },
-        { status: currentCaseError ? 500 : 404 }
-      )
-    }
-
-    const currentStageId = currentCase.current_stage_id ?? null
-    const requestStageId = studentRequest.stage_id ?? null
-
-    if (currentStageId && requestStageId && currentStageId !== requestStageId) {
-      return NextResponse.json(
-        { error: 'This student request belongs to a different routing stage.' },
-        { status: 409 }
-      )
-    }
-
-    const stageIdForReview = requestStageId ?? currentStageId
-
-    if (stageIdForReview) {
-      const { data: stageForReview, error: stageForReviewError } = await supabase
-        .from('case_routing_stages')
-        .select('id, case_id')
-        .eq('id', stageIdForReview)
-        .eq('case_id', caseId)
-        .maybeSingle()
-
-      if (stageForReviewError) {
-        return NextResponse.json(
-          {
-            error: logServerError(
-              '[admin-case-actions] stageForReviewError',
-              stageForReviewError.message
-            ),
-          },
-          { status: 500 }
-        )
-      }
-
-      if (!stageForReview) {
-        return NextResponse.json(
-          { error: 'Routing stage not found for this case.' },
-          { status: 409 }
-        )
-      }
-
-      if (!currentStageId) {
-        const { error: linkStageError } = await supabase
-          .from('patient_requests')
-          .update({ current_stage_id: stageIdForReview })
-          .eq('id', caseId)
-          .is('current_stage_id', null)
-
-        if (linkStageError) {
-          return NextResponse.json({ error: logServerError('[admin-case-actions] linkStageError', linkStageError.message) }, { status: 500 })
-        }
-      }
-    }
-
-    const requestUpdatePayload: {
-      status: string
-      reviewed_by: string | null
-      reviewed_at: string
-      stage_id?: string
-    } = {
-      status: newStudentStatus,
-      reviewed_by: reviewedBy,
-      reviewed_at: reviewedAt,
-    }
-
-    if (!requestStageId && stageIdForReview) {
-      requestUpdatePayload.stage_id = stageIdForReview
-    }
-
-    const { error: updateRequestError } = await supabase
-      .from('student_case_requests')
-      .update(requestUpdatePayload)
-      .eq('id', body.request_id)
-      .eq('case_id', caseId)
-
-    if (updateRequestError) {
-      return NextResponse.json({ error: logServerError('[admin-case-actions] updateRequestError', updateRequestError.message) }, { status: 500 })
-    }
-
-    if (action === 'approve_student_request') {
-      const { error: caseStatusError } = await supabase
-        .from('patient_requests')
-        .update({
-          status: 'student_approved',
-          reviewed_by: reviewedBy,
-          reviewed_at: reviewedAt,
-        })
-        .eq('id', caseId)
-
-      if (caseStatusError) {
-        return NextResponse.json({ error: logServerError('[admin-case-actions] caseStatusError', caseStatusError.message) }, { status: 500 })
-      }
-
-      if (stageIdForReview) {
-        const { error: updateStageError } = await supabase
-          .from('case_routing_stages')
-          .update({
-            status: 'student_assigned',
-            student_request_id: body.request_id,
-            student_id: studentRequest.student_id,
-            student_email: studentRequest.student_email,
-            assigned_by: reviewedBy,
-            assigned_at: reviewedAt,
-            updated_at: reviewedAt,
-          })
-          .eq('id', stageIdForReview)
-          .eq('case_id', caseId)
-
-        if (updateStageError) {
-          return NextResponse.json({ error: logServerError('[admin-case-actions] updateStageError', updateStageError.message) }, { status: 500 })
-        }
-      }
-
-      let rejectOtherRequestsQuery = supabase
-        .from('student_case_requests')
-        .update({
-          status: 'rejected',
-          reviewed_by: reviewedBy,
-          reviewed_at: reviewedAt,
-        })
-        .eq('case_id', caseId)
-        .neq('id', body.request_id)
-        .eq('status', 'pending')
-
-      if (stageIdForReview) {
-        rejectOtherRequestsQuery = rejectOtherRequestsQuery.eq('stage_id', stageIdForReview)
-      }
-
-      await rejectOtherRequestsQuery
-
-      await auditStudentCaseApproved({
-        requestId: body.request_id,
-        caseId,
-        stageId: stageIdForReview,
-        actorUserId: input.actor.userId,
-        actorEmail: input.actor.email,
-        actorRole,
-        context: input.context,
-        supabase,
-      })
-
-      await auditAdminCaseStatusChanged({
-        caseId,
-        stageId: stageIdForReview,
-        action,
-        fromStatus: currentCase.status,
-        toStatus: 'student_approved',
-        actorUserId: input.actor.userId,
-        actorEmail: input.actor.email,
-        actorRole,
-        context: input.context,
-        supabase,
-      })
-    } else {
-      await auditStudentCaseRejected({
-        requestId: body.request_id,
-        caseId,
-        stageId: stageIdForReview,
-        actorUserId: input.actor.userId,
-        actorEmail: input.actor.email,
-        actorRole,
-        context: input.context,
-        supabase,
-      })
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        status: newStudentStatus,
-        reviewed_by: reviewedBy,
-        reviewed_at: reviewedAt,
-      },
-    })
-  }
-
-  if (action === 'undo_reject_student_request') {
-    if (!body.request_id) {
-      return NextResponse.json({ error: 'request_id is required' }, { status: 400 })
-    }
-
-    const { error: updateRequestError } = await supabase
-      .from('student_case_requests')
-      .update({
-        status: 'pending',
-        reviewed_by: null,
-        reviewed_at: null,
-      })
-      .eq('id', body.request_id)
-      .eq('case_id', caseId)
-
-    if (updateRequestError) {
-      return NextResponse.json({ error: logServerError('[admin-case-actions] updateRequestError', updateRequestError.message) }, { status: 500 })
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        status: 'pending',
-        reviewed_by: null,
-        reviewed_at: null,
-      },
-    })
-  }
-
-  if (action === 'return_to_pool') {
-    const { data: currentCase, error: currentCaseError } = await supabase
-      .from('patient_requests')
-      .select(
-        'status, assigned_department, urgency, target_student_level, clinical_notes'
-      )
-      .eq('id', caseId)
-      .single()
-
-    if (currentCaseError || !currentCase) {
-      return NextResponse.json(
-        { error: currentCaseError ? logServerError('[admin-case-actions] currentCaseError', currentCaseError.message) : 'Case not found' },
-        { status: currentCaseError ? 500 : 404 }
-      )
-    }
-
-    if (!canReturnCaseToPool(currentCase.status)) {
-      return NextResponse.json(
-        { error: LIFECYCLE_MESSAGES.RETURN_TO_POOL_INELIGIBLE },
-        { status: 409 }
-      )
-    }
-
-    const { data: approvedRequest, error: approvedRequestError } = await supabase
-      .from('student_case_requests')
-      .select('id, student_email')
-      .eq('case_id', caseId)
-      .eq('status', 'approved')
-      .maybeSingle()
-
-    if (approvedRequestError) {
-      return NextResponse.json({ error: logServerError('[admin-case-actions] approvedRequestError', approvedRequestError.message) }, { status: 500 })
-    }
-
-    if (!approvedRequest) {
-      return NextResponse.json(
-        { error: 'No approved student assignment was found for this case.' },
-        { status: 409 }
-      )
-    }
-
-    const { error: revokeRequestError } = await supabase
-      .from('student_case_requests')
-      .update({
-        status: 'revoked',
-        reviewed_by: reviewedBy,
-        reviewed_at: reviewedAt,
-      })
-      .eq('id', approvedRequest.id)
-      .eq('case_id', caseId)
-
-    if (revokeRequestError) {
-      return NextResponse.json({ error: logServerError('[admin-case-actions] revokeRequestError', revokeRequestError.message) }, { status: 500 })
-    }
-
-    const { error: returnCaseError } = await supabase
-      .from('patient_requests')
-      .update({
-        assigned_department: assigned_department ?? currentCase.assigned_department,
-        urgency: urgency ?? currentCase.urgency,
-        target_student_level: target_student_level ?? currentCase.target_student_level,
-        clinical_notes: clinical_notes ?? currentCase.clinical_notes,
-        status: 'matched',
-        reviewed_by: reviewedBy,
-        reviewed_at: reviewedAt,
-      })
-      .eq('id', caseId)
-
-    if (returnCaseError) {
-      return NextResponse.json({ error: logServerError('[admin-case-actions] returnCaseError', returnCaseError.message) }, { status: 500 })
-    }
-
-    await auditCaseReturnedToPool({
-      caseId,
-      requestId: approvedRequest.id,
-      actorUserId: input.actor.userId,
-      actorEmail: input.actor.email,
-      actorRole,
-      context: input.context,
-      supabase,
-    })
-
-    await auditAdminCaseStatusChanged({
-      caseId,
-      action,
-      fromStatus: currentCase.status,
-      toStatus: 'matched',
-      actorUserId: input.actor.userId,
-      actorEmail: input.actor.email,
-      actorRole,
-      context: input.context,
-      supabase,
-    })
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        status: 'matched',
-        reviewed_by: reviewedBy,
-        reviewed_at: reviewedAt,
-        request_id: approvedRequest.id,
-        student_email: approvedRequest.student_email,
-      },
-    })
-  }
-
-  if (action === 'release_next_stage') {
-    const department = assigned_department?.trim()
-    if (!department) {
-      return NextResponse.json({ error: 'assigned_department is required' }, { status: 400 })
-    }
-
-    const { data: currentCase, error: currentCaseError } = await supabase
-      .from('patient_requests')
-      .select('status, current_stage_id, urgency, clinical_notes')
-      .eq('id', caseId)
-      .single()
-
-    if (currentCaseError || !currentCase) {
-      return NextResponse.json(
-        { error: currentCaseError ? logServerError('[admin-case-actions] currentCaseError', currentCaseError.message) : 'Case not found' },
-        { status: currentCaseError ? 500 : 404 }
-      )
-    }
-
-    if (!canReleaseNextStage(currentCase.status)) {
-      return NextResponse.json(
-        { error: LIFECYCLE_MESSAGES.RELEASE_ONLY_FACULTY_REVIEW },
-        { status: 409 }
-      )
-    }
-
-    if (currentCase.current_stage_id) {
-      const { error: reviewStageError } = await supabase
-        .from('case_routing_stages')
-        .update({
-          stage_reviewed_by: reviewedBy,
-          stage_reviewed_at: reviewedAt,
-          updated_at: reviewedAt,
-        })
-        .eq('id', currentCase.current_stage_id)
-        .eq('case_id', caseId)
-
-      if (reviewStageError) {
-        return NextResponse.json({ error: logServerError('[admin-case-actions] reviewStageError', reviewStageError.message) }, { status: 500 })
-      }
-    }
-
-    const { data: latestStage, error: latestStageError } = await supabase
-      .from('case_routing_stages')
-      .select('sequence')
-      .eq('case_id', caseId)
-      .order('sequence', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    if (latestStageError) {
-      return NextResponse.json({ error: logServerError('[admin-case-actions] latestStageError', latestStageError.message) }, { status: 500 })
-    }
-
-    const nextSequence = Number(latestStage?.sequence ?? 0) + 1
-
-    const { data: nextStage, error: insertStageError } = await supabase
-      .from('case_routing_stages')
-      .insert({
-        case_id: caseId,
-        sequence: nextSequence,
-        department,
-        target_student_level: target_student_level ?? null,
-        status: STAGE_STATUS.RELEASED,
-        faculty_notes: clinical_notes ?? currentCase.clinical_notes ?? null,
-        released_by: reviewedBy,
-        released_at: reviewedAt,
-        created_at: reviewedAt,
-        updated_at: reviewedAt,
-      })
-      .select('id, sequence')
-      .single()
-
-    if (insertStageError) {
-      return NextResponse.json({ error: logServerError('[admin-case-actions] insertStageError', insertStageError.message) }, { status: 500 })
-    }
-
-    const { error: updateCaseError } = await supabase
-      .from('patient_requests')
-      .update({
-        current_stage_id: nextStage.id,
-        assigned_department: department,
-        target_student_level: target_student_level ?? null,
-        clinical_notes: clinical_notes ?? currentCase.clinical_notes ?? null,
-        urgency: urgency ?? currentCase.urgency,
-        status: 'matched',
-        reviewed_by: reviewedBy,
-        reviewed_at: reviewedAt,
-      })
-      .eq('id', caseId)
-
-    if (updateCaseError) {
-      return NextResponse.json({ error: logServerError('[admin-case-actions] updateCaseError', updateCaseError.message) }, { status: 500 })
-    }
-
-    await auditAdminCaseStatusChanged({
-      caseId,
-      stageId: nextStage.id,
-      action,
-      fromStatus: currentCase.status,
-      toStatus: 'matched',
-      actorUserId: input.actor.userId,
-      actorEmail: input.actor.email,
-      actorRole,
-      context: input.context,
-      supabase,
-    })
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        status: 'matched',
-        reviewed_by: reviewedBy,
-        reviewed_at: reviewedAt,
-        stage_id: nextStage.id,
-        sequence: nextStage.sequence,
-      },
-    })
-  }
-
-  if (isAdminLifecycleAction(action)) {
-    const newStatus = ADMIN_LIFECYCLE_ACTION_TO_STATUS[action]
-    const updatePayload: {
-      status: string
-      reviewed_by: string | null
-      reviewed_at: string
-      routing_completed_at?: string
-    } = {
-      status: newStatus,
-      reviewed_by: reviewedBy,
-      reviewed_at: reviewedAt,
-    }
-
-    if (action === 'mark_completed') {
-      updatePayload.routing_completed_at = reviewedAt
-    }
-
-    const { data: currentCase } = await supabase
-      .from('patient_requests')
-      .select('status, current_stage_id')
-      .eq('id', caseId)
-      .maybeSingle()
-
-    const { error: updateError } = await supabase
-      .from('patient_requests')
-      .update(updatePayload)
-      .eq('id', caseId)
-
-    if (updateError) {
-      return NextResponse.json({ error: logServerError('[admin-case-actions] updateError', updateError.message) }, { status: 500 })
-    }
-
-    await auditAdminCaseStatusChanged({
-      caseId,
-      stageId: currentCase?.current_stage_id ?? null,
-      action,
-      fromStatus: currentCase?.status ?? null,
-      toStatus: newStatus,
-      actorUserId: input.actor.userId,
-      actorEmail: input.actor.email,
-      actorRole,
-      context: input.context,
-      supabase,
-    })
-
-    return NextResponse.json({
-      success: true,
-      data: { status: newStatus, reviewed_by: reviewedBy, reviewed_at: reviewedAt },
-    })
-  }
-
-  if (action === 'update_triage') {
-    const { data: currentCase, error: currentCaseError } = await supabase
-      .from('patient_requests')
-      .select('assigned_department, treatment_type')
-      .eq('id', caseId)
-      .single()
-
-    if (currentCaseError) {
-      return NextResponse.json({ error: logServerError('[admin-case-actions] currentCaseError', currentCaseError.message) }, { status: 500 })
-    }
-
-    const currentDepartment =
-      keywordRoutingHint(currentCase?.treatment_type ?? '', currentCase?.assigned_department ?? null)
-    const departmentChanged =
-      (assigned_department ?? null) !== currentDepartment
-
-    if (departmentChanged && reason.length < 3) {
-      return NextResponse.json({ error: 'Reason is required' }, { status: 400 })
-    }
-
-    const { error: updateError } = await supabase
-      .from('patient_requests')
-      .update({
-        assigned_department,
-        urgency,
-        target_student_level,
-        clinical_notes: clinical_notes ?? null,
-        reviewed_by: reviewedBy,
-        reviewed_at: reviewedAt,
-      })
-      .eq('id', caseId)
-
-    if (updateError) {
-      return NextResponse.json({ error: logServerError('[admin-case-actions] updateError', updateError.message) }, { status: 500 })
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: { reviewed_by: reviewedBy, reviewed_at: reviewedAt },
-    })
-  }
-
-  type UpdatePayload = {
-    status: string
-    reviewed_by: string | null
-    reviewed_at: string
-    assigned_department?: string
-    urgency?: string
-    target_student_level?: string
-    clinical_notes?: string | null
-  }
-
-  let updatePayload: UpdatePayload
-  let stageId: string | null = null
-
-  if (action === 'save_draft') {
-    updatePayload = {
-      assigned_department,
-      urgency,
-      target_student_level,
-      clinical_notes: clinical_notes ?? null,
-      status: 'under_review',
-      reviewed_by: reviewedBy,
-      reviewed_at: reviewedAt,
-    }
-  } else if (action === 'approve') {
-    const stageResult = await ensureReleasedRoutingStage({
-      supabase,
-      caseId,
-      assignedDepartment: assigned_department,
-      targetStudentLevel: target_student_level,
-      clinicalNotes: clinical_notes,
-      releasedBy: reviewedBy,
-      releasedAt: reviewedAt,
-    })
-
-    if (stageResult.error) {
-      return NextResponse.json({ error: stageResult.error }, { status: stageResult.status })
-    }
-
-    stageId = stageResult.stageId ?? null
-    updatePayload = {
-      assigned_department,
-      urgency,
-      target_student_level,
-      clinical_notes: clinical_notes ?? null,
-      status: 'matched',
-      reviewed_by: reviewedBy,
-      reviewed_at: reviewedAt,
-    }
-  } else {
-    updatePayload = {
-      status: 'rejected',
-      reviewed_by: reviewedBy,
-      reviewed_at: reviewedAt,
-    }
-  }
-
-  const { data: currentCase } = await supabase
-    .from('patient_requests')
-    .select('status, current_stage_id')
-    .eq('id', caseId)
-    .maybeSingle()
-
-  const { error: updateError } = await supabase
-    .from('patient_requests')
-    .update(updatePayload)
-    .eq('id', caseId)
-
-  if (updateError) {
-    return NextResponse.json({ error: logServerError('[admin-case-actions] updateError', updateError.message) }, { status: 500 })
-  }
-
-  await auditAdminCaseStatusChanged({
-    caseId,
-    stageId: stageId ?? currentCase?.current_stage_id ?? null,
-    action,
-    fromStatus: currentCase?.status ?? null,
-    toStatus: updatePayload.status,
-    actorUserId: input.actor.userId,
-    actorEmail: input.actor.email,
-    actorRole,
-    context: input.context,
-    supabase,
-  })
-
-  return NextResponse.json({
-    success: true,
-    data: { reviewed_by: reviewedBy, reviewed_at: reviewedAt },
-  })
 }
