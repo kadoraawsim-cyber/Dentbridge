@@ -22,7 +22,7 @@ type CaseCardCase = {
   symptom_duration: string | null
   preferred_days: string | null
   medical_condition: string | null
-  attachment_path: string | null
+  has_attachment: boolean
   clinical_notes: string | null
 }
 

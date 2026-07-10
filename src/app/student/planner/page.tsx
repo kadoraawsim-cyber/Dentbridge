@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { fetchStudentActiveCases } from '@/lib/cases/student-case-access'
 import { PlannerClient } from './planner-client'
 
 const ACTIVE_CASE_STATUSES = [
@@ -25,13 +26,6 @@ function stripEndMarker(value: string | null) {
   }
 }
 
-function isCurrentStageRequest(
-  requestStageId: string | null | undefined,
-  currentStageId: string | null | undefined
-) {
-  return !requestStageId || !currentStageId || requestStageId === currentStageId
-}
-
 export default async function StudentPlannerPage() {
   const cookieStore = await cookies()
   const supabase = createSupabaseServerClient(cookieStore)
@@ -44,7 +38,10 @@ export default async function StudentPlannerPage() {
     redirect('/student/login')
   }
 
-  const [profileResult, plannerResult, requestsResult] = await Promise.all([
+  // Active patients (with contact names) come from the current-stage-gated RPC,
+  // not a direct patient_requests read. A handed-off / previous-stage case is
+  // therefore never returned here.
+  const [profileResult, plannerResult, activeCasesData] = await Promise.all([
     supabase
       .from('student_profiles')
       .select('full_name')
@@ -57,20 +54,11 @@ export default async function StudentPlannerPage() {
       )
       .eq('student_id', user.id)
       .order('event_date', { ascending: true }),
-    supabase
-      .from('student_case_requests')
-      .select('case_id, stage_id')
-      .eq('student_id', user.id)
-      .eq('status', 'approved'),
+    fetchStudentActiveCases(supabase),
   ])
 
   const plannerRows = plannerResult.data ?? []
-  const approvedRequests = requestsResult.data ?? []
 
-  const approvedCaseIds = approvedRequests.map((row) => row.case_id)
-  const approvedStageByCase = new Map(
-    approvedRequests.map((row) => [row.case_id, row.stage_id as string | null])
-  )
   const linkedCaseIds = Array.from(
     new Set(
       plannerRows
@@ -79,28 +67,28 @@ export default async function StudentPlannerPage() {
     )
   )
 
-  const [patientsResult, linkedAppointmentsResult] = await Promise.all([
-    approvedCaseIds.length > 0
-      ? supabase
-          .from('patient_requests')
-          .select('id, full_name, treatment_type, assigned_department, status, current_stage_id')
-          .in('id', approvedCaseIds)
-          .in('status', ACTIVE_CASE_STATUSES)
-          .order('created_at', { ascending: false })
-      : Promise.resolve(null),
+  const { data: linkedAppointmentsData } =
     linkedCaseIds.length > 0
-      ? supabase
+      ? await supabase
           .from('case_progress_entries')
           .select('case_id, stage_id, appointment_date, appointment_time, created_at')
           .in('case_id', linkedCaseIds)
           .not('appointment_date', 'is', null)
           .order('created_at', { ascending: false })
-      : Promise.resolve(null),
-  ])
+      : { data: null }
 
-  const activePatients = (patientsResult?.data ?? []).filter((patient) =>
-    isCurrentStageRequest(approvedStageByCase.get(patient.id), patient.current_stage_id)
-  )
+  const linkedAppointmentsResult = { data: linkedAppointmentsData }
+
+  const activePatients = activeCasesData
+    .filter((patient) => Boolean(patient.status && ACTIVE_CASE_STATUSES.includes(patient.status)))
+    .map((patient) => ({
+      id: patient.id,
+      full_name: patient.full_name,
+      treatment_type: patient.treatment_type,
+      assigned_department: patient.assigned_department,
+      status: patient.status,
+      current_stage_id: patient.current_stage_id,
+    }))
 
   const latestLinkedAppointmentsByCase = new Map<
     string,

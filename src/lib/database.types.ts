@@ -754,6 +754,86 @@ export type Database = {
           treatment_type: string
         }[]
       }
+      student_has_current_stage_assignment: {
+        Args: { p_case_id: string }
+        Returns: boolean
+      }
+      student_pool_cases: {
+        Args: Record<string, never>
+        Returns: {
+          id: string
+          age: number | null
+          treatment_type: string
+          complaint_text: string | null
+          urgency: string
+          assigned_department: string | null
+          target_student_level: string | null
+          pain_score: number | null
+          preferred_days: string | null
+          symptom_duration: string | null
+          medical_condition: string | null
+          clinical_notes: string | null
+          created_at: string | null
+          has_attachment: boolean
+        }[]
+      }
+      student_active_cases: {
+        Args: Record<string, never>
+        Returns: {
+          id: string
+          treatment_type: string
+          assigned_department: string | null
+          status: string | null
+          full_name: string
+          phone: string
+          current_stage_id: string | null
+        }[]
+      }
+      student_requested_case_overview: {
+        Args: Record<string, never>
+        Returns: {
+          request_id: string
+          case_id: string
+          stage_id: string | null
+          request_status: string
+          effective_status: string
+          created_at: string
+          treatment_type: string
+          assigned_department: string | null
+          urgency: string
+          case_status: string | null
+          current_stage_id: string | null
+          stage_department: string | null
+        }[]
+      }
+      admin_approve_student_request: {
+        Args: { p_case_id: string; p_request_id: string }
+        Returns: Json
+      }
+      admin_return_case_to_pool: {
+        Args: {
+          p_case_id: string
+          p_assigned_department?: string | null
+          p_urgency?: string | null
+          p_target_student_level?: string | null
+          p_clinical_notes?: string | null
+        }
+        Returns: Json
+      }
+      admin_release_next_stage: {
+        Args: {
+          p_case_id: string
+          p_department: string
+          p_target_student_level?: string | null
+          p_urgency?: string | null
+          p_clinical_notes?: string | null
+        }
+        Returns: Json
+      }
+      admin_set_case_terminal_state: {
+        Args: { p_case_id: string; p_action: string; p_reason?: string | null }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

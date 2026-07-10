@@ -260,6 +260,15 @@ function getSignedUrlTtlSeconds(purpose: 'preview' | 'download'): number {
     : SIGNED_URL_PREVIEW_TTL_SECONDS
 }
 
+/** Routing-stage statuses in which a student still actively owns the case. */
+const ACTIVE_STAGE_STATUSES = [
+  'student_assigned',
+  'contacted',
+  'appointment_scheduled',
+  'in_treatment',
+  'faculty_review',
+]
+
 async function canActorReadFile(
   supabase: SupabaseAdminClient,
   row: PatientFileRow,
@@ -274,20 +283,70 @@ async function canActorReadFile(
     return false
   }
 
-  const { data, error } = await supabase
+  // A student may read a patient file only while they are the CURRENT-stage
+  // assignee of the case. A historical approved request from a previous,
+  // handed-off stage no longer grants file access.
+  const { data: approved, error: requestError } = await supabase
     .from('student_case_requests')
-    .select('id')
+    .select('id, stage_id')
     .eq('case_id', row.patient_request_id)
     .eq('student_id', actorUserId)
     .eq('status', 'approved')
-    .maybeSingle<{ id: string }>()
+    .maybeSingle<{ id: string; stage_id: string | null }>()
 
-  if (error) {
-    console.error('[files] Failed to authorize student file read', { error: error.message })
+  if (requestError) {
+    console.error('[files] Failed to authorize student file read', { error: requestError.message })
     return false
   }
 
-  return Boolean(data)
+  if (!approved) {
+    return false
+  }
+
+  const { data: caseRow, error: caseError } = await supabase
+    .from('patient_requests')
+    .select('current_stage_id')
+    .eq('id', row.patient_request_id)
+    .maybeSingle<{ current_stage_id: string | null }>()
+
+  if (caseError) {
+    console.error('[files] Failed to load case for file authorization', { error: caseError.message })
+    return false
+  }
+
+  const currentStageId = caseRow?.current_stage_id ?? null
+
+  // Legacy pre-routing case with no stage: the approved request alone authorizes.
+  if (!currentStageId) {
+    return true
+  }
+
+  // The approved request must be for the case's CURRENT stage.
+  if (approved.stage_id && approved.stage_id !== currentStageId) {
+    return false
+  }
+
+  const { data: stage, error: stageError } = await supabase
+    .from('case_routing_stages')
+    .select('student_id, status')
+    .eq('id', currentStageId)
+    .eq('case_id', row.patient_request_id)
+    .maybeSingle<{ student_id: string | null; status: string | null }>()
+
+  if (stageError || !stage) {
+    if (stageError) {
+      console.error('[files] Failed to load stage for file authorization', {
+        error: stageError.message,
+      })
+    }
+    return false
+  }
+
+  if (stage.student_id && stage.student_id !== actorUserId) {
+    return false
+  }
+
+  return ACTIVE_STAGE_STATUSES.includes(stage.status ?? '')
 }
 
 export async function prepareUpload(

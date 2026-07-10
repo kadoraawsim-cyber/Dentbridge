@@ -251,7 +251,7 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
                   tUrgency={tUrgency}
                   tMedicalCondition={tMedicalCondition}
                   tAttachmentSummary={(caseItem) =>
-                    caseItem.attachment_path
+                    caseItem.has_attachment
                       ? t('student.cases.oneImageAttachment')
                       : t('student.cases.noAttachments')
                   }

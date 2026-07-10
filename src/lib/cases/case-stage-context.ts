@@ -89,12 +89,16 @@ export async function getAuthorizedStageContext({
   const currentStageId = currentCase.current_stage_id ?? null
   const requestStageId = approvedRequest.stage_id ?? null
 
+  // Previous-stage lockout: once a case has advanced past the student's approved
+  // stage (a later stage has become current), that student is no longer
+  // authorized for any patient/progress/file action on this case — even though
+  // their historical approved request row still exists.
   if (currentStageId && requestStageId && currentStageId !== requestStageId) {
     return {
       context: null,
       response: {
-        status: 409,
-        body: { error: 'This assignment belongs to a different routing stage.' },
+        status: 403,
+        body: { error: 'You are no longer assigned to this case.' },
       },
     }
   }
@@ -105,7 +109,7 @@ export async function getAuthorizedStageContext({
   if (stageId) {
     const { data: currentStage, error: currentStageError } = await supabase
       .from('case_routing_stages')
-      .select('id, department')
+      .select('id, department, student_id, status')
       .eq('id', stageId)
       .eq('case_id', caseId)
       .maybeSingle()
@@ -129,6 +133,20 @@ export async function getAuthorizedStageContext({
       return {
         context: null,
         response: { status: 409, body: { error: 'Routing stage not found.' } },
+      }
+    }
+
+    // Current-stage ownership: when the stage has an assignee it must be this
+    // student. A NULL assignee only occurs on the legacy link path below, where
+    // the student's own approved request is what authorizes the (yet unlinked)
+    // stage.
+    if (currentStage.student_id && currentStage.student_id !== studentId) {
+      return {
+        context: null,
+        response: {
+          status: 403,
+          body: { error: 'You are no longer assigned to this case.' },
+        },
       }
     }
 
