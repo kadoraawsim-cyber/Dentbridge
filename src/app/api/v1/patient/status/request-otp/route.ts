@@ -33,7 +33,7 @@ const SECURITY_HEADERS: Record<string, string> = {
   'X-Content-Type-Options': 'nosniff',
 }
 
-// Anti-abuse limits. In-memory only for now; durable rate limiting is Phase 12.
+// Anti-abuse limits: fast in-memory pre-check, backed by the shared durable limiter.
 // Per phone: strict, to prevent SMS bombing a single number.
 // Per IP: looser, to allow a household/clinic a few lookups while capping mass abuse.
 const PHONE_RATE_LIMIT = { name: 'patient-status-request-otp:phone', windowMs: 15 * 60_000, max: 3 }

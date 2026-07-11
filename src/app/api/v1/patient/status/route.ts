@@ -7,6 +7,7 @@ import {
   type PublicErrorCode,
 } from '@/lib/api/errors'
 import { createRateLimiter, getClientIp } from '@/lib/api/rate-limit'
+import { checkDurableRateLimit } from '@/lib/api/durable-rate-limit'
 import { isAllowedSameOriginRequest } from '@/lib/api/same-origin'
 import {
   auditPatientStatusLookup,
@@ -207,6 +208,40 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const admin = createSupabaseAdminClient()
+
+    // Shared durable limits so verification attempts (and the Twilio checks
+    // they trigger) stay bounded across serverless instances, mirroring the
+    // request-otp endpoint. Fails closed when the limiter is unavailable.
+    const [durableIpLimit, durablePhoneLimit] = await Promise.all([
+      checkDurableRateLimit(
+        clientIp,
+        { scope: 'patient_status_verify_ip', windowSeconds: 15 * 60, max: 20 },
+        admin
+      ),
+      checkDurableRateLimit(
+        phone,
+        { scope: 'patient_status_verify_phone', windowSeconds: 15 * 60, max: 8 },
+        admin
+      ),
+    ])
+    if (durableIpLimit.unavailable || durablePhoneLimit.unavailable) {
+      return finish(errorResponse('service_unavailable', locale), {
+        actorType: 'anonymous',
+        errorCode: 'service_unavailable',
+      })
+    }
+    if (!durableIpLimit.allowed || !durablePhoneLimit.allowed) {
+      return finish(
+        errorResponse('rate_limited', locale, {
+          retryAfterSeconds: Math.max(
+            durableIpLimit.retryAfterSeconds,
+            durablePhoneLimit.retryAfterSeconds
+          ),
+        }),
+        { actorType: 'anonymous', errorCode: 'rate_limited' }
+      )
+    }
+
     const verificationFailed = async (): Promise<NextResponse> => {
       await auditPatientStatusLookup({
         phoneLast4,
