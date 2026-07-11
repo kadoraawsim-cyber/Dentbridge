@@ -202,13 +202,22 @@ This file reflects the current checked-in app state.
 
 ## Environment Requirements
 
-Expected environment variables for local or deployed environments:
+Expected environment variables for local or deployed environments (see
+`docs/PRODUCTION_RELEASE_GATES_2026-07-11.md` for the authoritative list):
 
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `OPENAI_API_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
+- `APP_URL`
+- `CRON_SECRET`
 - `FILE_TICKET_SECRET`
+- `INVITE_REDIRECT_URL`
+- `NEXT_PUBLIC_PASSWORD_RESET_REDIRECT_URL`
+- `NEXT_PUBLIC_PATIENT_UPLOADS_ENABLED` (`false` until malware scanning ships)
+- `NEXT_PUBLIC_SITE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `OPENAI_API_KEY`
+- `PATIENT_UPLOADS_ENABLED` (`false` until malware scanning ships)
+- `RATE_LIMIT_HMAC_SECRET`
+- `SUPABASE_SERVICE_ROLE_KEY`
 - `TWILIO_ACCOUNT_SID`
 - `TWILIO_API_KEY_SID`
 - `TWILIO_API_KEY_SECRET`

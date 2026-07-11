@@ -19,10 +19,16 @@ That is not malware scanning. New valid JPG/JPEG, PNG, and PDF uploads remain `q
 `scan_state = pending`. Signed preview/download URLs require both `status = clean` and
 `scan_state = clean`, so quarantined files fail closed.
 
+Launch policy: patient uploads ship DISABLED. The server-only `PATIENT_UPLOADS_ENABLED` flag
+(default `false`) gates the `prepare-upload` and `confirm` endpoints with a generic 503, and
+`NEXT_PUBLIC_PATIENT_UPLOADS_ENABLED` hides the upload form. Patient request submission is not
+affected by either flag. See `docs/ENVIRONMENT.md`.
+
 Production file access must remain gated until Waseem selects a scanner, completes privacy and
 data-processing review, configures credentials, implements the `MalwareScanner` adapter, and
-validates clean/infected/unavailable callbacks in Preview. Do not send patient files to a third
-party before those approvals. Twilio Verify is unrelated to file scanning.
+validates clean/infected/unavailable callbacks in Preview. Only then may both flags be set to
+`true`. Do not send patient files to a third party before those approvals. Twilio Verify is
+unrelated to file scanning.
 
 ## Required server-only configuration
 
@@ -31,6 +37,7 @@ party before those approvals. Twilio Verify is unrelated to file scanning.
 - `FILE_TICKET_SECRET`
 - `INVITE_REDIRECT_URL`
 - `OPENAI_API_KEY`
+- `PATIENT_UPLOADS_ENABLED` (`false` at launch; see malware scanning gate)
 - `RATE_LIMIT_HMAC_SECRET`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `TWILIO_ACCOUNT_SID`
@@ -41,6 +48,7 @@ party before those approvals. Twilio Verify is unrelated to file scanning.
 Public configuration:
 
 - `NEXT_PUBLIC_PASSWORD_RESET_REDIRECT_URL`
+- `NEXT_PUBLIC_PATIENT_UPLOADS_ENABLED` (`false` at launch; mirrors the server flag)
 - `NEXT_PUBLIC_SITE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `NEXT_PUBLIC_SUPABASE_URL`

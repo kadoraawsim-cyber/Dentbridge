@@ -9,6 +9,7 @@ import { createRateLimiter, getClientIp } from '@/lib/api/rate-limit'
 import { checkDurableRateLimit } from '@/lib/api/durable-rate-limit'
 import { isAllowedSameOriginRequest } from '@/lib/api/same-origin'
 import { createAuditRequestContext } from '@/lib/audit/audit.service'
+import { getServerEnvironment } from '@/lib/env/server'
 import { prepareUpload } from '@/lib/files/files.service'
 import { captureException } from '@/lib/observability/error-monitor'
 import {
@@ -26,7 +27,7 @@ const SECURITY_HEADERS: Record<string, string> = {
   'X-Content-Type-Options': 'nosniff',
 }
 
-// Anti-abuse: in-memory only for now; durable rate limiting is Phase 12.
+// Anti-abuse: fast in-memory pre-check, backed by the shared durable limiter.
 const IP_RATE_LIMIT = { name: 'files-prepare-upload:ip', windowMs: 15 * 60_000, max: 30 }
 const ipRateLimiter = createRateLimiter(IP_RATE_LIMIT)
 
@@ -85,6 +86,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
+    // Production launch gate: while no approved malware scanner is configured,
+    // new patient uploads are disabled entirely. Patient request submission
+    // stays available; only the attachment pipeline fails closed.
+    if (!getServerEnvironment().PATIENT_UPLOADS_ENABLED) {
+      return finish(errorResponse('service_unavailable', headerLocale), {
+        actorType: 'anonymous',
+        errorCode: 'service_unavailable',
+      })
+    }
+
     if (!isAllowedSameOriginRequest(request)) {
       return finish(errorResponse('invalid_request', headerLocale), {
         actorType: 'anonymous',

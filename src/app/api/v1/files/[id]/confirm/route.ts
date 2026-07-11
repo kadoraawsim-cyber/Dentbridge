@@ -6,8 +6,10 @@ import {
   type PublicErrorCode,
 } from '@/lib/api/errors'
 import { createRateLimiter, getClientIp } from '@/lib/api/rate-limit'
+import { checkDurableRateLimit } from '@/lib/api/durable-rate-limit'
 import { isAllowedSameOriginRequest } from '@/lib/api/same-origin'
 import { createAuditRequestContext } from '@/lib/audit/audit.service'
+import { getServerEnvironment } from '@/lib/env/server'
 import { confirmUpload } from '@/lib/files/files.service'
 import { captureException } from '@/lib/observability/error-monitor'
 import {
@@ -25,7 +27,7 @@ const SECURITY_HEADERS: Record<string, string> = {
   'X-Content-Type-Options': 'nosniff',
 }
 
-// Anti-abuse: in-memory only for now; durable rate limiting is Phase 12.
+// Anti-abuse: fast in-memory pre-check, backed by the shared durable limiter.
 const IP_RATE_LIMIT = { name: 'files-confirm:ip', windowMs: 15 * 60_000, max: 60 }
 const ipRateLimiter = createRateLimiter(IP_RATE_LIMIT)
 
@@ -88,6 +90,16 @@ export async function POST(
   try {
     const { id } = await params
 
+    // Production launch gate: while no approved malware scanner is configured,
+    // no new bytes may enter the quarantine pipeline. Fails closed with the
+    // same response as the prepare endpoint.
+    if (!getServerEnvironment().PATIENT_UPLOADS_ENABLED) {
+      return finish(errorResponse('service_unavailable', headerLocale), {
+        actorType: 'anonymous',
+        errorCode: 'service_unavailable',
+      })
+    }
+
     if (!isAllowedSameOriginRequest(request)) {
       return finish(errorResponse('invalid_request', headerLocale), {
         actorType: 'anonymous',
@@ -110,6 +122,26 @@ export async function POST(
       return finish(
         errorResponse('rate_limited', headerLocale, {
           retryAfterSeconds: ipLimit.retryAfterSeconds,
+        }),
+        { actorType: 'anonymous', errorCode: 'rate_limited' }
+      )
+    }
+
+    const durableLimit = await checkDurableRateLimit(clientIp, {
+      scope: 'file_confirm_ip',
+      windowSeconds: 15 * 60,
+      max: 60,
+    })
+    if (durableLimit.unavailable) {
+      return finish(errorResponse('service_unavailable', headerLocale), {
+        actorType: 'anonymous',
+        errorCode: 'service_unavailable',
+      })
+    }
+    if (!durableLimit.allowed) {
+      return finish(
+        errorResponse('rate_limited', headerLocale, {
+          retryAfterSeconds: durableLimit.retryAfterSeconds,
         }),
         { actorType: 'anonymous', errorCode: 'rate_limited' }
       )

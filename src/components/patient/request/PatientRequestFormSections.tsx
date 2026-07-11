@@ -446,6 +446,7 @@ export function ClinicalDetailsSection({
 interface SupportSectionProps {
   sectionRef: RefCallback<HTMLElement>
   attachment: File | null
+  attachmentEnabled: boolean
   contactMethod: string
   preferredLanguage: string
   bestContactTime: string
@@ -460,6 +461,7 @@ interface SupportSectionProps {
 export function SupportSection({
   sectionRef,
   attachment,
+  attachmentEnabled,
   contactMethod,
   preferredLanguage,
   bestContactTime,
@@ -481,43 +483,47 @@ export function SupportSection({
         </h2>
       </div>
 
-      <div>
-        <label className="mb-2 block text-sm font-medium text-slate-700">
-          {t('request.supportingImages')}{' '}
-          <span className="font-normal text-slate-400">{t('request.optional')}</span>
-        </label>
-      </div>
-
-      <div className="rounded-xl sm:rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 sm:px-6 sm:py-8">
-        <div className="mb-4 rounded-xl border border-teal-100 bg-teal-50 px-3 py-2.5 text-sm font-medium leading-relaxed text-teal-900 sm:px-4">
-          {t('request.uploadHelpText')}
-        </div>
-
-        <label className="block cursor-pointer">
-          <div className="text-center">
-            <UploadCloud className="mx-auto mb-2 sm:mb-3 h-6 w-6 sm:h-8 sm:w-8 text-slate-400" />
-            <p className="text-sm sm:text-base font-medium text-slate-700">{t('request.uploadTitle')}</p>
-            <p className="mt-1 text-xs sm:text-sm text-slate-500">{t('request.uploadSubtitle')}</p>
+      {attachmentEnabled && (
+        <>
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">
+              {t('request.supportingImages')}{' '}
+              <span className="font-normal text-slate-400">{t('request.optional')}</span>
+            </label>
           </div>
 
-          <input
-            type="file"
-            accept=".jpg,.jpeg,.png,.pdf"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0] || null
-              onAttachmentChange(file)
-            }}
-          />
-        </label>
+          <div className="rounded-xl sm:rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 sm:px-6 sm:py-8">
+            <div className="mb-4 rounded-xl border border-teal-100 bg-teal-50 px-3 py-2.5 text-sm font-medium leading-relaxed text-teal-900 sm:px-4">
+              {t('request.uploadHelpText')}
+            </div>
 
-        {attachment && (
-          <div className="mt-4 rounded-xl border border-slate-200 bg-white px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-700">
-            {t('request.uploadSelectedLabel')}{' '}
-            <span className="font-medium truncate block sm:inline mt-1 sm:mt-0">{attachment.name}</span>
+            <label className="block cursor-pointer">
+              <div className="text-center">
+                <UploadCloud className="mx-auto mb-2 sm:mb-3 h-6 w-6 sm:h-8 sm:w-8 text-slate-400" />
+                <p className="text-sm sm:text-base font-medium text-slate-700">{t('request.uploadTitle')}</p>
+                <p className="mt-1 text-xs sm:text-sm text-slate-500">{t('request.uploadSubtitle')}</p>
+              </div>
+
+              <input
+                type="file"
+                accept=".jpg,.jpeg,.png,.pdf"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] || null
+                  onAttachmentChange(file)
+                }}
+              />
+            </label>
+
+            {attachment && (
+              <div className="mt-4 rounded-xl border border-slate-200 bg-white px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-700">
+                {t('request.uploadSelectedLabel')}{' '}
+                <span className="font-medium truncate block sm:inline mt-1 sm:mt-0">{attachment.name}</span>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </>
+      )}
 
       <div className="mt-5 grid gap-4 sm:mt-6 sm:gap-5 md:grid-cols-2">
         <div>

@@ -31,6 +31,11 @@ function normalizePhoneNumber(value: string) {
 
 const ALLOWED_ATTACHMENT_EXTENSIONS = new Set(ALLOWED_EXTENSIONS)
 
+// Launch gate for the attachment pipeline. Must match the server-side
+// PATIENT_UPLOADS_ENABLED flag; the server enforces it regardless of this UI
+// switch, so a stale client can never smuggle an upload through.
+const PATIENT_UPLOADS_ENABLED = process.env.NEXT_PUBLIC_PATIENT_UPLOADS_ENABLED === 'true'
+
 function getAllowedAttachmentExtension(fileName: string) {
   const extension = fileName.split('.').pop()?.toLowerCase() ?? ''
 
@@ -233,13 +238,15 @@ export default function PatientRequestPage() {
       return
     }
 
-    if (attachment && attachment.size > HARD_MAX_UPLOAD_BYTES) {
+    const effectiveAttachment = PATIENT_UPLOADS_ENABLED ? attachment : null
+
+    if (effectiveAttachment && effectiveAttachment.size > HARD_MAX_UPLOAD_BYTES) {
       setErrorMessage(t('request.errorFileSize'))
       return
     }
 
-    if (attachment) {
-      const fileExt = getAllowedAttachmentExtension(attachment.name)
+    if (effectiveAttachment) {
+      const fileExt = getAllowedAttachmentExtension(effectiveAttachment.name)
 
       if (!fileExt) {
         setErrorMessage(validationText.fileTypeInvalid)
@@ -252,7 +259,7 @@ export default function PatientRequestPage() {
     }
 
     await runPatientSubmission({
-      attachment,
+      attachment: effectiveAttachment,
       dependencies: {
         fetcher: (input, init) => fetch(input, init),
         upload: async ({ attachment: file, objectPath, token }) => {
@@ -364,6 +371,7 @@ export default function PatientRequestPage() {
                   stepSectionRefs.current[2] = node
                 }}
                 attachment={attachment}
+                attachmentEnabled={PATIENT_UPLOADS_ENABLED}
                 contactMethod={contactMethod}
                 preferredLanguage={preferredLanguage}
                 bestContactTime={bestContactTime}

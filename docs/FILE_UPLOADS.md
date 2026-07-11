@@ -261,10 +261,17 @@ pending -> uploaded -> scanning -> clean          (viewable)
                               \-> rejected         (validation / magic-byte fail)
 ```
 
-- Nothing renders until `status = 'clean'`.
-- Interim mode: a no-op scanner sets `clean` and records `scan_state = 'skipped'`
-  so gating and audit exist from day one. Turning on a real engine later is a
-  configuration change, not a schema or policy change.
+- Nothing renders until `status = 'clean'` AND `scan_state = 'clean'`.
+- Interim mode (as shipped): structurally validated uploads stay `quarantined`
+  with `scan_state = 'pending'`. No code path may mark a file clean without a
+  real scanner verdict — a fake/no-op scanner must never set `clean`. The
+  `unavailableMalwareScanner` adapter returns `unavailable` so everything fails
+  closed.
+- Launch gate: the server-only `PATIENT_UPLOADS_ENABLED` flag (default
+  disabled) gates `prepare-upload`/`confirm` with a generic 503, and
+  `NEXT_PUBLIC_PATIENT_UPLOADS_ENABLED` hides the upload form, so uploads can
+  be turned off without disabling patient request submission. See
+  `docs/ENVIRONMENT.md` and `docs/PRODUCTION_RELEASE_GATES_2026-07-11.md`.
 - 5F engine options: a ClamAV worker/container, a scanning API, a background
   job, or a Supabase storage-trigger Edge Function calling
   `POST /api/internal/files/{id}/scan-callback`.

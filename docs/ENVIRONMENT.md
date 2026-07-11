@@ -167,6 +167,25 @@ Rules:
 - Rotating it invalidates any in-flight upload tickets, which is acceptable
   because tickets are short-lived. Rotate it independently of other secrets.
 
+## Patient Upload Launch Gate
+
+Patient uploads are additionally gated behind an explicit launch flag because
+malware scanning is not yet configured (see
+`docs/PRODUCTION_RELEASE_GATES_2026-07-11.md`).
+
+- `PATIENT_UPLOADS_ENABLED` — server-only flag. Unset or `false` disables the
+  `prepare-upload` and `confirm` endpoints (they return a generic 503) while
+  patient request submission continues to work without attachments. Only
+  `true`/`false` are accepted when set; any other value fails environment
+  validation at startup.
+- `NEXT_PUBLIC_PATIENT_UPLOADS_ENABLED` — browser flag that hides the upload
+  form on `/patient/request`. It is a UI convenience only; the server flag is
+  the enforcement point. Keep both flags in the same state per environment.
+
+Keep both flags `false` in Production until a malware scanner is selected,
+privacy/data-processing review is complete, the `MalwareScanner` adapter is
+implemented, and clean/infected/unavailable verdicts are validated in Preview.
+
 ## Phase 6 API Mutation Boundary
 
 Phase 6 does not introduce new environment variables.
