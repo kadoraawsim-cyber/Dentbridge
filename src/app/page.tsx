@@ -3,7 +3,6 @@
 import React, { useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { supabase } from '@/lib/supabase'
 import { useI18n } from '@/lib/i18n'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import {
@@ -44,26 +43,6 @@ const AUDIENCE_CARDS = [
 export default function HomePage() {
   const { t } = useI18n()
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-
-    async function clearActiveSession() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
-      if (!cancelled && session) {
-        await supabase.auth.signOut()
-      }
-    }
-
-    void clearActiveSession()
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   useEffect(() => {
     const root = document.documentElement

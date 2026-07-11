@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
-import { inviteUserWithRole } from '@/lib/auth-invitations'
+import { InvitationError, inviteUserWithRole } from '@/lib/auth-invitations'
 import { isAdminRole } from '@/lib/roles'
 import { getClientIp } from '@/lib/api/rate-limit'
 import { createAuditRequestContext } from '@/lib/audit/audit.service'
@@ -49,9 +49,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json(result)
   } catch (error) {
-    console.error('[admin-invitations:faculty] Failed to send invitation', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-    })
+    if (error instanceof InvitationError) {
+      const status = {
+        invalid_request: 400,
+        conflict: 409,
+        rate_limited: 429,
+        unavailable: 503,
+        server_error: 500,
+      }[error.reason]
+      return NextResponse.json({ error: error.reason }, { status })
+    }
     return NextResponse.json({ error: 'server_error' }, { status: 500 })
   }
 }

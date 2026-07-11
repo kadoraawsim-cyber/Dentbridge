@@ -261,9 +261,55 @@ export type Database = {
           },
         ]
       }
+      case_decision_history: {
+        Row: {
+          id: string
+          case_id: string
+          stage_id: string | null
+          request_id: string | null
+          actor_user_id: string
+          actor_role: string
+          action: string
+          from_state: string | null
+          to_state: string | null
+          reason_category: string
+          reason_summary: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          case_id: string
+          stage_id?: string | null
+          request_id?: string | null
+          actor_user_id: string
+          actor_role: string
+          action: string
+          from_state?: string | null
+          to_state?: string | null
+          reason_category: string
+          reason_summary: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          case_id?: string
+          stage_id?: string | null
+          request_id?: string | null
+          actor_user_id?: string
+          actor_role?: string
+          action?: string
+          from_state?: string | null
+          to_state?: string | null
+          reason_category?: string
+          reason_summary?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       consent_records: {
         Row: {
           accepted_at: string
+          canonical_route: string | null
           consent_status: string
           consent_type: string
           consent_version: string
@@ -284,6 +330,7 @@ export type Database = {
         }
         Insert: {
           accepted_at?: string
+          canonical_route?: string | null
           consent_status?: string
           consent_type: string
           consent_version: string
@@ -304,6 +351,7 @@ export type Database = {
         }
         Update: {
           accepted_at?: string
+          canonical_route?: string | null
           consent_status?: string
           consent_type?: string
           consent_version?: string
@@ -407,6 +455,9 @@ export type Database = {
       patient_files: {
         Row: {
           bucket: string
+          cleanup_attempts: number
+          cleanup_claimed_at: string | null
+          cleanup_last_error_at: string | null
           checksum_sha256: string | null
           confirmed_at: string | null
           created_at: string
@@ -429,6 +480,9 @@ export type Database = {
         }
         Insert: {
           bucket?: string
+          cleanup_attempts?: number
+          cleanup_claimed_at?: string | null
+          cleanup_last_error_at?: string | null
           checksum_sha256?: string | null
           confirmed_at?: string | null
           created_at?: string
@@ -451,6 +505,9 @@ export type Database = {
         }
         Update: {
           bucket?: string
+          cleanup_attempts?: number
+          cleanup_claimed_at?: string | null
+          cleanup_last_error_at?: string | null
           checksum_sha256?: string | null
           confirmed_at?: string | null
           created_at?: string
@@ -512,6 +569,7 @@ export type Database = {
           reviewed_by: string | null
           routing_completed_at: string | null
           status: string | null
+          submission_id: string | null
           symptom_duration: string | null
           target_student_level: string | null
           treatment_type: string
@@ -547,6 +605,7 @@ export type Database = {
           reviewed_by?: string | null
           routing_completed_at?: string | null
           status?: string | null
+          submission_id?: string | null
           symptom_duration?: string | null
           target_student_level?: string | null
           treatment_type: string
@@ -582,6 +641,7 @@ export type Database = {
           reviewed_by?: string | null
           routing_completed_at?: string | null
           status?: string | null
+          submission_id?: string | null
           symptom_duration?: string | null
           target_student_level?: string | null
           treatment_type?: string
@@ -820,6 +880,17 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_return_case_to_pool_with_decision: {
+        Args: {
+          p_case_id: string
+          p_assigned_department?: string | null
+          p_urgency?: string | null
+          p_target_student_level?: string | null
+          p_clinical_notes?: string | null
+          p_reason?: string | null
+        }
+        Returns: Json
+      }
       admin_release_next_stage: {
         Args: {
           p_case_id: string
@@ -830,9 +901,70 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_release_next_stage_with_decision: {
+        Args: {
+          p_case_id: string
+          p_department: string
+          p_target_student_level?: string | null
+          p_urgency?: string | null
+          p_clinical_notes?: string | null
+          p_reason?: string | null
+        }
+        Returns: Json
+      }
       admin_set_case_terminal_state: {
         Args: { p_case_id: string; p_action: string; p_reason?: string | null }
         Returns: Json
+      }
+      admin_set_case_terminal_state_with_decision: {
+        Args: { p_case_id: string; p_action: string; p_reason?: string | null }
+        Returns: Json
+      }
+      admin_set_student_request_decision: {
+        Args: { p_case_id: string; p_request_id: string; p_action: string; p_reason: string }
+        Returns: Json
+      }
+      admin_update_case_triage_with_decision: {
+        Args: {
+          p_case_id: string
+          p_assigned_department: string
+          p_urgency: string
+          p_target_student_level: string
+          p_clinical_notes: string
+          p_reason?: string | null
+        }
+        Returns: Json
+      }
+      submit_patient_request_atomic: {
+        Args: {
+          p_submission_id: string
+          p_request: Json
+          p_consents: Json
+          p_file_id?: string | null
+          p_context?: Json
+        }
+        Returns: string
+      }
+      claim_orphan_patient_files: {
+        Args: { p_limit?: number }
+        Returns: { file_id: string; object_path: string }[]
+      }
+      complete_patient_file_cleanup: {
+        Args: { p_file_id: string; p_success: boolean }
+        Returns: boolean
+      }
+      consume_rate_limit: {
+        Args: {
+          p_scope: string
+          p_key_hash: string
+          p_window_seconds: number
+          p_limit: number
+        }
+        Returns: {
+          allowed: boolean
+          remaining: number
+          retry_after_seconds: number
+        }[]
       }
     }
     Enums: {
@@ -969,4 +1101,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-

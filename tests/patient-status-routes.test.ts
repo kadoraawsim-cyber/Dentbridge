@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   auditPatientStatusLookup: vi.fn(),
   auditPatientStatusOtpRequested: vi.fn(),
   checkPatientStatusVerification: vi.fn(),
+  checkDurableRateLimit: vi.fn(),
   createAuditRequestContext: vi.fn(
     (request: Request, options?: { ipAddress?: string | null }) => ({
       apiVersion: 'test',
@@ -37,6 +38,10 @@ vi.mock('@/lib/otp/twilio-verify', () => ({
 
 vi.mock('@/lib/supabase-admin', () => ({
   createSupabaseAdminClient: mocks.createSupabaseAdminClient,
+}))
+
+vi.mock('@/lib/api/durable-rate-limit', () => ({
+  checkDurableRateLimit: mocks.checkDurableRateLimit,
 }))
 
 interface PatientRequestBuilder {
@@ -99,6 +104,11 @@ beforeEach(() => {
   mocks.auditPatientStatusLookup.mockReset().mockResolvedValue(true)
   mocks.auditPatientStatusOtpRequested.mockReset().mockResolvedValue(true)
   mocks.checkPatientStatusVerification.mockReset()
+  mocks.checkDurableRateLimit.mockReset().mockResolvedValue({
+    allowed: true,
+    retryAfterSeconds: 0,
+    unavailable: false,
+  })
   mocks.createSupabaseAdminClient.mockReset()
   mocks.sendPatientStatusVerification.mockReset()
 })

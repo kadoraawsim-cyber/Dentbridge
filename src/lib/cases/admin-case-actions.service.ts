@@ -76,6 +76,9 @@ const RPC_BACKED_ACTIONS = new Set<Action>([
   'release_next_stage',
   'mark_completed',
   'mark_cancelled',
+  'reject_student_request',
+  'undo_reject_student_request',
+  'update_triage',
 ])
 
 function keywordRoutingHint(treatmentType: string, assignedDepartment: string | null) {
@@ -229,9 +232,13 @@ export async function executeAdminCaseAction(
   }
 
   if (
-    ['reject_student_request', 'undo_reject_student_request', 'mark_cancelled', 'return_to_pool'].includes(
-      action
-    ) &&
+    [
+      'reject_student_request',
+      'undo_reject_student_request',
+      'mark_cancelled',
+      'return_to_pool',
+      'release_next_stage',
+    ].includes(action) &&
     reason.length < 3
   ) {
     return NextResponse.json({ error: 'Reason is required' }, { status: 400 })
@@ -287,7 +294,6 @@ export async function executeAdminCaseAction(
         context: input.context,
         supabase,
       })
-
       return NextResponse.json({
         success: true,
         data: {
@@ -300,16 +306,21 @@ export async function executeAdminCaseAction(
 
     if (action === 'return_to_pool') {
       const { data: returnData, error: returnError } = await rpcClient.rpc(
-        'admin_return_case_to_pool',
+        'admin_return_case_to_pool_with_decision',
         {
           p_case_id: caseId,
           p_assigned_department: assigned_department ?? null,
           p_urgency: urgency ?? null,
           p_target_student_level: target_student_level ?? null,
           p_clinical_notes: clinical_notes ?? null,
+          p_reason: reason,
         }
       )
-      const outcome = normalizeRpcOutcome(returnData, returnError, 'admin_return_case_to_pool')
+      const outcome = normalizeRpcOutcome(
+        returnData,
+        returnError,
+        'admin_return_case_to_pool_with_decision'
+      )
       if (!outcome.ok) {
         return rpcErrorResponse(outcome.code)
       }
@@ -334,7 +345,6 @@ export async function executeAdminCaseAction(
         context: input.context,
         supabase,
       })
-
       return NextResponse.json({
         success: true,
         data: {
@@ -353,16 +363,21 @@ export async function executeAdminCaseAction(
         return NextResponse.json({ error: 'assigned_department is required' }, { status: 400 })
       }
       const { data: releaseData, error: releaseError } = await rpcClient.rpc(
-        'admin_release_next_stage',
+        'admin_release_next_stage_with_decision',
         {
           p_case_id: caseId,
           p_department: department,
           p_target_student_level: target_student_level ?? null,
           p_urgency: urgency ?? null,
           p_clinical_notes: clinical_notes ?? null,
+          p_reason: reason,
         }
       )
-      const outcome = normalizeRpcOutcome(releaseData, releaseError, 'admin_release_next_stage')
+      const outcome = normalizeRpcOutcome(
+        releaseData,
+        releaseError,
+        'admin_release_next_stage_with_decision'
+      )
       if (!outcome.ok) {
         return rpcErrorResponse(outcome.code)
       }
@@ -392,13 +407,98 @@ export async function executeAdminCaseAction(
       })
     }
 
-    // mark_completed | mark_cancelled → terminal transition.
+    if (action === 'reject_student_request' || action === 'undo_reject_student_request') {
+      if (!body.request_id) {
+        return NextResponse.json({ error: 'request_id is required' }, { status: 400 })
+      }
+      const { data: requestData, error: requestError } = await rpcClient.rpc(
+        'admin_set_student_request_decision',
+        {
+          p_case_id: caseId,
+          p_request_id: body.request_id,
+          p_action: action === 'reject_student_request' ? 'reject' : 'undo_reject',
+          p_reason: reason,
+        }
+      )
+      const outcome = normalizeRpcOutcome(
+        requestData,
+        requestError,
+        'admin_set_student_request_decision'
+      )
+      if (!outcome.ok) return rpcErrorResponse(outcome.code)
+
+      if (action === 'reject_student_request') {
+        await auditStudentCaseRejected({
+          requestId: body.request_id,
+          caseId,
+          stageId: (outcome.data.stage_id as string | null) ?? null,
+          actorUserId: input.actor.userId,
+          actorEmail: input.actor.email,
+          actorRole,
+          context: input.context,
+          supabase,
+        })
+      }
+      return NextResponse.json({
+        success: true,
+        data: {
+          status: outcome.data.request_status,
+          reviewed_by: outcome.data.reviewed_by ?? null,
+          reviewed_at: outcome.data.reviewed_at ?? null,
+        },
+      })
+    }
+
+    if (action === 'update_triage') {
+      const { data: triageData, error: triageError } = await rpcClient.rpc(
+        'admin_update_case_triage_with_decision',
+        {
+          p_case_id: caseId,
+          p_assigned_department: assigned_department ?? '',
+          p_urgency: urgency ?? '',
+          p_target_student_level: target_student_level ?? '',
+          p_clinical_notes: clinical_notes ?? '',
+          p_reason: reason || null,
+        }
+      )
+      const outcome = normalizeRpcOutcome(
+        triageData,
+        triageError,
+        'admin_update_case_triage_with_decision'
+      )
+      if (!outcome.ok) return rpcErrorResponse(outcome.code)
+
+      await auditAdminCaseStatusChanged({
+        caseId,
+        action,
+        fromStatus: (outcome.data.case_status as string | null) ?? null,
+        toStatus: (outcome.data.case_status as string | null) ?? null,
+        actorUserId: input.actor.userId,
+        actorEmail: input.actor.email,
+        actorRole,
+        context: input.context,
+        supabase,
+      })
+      return NextResponse.json({
+        success: true,
+        data: {
+          reviewed_by: outcome.data.reviewed_by ?? reviewedBy,
+          reviewed_at: outcome.data.reviewed_at ?? reviewedAt,
+        },
+      })
+    }
+
+    // mark_completed | mark_cancelled → terminal transition plus mandatory evidence.
     const terminalAction = action === 'mark_completed' ? 'complete' : 'cancel'
     const { data: terminalData, error: terminalError } = await rpcClient.rpc(
-      'admin_set_case_terminal_state',
+      'admin_set_case_terminal_state_with_decision',
       { p_case_id: caseId, p_action: terminalAction, p_reason: reason || null }
     )
-    const outcome = normalizeRpcOutcome(terminalData, terminalError, 'admin_set_case_terminal_state')
+    const outcome = normalizeRpcOutcome(
+      terminalData,
+      terminalError,
+      'admin_set_case_terminal_state_with_decision'
+    )
     if (!outcome.ok) {
       return rpcErrorResponse(outcome.code)
     }
@@ -415,7 +515,6 @@ export async function executeAdminCaseAction(
       context: input.context,
       supabase,
     })
-
     return NextResponse.json({
       success: true,
       data: {
@@ -478,7 +577,6 @@ export async function executeAdminCaseAction(
       context: input.context,
       supabase,
     })
-
     return NextResponse.json({
       success: true,
       data: { status: 'rejected', reviewed_by: reviewedBy, reviewed_at: reviewedAt },
@@ -571,6 +669,18 @@ export async function executeAdminCaseAction(
         { status: 500 }
       )
     }
+
+    await auditAdminCaseStatusChanged({
+      caseId,
+      action,
+      fromStatus: currentCase?.status ?? null,
+      toStatus: currentCase?.status ?? null,
+      actorUserId: input.actor.userId,
+      actorEmail: input.actor.email,
+      actorRole,
+      context: input.context,
+      supabase,
+    })
 
     return NextResponse.json({
       success: true,

@@ -35,6 +35,7 @@ const CLEAN_FILE_ROW = {
   detected_mime: 'application/pdf',
   extension: 'pdf',
   status: 'clean',
+  scan_state: 'clean',
   patient_request_id: 'case-1',
 }
 

@@ -22,6 +22,7 @@ export type ApiLocale = 'en' | 'tr'
 export type PublicErrorCode =
   | 'invalid_request'
   | 'rate_limited'
+  | 'conflict'
   | 'verification_failed'
   | 'service_unavailable'
   | 'server_error'
@@ -53,6 +54,13 @@ const ERROR_DEFINITIONS: Record<
     messages: {
       en: 'Too many requests. Please wait a moment and try again.',
       tr: 'Çok fazla istek gönderildi. Lütfen kısa bir süre sonra tekrar deneyin.',
+    },
+  },
+  conflict: {
+    status: 409,
+    messages: {
+      en: 'This request conflicts with a completed or in-progress operation. Please refresh and try again.',
+      tr: 'Bu istek tamamlanmış veya devam eden bir işlemle çakışıyor. Lütfen sayfayı yenileyip tekrar deneyin.',
     },
   },
   verification_failed: {

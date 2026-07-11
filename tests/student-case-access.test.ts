@@ -48,10 +48,11 @@ describe('student pool projection', () => {
     }
   })
 
-  it('returns an empty pool (fails closed) when the RPC errors', async () => {
+  it('surfaces an RPC error instead of rendering a successful empty pool', async () => {
     const rpc = vi.fn().mockResolvedValue({ data: null, error: { message: 'denied' } })
-    const cases = await fetchStudentPoolCases(clientWithRpc(rpc))
-    expect(cases).toEqual([])
+    await expect(fetchStudentPoolCases(clientWithRpc(rpc))).rejects.toThrow(
+      'Unable to load student.cases.pool.'
+    )
   })
 })
 

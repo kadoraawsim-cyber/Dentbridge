@@ -7,6 +7,7 @@ import {
   type PublicErrorCode,
 } from '@/lib/api/errors'
 import { createRateLimiter, getClientIp } from '@/lib/api/rate-limit'
+import { checkDurableRateLimit } from '@/lib/api/durable-rate-limit'
 import { isAllowedSameOriginRequest } from '@/lib/api/same-origin'
 import {
   auditPatientStatusOtpRequested,
@@ -194,6 +195,35 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // A failure here is independent of whether this specific phone exists, so a
     // 500 does not leak existence.
     const admin = createSupabaseAdminClient()
+    const [durableIpLimit, durablePhoneLimit] = await Promise.all([
+      checkDurableRateLimit(
+        clientIp,
+        { scope: 'patient_status_otp_ip', windowSeconds: 15 * 60, max: 10 },
+        admin
+      ),
+      checkDurableRateLimit(
+        phone,
+        { scope: 'patient_status_otp_phone', windowSeconds: 15 * 60, max: 3 },
+        admin
+      ),
+    ])
+    if (durableIpLimit.unavailable || durablePhoneLimit.unavailable) {
+      return finish(errorResponse('service_unavailable', locale), {
+        actorType: 'anonymous',
+        errorCode: 'service_unavailable',
+      })
+    }
+    if (!durableIpLimit.allowed || !durablePhoneLimit.allowed) {
+      return finish(
+        errorResponse('rate_limited', locale, {
+          retryAfterSeconds: Math.max(
+            durableIpLimit.retryAfterSeconds,
+            durablePhoneLimit.retryAfterSeconds
+          ),
+        }),
+        { actorType: 'anonymous', errorCode: 'rate_limited' }
+      )
+    }
     const { data: existingRequest, error: lookupError } = await admin
       .from('patient_requests')
       .select('id')

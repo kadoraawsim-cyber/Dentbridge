@@ -202,7 +202,7 @@ describe('executeAdminCaseAction — terminal transitions', () => {
       rpcClient: client,
     })
     expect(res.status).toBe(200)
-    expect(rpc).toHaveBeenCalledWith('admin_set_case_terminal_state', {
+    expect(rpc).toHaveBeenCalledWith('admin_set_case_terminal_state_with_decision', {
       p_case_id: 'case-1',
       p_action: 'complete',
       p_reason: null,
@@ -261,39 +261,99 @@ describe('executeAdminCaseAction — return to pool', () => {
       rpcClient: client,
     })
     expect(res.status).toBe(200)
-    expect(rpc).toHaveBeenCalledWith('admin_return_case_to_pool', expect.objectContaining({ p_case_id: 'case-1' }))
+    expect(rpc).toHaveBeenCalledWith(
+      'admin_return_case_to_pool_with_decision',
+      expect.objectContaining({ p_case_id: 'case-1', p_reason: 'reassign please' })
+    )
     expect(mocks.auditCaseReturnedToPool).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('executeAdminCaseAction — decision-backed routing', () => {
+  it('requires and forwards a routing rationale to the atomic next-stage RPC', async () => {
+    const { client, rpc } = makeRpcClient({
+      data: {
+        ok: true,
+        code: 'matched',
+        from_status: 'faculty_review',
+        case_status: 'matched',
+        stage_id: 'stage-2',
+      },
+      error: null,
+    })
+    const res = await executeAdminCaseAction({
+      caseId: 'case-1',
+      body: {
+        action: 'release_next_stage',
+        assigned_department: 'Endodontics',
+        reason: 'Specialist endodontic treatment is required',
+      },
+      actor,
+      context: auditContext,
+      supabase: noopAdminClient,
+      rpcClient: client,
+    })
+    expect(res.status).toBe(200)
+    expect(rpc).toHaveBeenCalledWith(
+      'admin_release_next_stage_with_decision',
+      expect.objectContaining({
+        p_case_id: 'case-1',
+        p_department: 'Endodontics',
+        p_reason: 'Specialist endodontic treatment is required',
+      })
+    )
+  })
+
+  it('rejects next-stage release without a rationale before calling the database', async () => {
+    const { client, rpc } = makeRpcClient({ data: { ok: true }, error: null })
+    const res = await executeAdminCaseAction({
+      caseId: 'case-1',
+      body: { action: 'release_next_stage', assigned_department: 'Endodontics' },
+      actor,
+      context: auditContext,
+      supabase: noopAdminClient,
+      rpcClient: client,
+    })
+    expect(res.status).toBe(400)
+    expect(rpc).not.toHaveBeenCalled()
   })
 })
 
 describe('executeAdminCaseAction — guarded non-RPC transitions', () => {
   it('rejects an illegal reject_student_request on a non-matched case', async () => {
-    const supabase = makeSupabase({
-      patient_requests: { single: { data: { status: 'in_treatment', current_stage_id: 's1' }, error: null } },
+    const { client, rpc } = makeRpcClient({
+      data: { ok: false, code: 'invalid_state' },
+      error: null,
     })
     const res = await executeAdminCaseAction({
       caseId: 'case-1',
       body: { action: 'reject_student_request', request_id: 'req-1', reason: 'not suitable' },
       actor,
       context: auditContext,
-      supabase,
+      supabase: noopAdminClient,
+      rpcClient: client,
     })
     expect(res.status).toBe(409)
+    expect(rpc).toHaveBeenCalledWith('admin_set_student_request_decision', {
+      p_action: 'reject',
+      p_case_id: 'case-1',
+      p_reason: 'not suitable',
+      p_request_id: 'req-1',
+    })
   })
 
   it('blocks reject_student_request once the case is terminal', async () => {
-    const supabase = makeSupabase({
-      patient_requests: { single: { data: { status: 'completed', current_stage_id: 's1' }, error: null } },
-    })
+    const { client } = makeRpcClient({ data: { ok: false, code: 'invalid_state' }, error: null })
     const res = await executeAdminCaseAction({
       caseId: 'case-1',
       body: { action: 'reject_student_request', request_id: 'req-1', reason: 'too late' },
       actor,
       context: auditContext,
-      supabase,
+      supabase: noopAdminClient,
+      rpcClient: client,
     })
     expect(res.status).toBe(409)
-    await expect(res.json()).resolves.toEqual({ error: LIFECYCLE_MESSAGES.TERMINAL_CASE_LOCKED })
+    await expect(res.json()).resolves.toEqual({ error: LIFECYCLE_MESSAGES.INVALID_TRANSITION })
   })
 
   it('returns 409 when a guarded status update loses an optimistic-concurrency race', async () => {

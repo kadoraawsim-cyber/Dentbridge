@@ -2,15 +2,17 @@ import { createServerClient } from '@supabase/ssr'
 import type { ReadonlyRequestCookies } from 'next/dist/server/web/spec-extension/adapters/request-cookies'
 
 import type { Database } from '@/lib/database.types'
+import { getPublicEnvironment } from '@/lib/env/public'
 
 /**
  * Server-side Supabase client for use in Route Handlers and Server Components.
  * Reads and writes auth cookies via the provided cookie store.
  */
 export function createSupabaseServerClient(cookieStore: ReadonlyRequestCookies) {
+  const environment = getPublicEnvironment()
   return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    environment.NEXT_PUBLIC_SUPABASE_URL,
+    environment.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
         getAll() {

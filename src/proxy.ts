@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { canAccessFacultyPortal, getAppRole } from '@/lib/roles'
+import { getPublicEnvironment } from '@/lib/env/public'
 
 /**
  * Route protection rules:
@@ -19,7 +20,7 @@ import { canAccessFacultyPortal, getAppRole } from '@/lib/roles'
  * A student reaching /admin/* is redirected to /student/dashboard.
  * A faculty member or admin reaching /student/* is redirected to /admin.
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   const isAdminRoute = pathname.startsWith('/admin')
@@ -44,9 +45,10 @@ export async function middleware(request: NextRequest) {
   // Build a response object so @supabase/ssr can refresh cookies on the way out.
   let response = NextResponse.next({ request })
 
+  const environment = getPublicEnvironment()
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    environment.NEXT_PUBLIC_SUPABASE_URL,
+    environment.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
         getAll() {

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { fetchStudentActiveCases } from '@/lib/cases/student-case-access'
 import { PlannerClient } from './planner-client'
+import { assertQuerySucceeded } from '@/lib/data/data-load'
 
 const ACTIVE_CASE_STATUSES = [
   'student_approved',
@@ -58,6 +59,8 @@ export default async function StudentPlannerPage() {
   ])
 
   const plannerRows = plannerResult.data ?? []
+  assertQuerySucceeded(profileResult.error, 'student.planner.profile')
+  assertQuerySucceeded(plannerResult.error, 'student.planner.events')
 
   const linkedCaseIds = Array.from(
     new Set(
@@ -67,7 +70,7 @@ export default async function StudentPlannerPage() {
     )
   )
 
-  const { data: linkedAppointmentsData } =
+  const linkedAppointmentsQuery =
     linkedCaseIds.length > 0
       ? await supabase
           .from('case_progress_entries')
@@ -75,7 +78,10 @@ export default async function StudentPlannerPage() {
           .in('case_id', linkedCaseIds)
           .not('appointment_date', 'is', null)
           .order('created_at', { ascending: false })
-      : { data: null }
+      : { data: null, error: null }
+
+  assertQuerySucceeded(linkedAppointmentsQuery.error, 'student.planner.appointments')
+  const { data: linkedAppointmentsData } = linkedAppointmentsQuery
 
   const linkedAppointmentsResult = { data: linkedAppointmentsData }
 

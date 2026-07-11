@@ -25,7 +25,7 @@ export const FILE_STATUS = {
 
 export type FileStatus = (typeof FILE_STATUS)[keyof typeof FILE_STATUS]
 
-/** Malware-scan sub-state. Real scanning is deferred to 5F; interim is 'skipped'. */
+/** Malware-scan sub-state. Structural validation alone must remain `pending`. */
 export const SCAN_STATE = {
   SKIPPED: 'skipped',
   PENDING: 'pending',
@@ -86,6 +86,9 @@ export function maxBytesForMime(mime: string): number | null {
  * as the ticket TTL so both expire together.
  */
 export const UPLOAD_TICKET_TTL_SECONDS = 30 * 60
+
+/** Grace period before a structurally validated but unlinked upload is orphaned. */
+export const CONFIRMED_UNLINKED_GRACE_SECONDS = 24 * 60 * 60
 
 /** Signed download/preview URL lifetimes (Phase 5B decision). */
 export const SIGNED_URL_PREVIEW_TTL_SECONDS = 120

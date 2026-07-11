@@ -18,17 +18,12 @@ import 'server-only'
 import { createHmac, timingSafeEqual } from 'node:crypto'
 
 import { UPLOAD_TICKET_TTL_SECONDS } from './file.constants'
+import { getServerEnvironment } from '@/lib/env/server'
 
 const TICKET_PURPOSE = 'patient_upload'
 
 function getTicketSecret(): string {
-  const secret = process.env.FILE_TICKET_SECRET
-  if (!secret) {
-    throw new Error(
-      'FILE_TICKET_SECRET is not configured. It is required to sign patient upload tickets server-side.'
-    )
-  }
-  return secret
+  return getServerEnvironment().FILE_TICKET_SECRET
 }
 
 function sign(payload: string): string {

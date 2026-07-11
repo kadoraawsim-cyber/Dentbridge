@@ -7,6 +7,7 @@ import {
 } from '@/lib/cases/student-case-access'
 import { DashboardClient } from './dashboard-client'
 import type { ActiveCase, MyRequest, PoolCase, ProgressEntry } from '@/components/student/dashboard/types'
+import { assertQuerySucceeded } from '@/lib/data/data-load'
 
 export default async function StudentDashboardPage() {
   const cookieStore = await cookies()
@@ -46,6 +47,8 @@ export default async function StudentDashboardPage() {
 
   const { data: studentProfile } = studentProfileResult
   const { data: myRequests } = myRequestsResult
+  assertQuerySucceeded(studentProfileResult.error, 'student.dashboard.profile')
+  assertQuerySucceeded(myRequestsResult.error, 'student.dashboard.requests')
 
   const poolCases: PoolCase[] = poolCasesData.slice(0, 5).map((row) => ({
     id: row.id,
@@ -66,13 +69,14 @@ export default async function StudentDashboardPage() {
   const activeCaseIds = activeCasesData.map((row) => row.id)
 
   if (activeCaseIds.length > 0) {
-    const { data: progressData } = await supabase
+    const { data: progressData, error: progressError } = await supabase
       .from('case_progress_entries')
       .select(
         'id, case_id, student_id, student_name, status_at_time, appointment_date, appointment_time, note, what_was_done, next_step, next_appointment_date, next_appointment_time, needs_faculty_attention, created_at'
       )
       .in('case_id', activeCaseIds)
       .order('created_at', { ascending: false })
+    assertQuerySucceeded(progressError, 'student.dashboard.progress')
 
     const progressEntriesByCase = new Map<string, ProgressEntry[]>()
     for (const entry of progressData ?? []) {

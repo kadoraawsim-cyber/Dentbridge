@@ -6,6 +6,7 @@ import {
   fetchStudentPoolCases,
 } from '@/lib/cases/student-case-access'
 import { CasesClient } from './cases-client'
+import { assertQuerySucceeded } from '@/lib/data/data-load'
 
 export type PoolCase = {
   id: string
@@ -60,6 +61,7 @@ export default async function StudentCasesPage() {
       .eq('student_id', user.id),
   ])
 
+  assertQuerySucceeded(myRequestsResult.error, 'student.cases.requests')
   const { data: myRequestsData } = myRequestsResult
 
   // Build a map of case_id → { requestId, status } for O(1) lookups in the client.

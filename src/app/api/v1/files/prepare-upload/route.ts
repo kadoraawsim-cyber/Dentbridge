@@ -6,6 +6,7 @@ import {
   type PublicErrorCode,
 } from '@/lib/api/errors'
 import { createRateLimiter, getClientIp } from '@/lib/api/rate-limit'
+import { checkDurableRateLimit } from '@/lib/api/durable-rate-limit'
 import { isAllowedSameOriginRequest } from '@/lib/api/same-origin'
 import { createAuditRequestContext } from '@/lib/audit/audit.service'
 import { prepareUpload } from '@/lib/files/files.service'
@@ -106,6 +107,26 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return finish(
         errorResponse('rate_limited', headerLocale, {
           retryAfterSeconds: ipLimit.retryAfterSeconds,
+        }),
+        { actorType: 'anonymous', errorCode: 'rate_limited' }
+      )
+    }
+
+    const durableLimit = await checkDurableRateLimit(clientIp, {
+      scope: 'file_prepare_ip',
+      windowSeconds: 15 * 60,
+      max: 30,
+    })
+    if (durableLimit.unavailable) {
+      return finish(errorResponse('service_unavailable', headerLocale), {
+        actorType: 'anonymous',
+        errorCode: 'service_unavailable',
+      })
+    }
+    if (!durableLimit.allowed) {
+      return finish(
+        errorResponse('rate_limited', headerLocale, {
+          retryAfterSeconds: durableLimit.retryAfterSeconds,
         }),
         { actorType: 'anonymous', errorCode: 'rate_limited' }
       )

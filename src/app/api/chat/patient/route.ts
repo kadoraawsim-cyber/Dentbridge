@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import type { Locale } from '@/lib/i18n'
 import OpenAI, { APIError } from 'openai'
 import { NextRequest, NextResponse } from 'next/server'
+import { checkDurableRateLimit } from '@/lib/api/durable-rate-limit'
 import {
   buildPatientSiteContextPrompt,
   PUBLIC_PATIENT_PAGE_IDS,
@@ -356,6 +357,28 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         headers: {
           'Cache-Control': 'no-store',
           'Retry-After': String(Math.max(1, Math.ceil((rateLimit.resetAt - Date.now()) / 1000))),
+          'X-Content-Type-Options': 'nosniff',
+        },
+      }
+    )
+  }
+
+  const durableLimit = await checkDurableRateLimit(getClientIp(request), {
+    scope: 'patient_chat_ip',
+    windowSeconds: 60,
+    max: RATE_LIMIT_MAX_REQUESTS,
+  })
+  if (durableLimit.unavailable) {
+    return jsonResponse({ error: getMessage(headerLocale, 'serviceUnavailable') }, 503)
+  }
+  if (!durableLimit.allowed) {
+    return NextResponse.json(
+      { error: getMessage(headerLocale, 'rateLimited') },
+      {
+        status: 429,
+        headers: {
+          'Cache-Control': 'no-store',
+          'Retry-After': String(Math.max(1, durableLimit.retryAfterSeconds)),
           'X-Content-Type-Options': 'nosniff',
         },
       }

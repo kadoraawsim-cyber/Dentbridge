@@ -77,7 +77,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   })
 
   if (!result.ok) {
-    return jsonError(result.reason === 'forbidden' ? 403 : 400)
+    return jsonError(
+      result.reason === 'forbidden' ? 403 : result.reason === 'invalid_request' ? 400 : 500
+    )
   }
 
   return NextResponse.json({ success: true }, { status: 200, headers: SECURITY_HEADERS })

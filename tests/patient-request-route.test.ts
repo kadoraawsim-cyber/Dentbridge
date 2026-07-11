@@ -4,8 +4,6 @@ import { NextRequest } from 'next/server'
 import { POST } from '@/app/api/v1/patient/requests/route'
 
 const mocks = vi.hoisted(() => ({
-  auditPatientRequestCreated: vi.fn(),
-  attachConfirmedFileToPatientRequest: vi.fn(),
   createAuditRequestContext: vi.fn(
     (request: Request, options?: { ipAddress?: string | null }) => ({
       apiVersion: 'test',
@@ -17,21 +15,24 @@ const mocks = vi.hoisted(() => ({
     })
   ),
   createSupabaseAdminClient: vi.fn(),
-  deletePreparedFileObject: vi.fn(),
+  checkDurableRateLimit: vi.fn(),
+  submitPatientIntakeAtomic: vi.fn(),
 }))
 
 vi.mock('@/lib/audit/audit.service', () => ({
-  auditPatientRequestCreated: mocks.auditPatientRequestCreated,
   createAuditRequestContext: mocks.createAuditRequestContext,
 }))
 
-vi.mock('@/lib/files/files.service', () => ({
-  attachConfirmedFileToPatientRequest: mocks.attachConfirmedFileToPatientRequest,
-  deletePreparedFileObject: mocks.deletePreparedFileObject,
+vi.mock('@/lib/patient-request/intake.service', () => ({
+  submitPatientIntakeAtomic: mocks.submitPatientIntakeAtomic,
 }))
 
 vi.mock('@/lib/supabase-admin', () => ({
   createSupabaseAdminClient: mocks.createSupabaseAdminClient,
+}))
+
+vi.mock('@/lib/api/durable-rate-limit', () => ({
+  checkDurableRateLimit: mocks.checkDurableRateLimit,
 }))
 
 interface InsertCall {
@@ -58,6 +59,7 @@ const validPayload = {
   preferredLanguage: 'English',
   preferredUniversity: 'İstinye Dental Hospital',
   symptomDuration: 'Routine / No specific start date',
+  submissionId: '11111111-1111-4111-8111-111111111111',
   treatmentType: 'Dental Cleaning',
 }
 
@@ -122,9 +124,14 @@ async function readJson(response: Response): Promise<Record<string, unknown>> {
 
 beforeEach(() => {
   mocks.createSupabaseAdminClient.mockReset()
-  mocks.auditPatientRequestCreated.mockReset()
-  mocks.attachConfirmedFileToPatientRequest.mockReset()
-  mocks.deletePreparedFileObject.mockReset()
+  mocks.checkDurableRateLimit.mockReset().mockResolvedValue({
+    allowed: true,
+    retryAfterSeconds: 0,
+    unavailable: false,
+  })
+  mocks.submitPatientIntakeAtomic
+    .mockReset()
+    .mockResolvedValue({ ok: true, patientRequestId: 'patient-request-1' })
 })
 
 describe('POST /api/v1/patient/requests', () => {
@@ -180,36 +187,28 @@ describe('POST /api/v1/patient/requests', () => {
   })
 
   it('creates submitted patient requests and consent records without exposing internals', async () => {
-    const { admin, inserts } = createAdminMock()
+    const { admin } = createAdminMock()
     mocks.createSupabaseAdminClient.mockReturnValue(admin)
 
     const response = await POST(makeJsonRequest(validPayload))
 
     expect(response.status).toBe(200)
     expect(await readJson(response)).toEqual({ success: true })
-    expect(mocks.auditPatientRequestCreated).toHaveBeenCalledWith(
+    expect(mocks.submitPatientIntakeAtomic).toHaveBeenCalledWith(
       expect.objectContaining({
-        consentRecordCount: 2,
-        hasAttachment: false,
-        patientRequestId: 'patient-request-1',
+        fileId: null,
+        submissionId: validPayload.submissionId,
       })
     )
-
-    const patientRequestInsert = inserts.find((entry) => entry.table === 'patient_requests')
-    expect(patientRequestInsert?.payload).toMatchObject({
-      attachment_name: null,
-      attachment_path: null,
-      consent: true,
+    const call = mocks.submitPatientIntakeAtomic.mock.calls[0]?.[0]
+    expect(call.request).toMatchObject({
       full_name: 'Ada Lovelace',
       phone: '+905551234567',
-      status: 'submitted',
       urgency: 'Low',
     })
-
-    const consentInsert = inserts.find((entry) => entry.table === 'consent_records')
-    expect(consentInsert?.payload).toMatchObject([
-      { consent_status: 'accepted', consent_type: 'kvkk_acknowledgement' },
-      { consent_status: 'accepted', consent_type: 'explicit_consent' },
-    ])
+    expect(call.consents).toHaveLength(2)
+    expect(call.consents[0].document_fingerprint).toMatch(/^sha256:/)
+    expect(call.consents[1].document_fingerprint).toMatch(/^sha256:/)
+    expect(call.consents[0].document_title).not.toBe(call.consents[1].document_title)
   })
 })

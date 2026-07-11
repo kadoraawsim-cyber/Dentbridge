@@ -7,24 +7,21 @@ import {
   type PublicErrorCode,
 } from '@/lib/api/errors'
 import { createRateLimiter, getClientIp } from '@/lib/api/rate-limit'
+import { checkDurableRateLimit } from '@/lib/api/durable-rate-limit'
 import { isAllowedSameOriginRequest } from '@/lib/api/same-origin'
+import { createAuditRequestContext } from '@/lib/audit/audit.service'
 import {
-  auditPatientRequestCreated,
-  createAuditRequestContext,
-} from '@/lib/audit/audit.service'
-import { CONSENT_STATUS, CONSENT_TYPES, PATIENT_REQUEST_CONSENT } from '@/lib/consent/consent.constants'
-import {
-  attachConfirmedFileToPatientRequest,
-  deletePreparedFileObject,
-} from '@/lib/files/files.service'
+  getPatientRequestConsentEvidence,
+  PATIENT_REQUEST_CONSENT,
+} from '@/lib/consent/consent.constants'
 import { captureException } from '@/lib/observability/error-monitor'
-import { logger } from '@/lib/observability/logger'
 import {
   createRequestContext,
   logRequestEnd,
   logRequestStart,
   type RequestEndMetadata,
 } from '@/lib/observability/request-context'
+import { submitPatientIntakeAtomic } from '@/lib/patient-request/intake.service'
 
 export const runtime = 'nodejs'
 
@@ -102,6 +99,7 @@ interface PatientRequestPayload {
   explicitConsent?: unknown
   fileId?: unknown
   fileTicket?: unknown
+  submissionId?: unknown
   locale?: unknown
 }
 
@@ -123,10 +121,7 @@ interface ValidatedPatientRequest {
   medicalCondition: string
   fileId: string | null
   fileTicket: string | null
-}
-
-interface PatientRequestRow {
-  id?: unknown
+  submissionId: string
 }
 
 function getHeaderLocale(request: NextRequest): ApiLocale {
@@ -215,6 +210,7 @@ function validatePayload(payload: PatientRequestPayload): ValidatedPatientReques
   const medicalConditionDetails = getString(payload.medicalConditionDetails)
   const fileId = getOptionalString(payload.fileId)
   const fileTicket = getOptionalString(payload.fileTicket)
+  const submissionId = getString(payload.submissionId)
 
   if (!isValidFullName(fullName)) {
     return null
@@ -270,6 +266,9 @@ function validatePayload(payload: PatientRequestPayload): ValidatedPatientReques
   if (fileId && (!isUuid(fileId) || !fileTicket || fileTicket.length > 256)) {
     return null
   }
+  if (!isUuid(submissionId)) {
+    return null
+  }
 
   return {
     fullName,
@@ -290,6 +289,7 @@ function validatePayload(payload: PatientRequestPayload): ValidatedPatientReques
       medicalCondition === 'Other' ? `Other: ${medicalConditionDetails}` : medicalCondition,
     fileId,
     fileTicket,
+    submissionId,
   }
 }
 
@@ -385,11 +385,40 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const admin = createSupabaseAdminClient()
-    const acceptedAt = new Date().toISOString()
-    let linkedFileId: string | null = null
-    const { data: patientRequest, error } = await admin
-      .from('patient_requests')
-      .insert({
+    const [durableIpLimit, durablePhoneLimit] = await Promise.all([
+      checkDurableRateLimit(
+        clientIp,
+        { scope: 'patient_request_ip', windowSeconds: 15 * 60, max: 20 },
+        admin
+      ),
+      checkDurableRateLimit(
+        validated.phone,
+        { scope: 'patient_request_phone', windowSeconds: 60 * 60, max: 5 },
+        admin
+      ),
+    ])
+    const unavailable = durableIpLimit.unavailable || durablePhoneLimit.unavailable
+    if (unavailable) {
+      return finish(errorResponse('service_unavailable', locale), {
+        actorType: 'anonymous',
+        errorCode: 'service_unavailable',
+      })
+    }
+    if (!durableIpLimit.allowed || !durablePhoneLimit.allowed) {
+      return finish(
+        errorResponse('rate_limited', locale, {
+          retryAfterSeconds: Math.max(
+            durableIpLimit.retryAfterSeconds,
+            durablePhoneLimit.retryAfterSeconds
+          ),
+        }),
+        { actorType: 'anonymous', errorCode: 'rate_limited' }
+      )
+    }
+
+    const result = await submitPatientIntakeAtomic({
+      submissionId: validated.submissionId,
+      request: {
         full_name: validated.fullName,
         age: validated.age,
         gender: validated.gender,
@@ -405,192 +434,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         contact_method: validated.contactMethod,
         best_contact_time: validated.bestContactTime,
         medical_condition: validated.medicalCondition,
-        consent: true,
-        consent_accepted_at: acceptedAt,
         consent_version: PATIENT_REQUEST_CONSENT.version,
-        attachment_path: null,
-        attachment_name: null,
-        status: 'submitted',
-      })
-      .select('id')
-      .single<PatientRequestRow>()
-
-    if (error) {
-      throw error
-    }
-
-    const patientRequestId =
-      typeof patientRequest?.id === 'string' ? patientRequest.id : null
-    if (!patientRequestId) {
-      throw new Error('Patient request insert did not return an id.')
-    }
-
-    if (validated.fileId && validated.fileTicket) {
-      const attachResult = await attachConfirmedFileToPatientRequest({
-        fileId: validated.fileId,
-        ticket: validated.fileTicket,
-        patientRequestId,
         locale,
-        context: auditContext,
-        supabase: admin,
-      })
-
-      if (!attachResult.ok) {
-        await deletePreparedFileObject({
-          fileId: validated.fileId,
-          ticket: validated.fileTicket,
-          supabase: admin,
-        })
-
-        const { error: cleanupError } = await admin
-          .from('patient_requests')
-          .delete()
-          .eq('id', patientRequestId)
-
-        if (cleanupError) {
-          logger.error('patient_request.cleanup_failed', {
-            actorType: 'anonymous',
-            correlationId: requestContext.correlationId,
-            requestId: requestContext.requestId,
-            route: requestContext.route,
-            metadata: {
-              cleanup_stage: 'file_attach_failure',
-              error_code: 'cleanup_failed',
-            },
-          })
-        }
-
-        return finish(errorResponse('invalid_request', locale), {
-          actorType: 'anonymous',
-          errorCode: 'invalid_request',
-        })
-      }
-
-      linkedFileId = attachResult.data.fileId
-
-      const { error: attachmentUpdateError } = await admin
-        .from('patient_requests')
-        .update({
-          attachment_path: attachResult.data.objectPath,
-          attachment_name: attachResult.data.originalFilename,
-        })
-        .eq('id', patientRequestId)
-
-      if (attachmentUpdateError) {
-        await deletePreparedFileObject({
-          fileId: validated.fileId,
-          ticket: validated.fileTicket,
-          supabase: admin,
-        })
-
-        const { error: cleanupError } = await admin
-          .from('patient_requests')
-          .delete()
-          .eq('id', patientRequestId)
-
-        if (cleanupError) {
-          logger.error('patient_request.cleanup_failed', {
-            actorType: 'anonymous',
-            correlationId: requestContext.correlationId,
-            requestId: requestContext.requestId,
-            route: requestContext.route,
-            metadata: {
-              cleanup_stage: 'file_link_failure',
-              error_code: 'cleanup_failed',
-            },
-          })
-        }
-
-        throw attachmentUpdateError
-      }
-    }
-
-    const { error: consentError } = await admin.from('consent_records').insert([
-      {
-        patient_request_id: patientRequestId,
-        consent_type: CONSENT_TYPES.KVKK_ACKNOWLEDGEMENT,
-        consent_version: PATIENT_REQUEST_CONSENT.version,
-        policy_version: PATIENT_REQUEST_CONSENT.policyVersion,
-        language: locale,
-        accepted_at: acceptedAt,
-        ip_address: clientIp,
-        user_agent: auditContext.userAgent,
-        source: PATIENT_REQUEST_CONSENT.source,
-        consent_status: CONSENT_STATUS.ACCEPTED,
-        document_fingerprint: PATIENT_REQUEST_CONSENT.documentFingerprint,
-        document_title: PATIENT_REQUEST_CONSENT.documentTitle,
-        jurisdiction: PATIENT_REQUEST_CONSENT.jurisdiction,
-        country_code: PATIENT_REQUEST_CONSENT.countryCode,
-        university_key: PATIENT_REQUEST_CONSENT.universityKey,
       },
-      {
-        patient_request_id: patientRequestId,
-        consent_type: CONSENT_TYPES.EXPLICIT_CONSENT,
-        consent_version: PATIENT_REQUEST_CONSENT.version,
-        policy_version: PATIENT_REQUEST_CONSENT.policyVersion,
-        language: locale,
-        accepted_at: acceptedAt,
-        ip_address: clientIp,
-        user_agent: auditContext.userAgent,
-        source: PATIENT_REQUEST_CONSENT.source,
-        consent_status: CONSENT_STATUS.ACCEPTED,
-        document_fingerprint: PATIENT_REQUEST_CONSENT.documentFingerprint,
-        document_title: PATIENT_REQUEST_CONSENT.documentTitle,
-        jurisdiction: PATIENT_REQUEST_CONSENT.jurisdiction,
-        country_code: PATIENT_REQUEST_CONSENT.countryCode,
-        university_key: PATIENT_REQUEST_CONSENT.universityKey,
-      },
-    ])
-
-    if (consentError) {
-      logger.error('patient_request.consent_records_failed', {
-        actorType: 'anonymous',
-        correlationId: requestContext.correlationId,
-        requestId: requestContext.requestId,
-        route: requestContext.route,
-        metadata: {
-          error_code: 'consent_records_failed',
-        },
-      })
-
-      if (validated.fileId && validated.fileTicket) {
-        await deletePreparedFileObject({
-          fileId: validated.fileId,
-          ticket: validated.fileTicket,
-          supabase: admin,
-        })
-      }
-
-      const { error: cleanupError } = await admin
-        .from('patient_requests')
-        .delete()
-        .eq('id', patientRequestId)
-
-      if (cleanupError) {
-        logger.error('patient_request.cleanup_failed', {
-          actorType: 'anonymous',
-          correlationId: requestContext.correlationId,
-          requestId: requestContext.requestId,
-          route: requestContext.route,
-          metadata: {
-            cleanup_stage: 'consent_failure',
-            error_code: 'cleanup_failed',
-          },
-        })
-      }
-
-      throw new Error('Consent record creation failed.')
-    }
-
-    await auditPatientRequestCreated({
-      patientRequestId,
-      consentRecordCount: 2,
-      consentVersion: PATIENT_REQUEST_CONSENT.version,
-      hasAttachment: Boolean(linkedFileId),
-      locale,
+      consents: getPatientRequestConsentEvidence(locale),
+      fileId: validated.fileId,
+      fileTicket: validated.fileTicket,
       context: auditContext,
       supabase: admin,
     })
+
+    if (!result.ok) {
+      const code = result.reason === 'conflict' ? 'conflict' : result.reason
+      return finish(errorResponse(code, locale), {
+        actorType: 'anonymous',
+        errorCode: code,
+      })
+    }
 
     return finish(
       NextResponse.json({ success: true }, { status: 200, headers: SECURITY_HEADERS }),

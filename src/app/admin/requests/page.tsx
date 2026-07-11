@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { RequestsClient } from './requests-client'
 import { canAccessFacultyPortal } from '@/lib/roles'
+import { assertQuerySucceeded } from '@/lib/data/data-load'
 
 export default async function AdminRequestsPage() {
   const cookieStore = await cookies()
@@ -16,12 +17,13 @@ export default async function AdminRequestsPage() {
     redirect('/admin/login')
   }
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('patient_requests')
     .select(
       'id, full_name, age, phone, preferred_language, treatment_type, complaint_text, urgency, status, assigned_department, target_student_level, created_at'
     )
     .order('created_at', { ascending: false })
+  assertQuerySucceeded(error, 'admin.requests.list')
 
   return (
     <RequestsClient

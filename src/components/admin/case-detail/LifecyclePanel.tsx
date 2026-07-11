@@ -13,11 +13,13 @@ interface LifecyclePanelProps {
   lifecycleLoading: boolean
   pendingCancel: boolean
   cancelReason: string
+  nextStageReason: string
   assignedDepartment: string
   targetStudentLevel: string
   onAssignedDepartmentChange: (value: string) => void
   onTargetStudentLevelChange: (value: string) => void
   onCancelReasonChange: (value: string) => void
+  onNextStageReasonChange: (value: string) => void
   onStartCancel: () => void
   onDismissCancel: () => void
   onLifecycleAction: (action: AdminLifecycleAction, reason?: string) => void
@@ -35,11 +37,13 @@ export function LifecyclePanel({
   lifecycleLoading,
   pendingCancel,
   cancelReason,
+  nextStageReason,
   assignedDepartment,
   targetStudentLevel,
   onAssignedDepartmentChange,
   onTargetStudentLevelChange,
   onCancelReasonChange,
+  onNextStageReasonChange,
   onStartCancel,
   onDismissCancel,
   onLifecycleAction,
@@ -178,10 +182,21 @@ export function LifecyclePanel({
                         </option>
                       ))}
                     </select>
+                    <label className="block text-xs font-semibold text-slate-700">
+                      {t('admin.detail.reasonLabel')} *
+                      <input
+                        type="text"
+                        value={nextStageReason}
+                        onChange={(event) => onNextStageReasonChange(event.target.value)}
+                        disabled={lifecycleLoading}
+                        placeholder={t('admin.detail.reasonPlaceholder')}
+                        className="mt-1 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal text-slate-900 outline-none focus:border-blue-900"
+                      />
+                    </label>
                     <button
                       type="button"
                       onClick={onReleaseNextStage}
-                      disabled={lifecycleLoading}
+                      disabled={lifecycleLoading || nextStageReason.trim().length < 3}
                       className="w-full rounded-xl bg-blue-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:opacity-60"
                     >
                       {lifecycleLoading ? '…' : t('admin.detail.releaseNextStageButton')}

@@ -126,6 +126,7 @@ export function CaseDetailClient({
   const [studentActionReason, setStudentActionReason] = useState('')
   const [pendingCancel, setPendingCancel] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
+  const [nextStageReason, setNextStageReason] = useState('')
   const [triageReason, setTriageReason] = useState('')
   const [pendingReturnToPool, setPendingReturnToPool] = useState(false)
   const [returnToPoolReason, setReturnToPoolReason] = useState('')
@@ -621,6 +622,11 @@ export function CaseDetailClient({
       setErrorMessage(t('admin.detail.nextStageNotAllowed'))
       return
     }
+    const trimmedReason = nextStageReason.trim()
+    if (trimmedReason.length < 3) {
+      setErrorMessage(t('admin.detail.reasonRequired'))
+      return
+    }
 
     setLifecycleLoading(true)
     setErrorMessage('')
@@ -634,6 +640,7 @@ export function CaseDetailClient({
         urgency: mapDetailToUrgency(urgencyLevel),
         target_student_level: targetStudentLevel,
         clinical_notes: clinicalNotes,
+        reason: trimmedReason,
       }),
     })
 
@@ -696,6 +703,7 @@ export function CaseDetailClient({
       makeLogEntry('case_released', data.reviewed_at, assignedDepartment),
       ...prev,
     ])
+    setNextStageReason('')
     showSaved(t('admin.detail.nextStageReleased'))
   }
 
@@ -940,11 +948,13 @@ export function CaseDetailClient({
             lifecycleLoading={lifecycleLoading}
             pendingCancel={pendingCancel}
             cancelReason={cancelReason}
+            nextStageReason={nextStageReason}
             assignedDepartment={assignedDepartment}
             targetStudentLevel={targetStudentLevel}
             onAssignedDepartmentChange={setAssignedDepartment}
             onTargetStudentLevelChange={setTargetStudentLevel}
             onCancelReasonChange={setCancelReason}
+            onNextStageReasonChange={setNextStageReason}
             onStartCancel={() => {
               setPendingCancel(true)
               setCancelReason('')

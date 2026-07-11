@@ -13,6 +13,7 @@ import { canAccessFacultyPortal, isStudentRole } from '@/lib/roles'
 import { createSupabaseAdminClient, type SupabaseAdminClient } from '@/lib/supabase-admin'
 import {
   buildPatientFileObjectPath,
+  CONFIRMED_UNLINKED_GRACE_SECONDS,
   FILE_STATUS,
   getAllowedTypeByMime,
   HARD_MAX_UPLOAD_BYTES,
@@ -118,6 +119,7 @@ interface PatientFileRow {
   detected_mime: string | null
   extension: string
   status: string
+  scan_state: string | null
   patient_request_id: string | null
 }
 
@@ -189,7 +191,7 @@ async function loadPatientFile(
   const { data: row, error } = await supabase
     .from('patient_files')
     .select(
-      'id, object_path, original_filename, declared_mime, detected_mime, extension, status, patient_request_id'
+      'id, object_path, original_filename, declared_mime, detected_mime, extension, status, scan_state, patient_request_id'
     )
     .eq('id', fileId)
     .maybeSingle<PatientFileRow>()
@@ -462,8 +464,8 @@ export async function confirmUpload(
     }
     const row = rowResult.data
 
-    if (row.status === FILE_STATUS.CLEAN) {
-      return ok({ fileId: row.id, status: FILE_STATUS.CLEAN })
+    if (row.status === FILE_STATUS.QUARANTINED) {
+      return ok({ fileId: row.id, status: FILE_STATUS.QUARANTINED })
     }
     if (row.status !== FILE_STATUS.PENDING && row.status !== FILE_STATUS.UPLOADED) {
       return err('validation_failed')
@@ -513,23 +515,29 @@ export async function confirmUpload(
       return err('validation_failed')
     }
 
-    const nowIso = new Date().toISOString()
+    const now = new Date()
+    const nowIso = now.toISOString()
     const { error: updateError } = await supabase
       .from('patient_files')
       .update({
-        status: FILE_STATUS.CLEAN,
-        scan_state: SCAN_STATE.SKIPPED,
+        status: FILE_STATUS.QUARANTINED,
+        scan_state: SCAN_STATE.PENDING,
         detected_mime: detectedMime,
         size_bytes: inspection.size,
         checksum_sha256: inspection.checksum,
         confirmed_at: nowIso,
-        scanned_at: nowIso,
+        scanned_at: null,
+        expires_at: new Date(
+          now.getTime() + CONFIRMED_UNLINKED_GRACE_SECONDS * 1000
+        ).toISOString(),
       })
       .eq('id', row.id)
       .eq('status', row.status)
 
     if (updateError) {
-      console.error('[files] Failed to mark file clean', { error: updateError.message })
+      console.error('[files] Failed to quarantine structurally validated file', {
+        error: updateError.message,
+      })
       return err('server_error')
     }
 
@@ -543,7 +551,7 @@ export async function confirmUpload(
       supabase,
     })
 
-    return ok({ fileId: row.id, status: FILE_STATUS.CLEAN })
+    return ok({ fileId: row.id, status: FILE_STATUS.QUARANTINED })
   } catch (error) {
     console.error('[files] Unexpected confirmUpload error', {
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -568,15 +576,17 @@ export async function attachConfirmedFileToPatientRequest(
     }
     const row = rowResult.data
 
-    if (row.status !== FILE_STATUS.CLEAN) {
+    if (row.status !== FILE_STATUS.QUARANTINED || row.scan_state !== SCAN_STATE.PENDING) {
       return err('validation_failed')
     }
     if (row.patient_request_id && row.patient_request_id !== input.patientRequestId) {
       return err('validation_failed')
     }
 
+    let attachedRow = row
+
     if (!row.patient_request_id) {
-      const { error: updateError } = await supabase
+      const { data: updatedRow, error: updateError } = await supabase
         .from('patient_files')
         .update({
           patient_request_id: input.patientRequestId,
@@ -584,7 +594,12 @@ export async function attachConfirmedFileToPatientRequest(
         })
         .eq('id', row.id)
         .is('patient_request_id', null)
-        .eq('status', FILE_STATUS.CLEAN)
+        .eq('status', FILE_STATUS.QUARANTINED)
+        .eq('scan_state', SCAN_STATE.PENDING)
+        .select(
+          'id, object_path, original_filename, declared_mime, detected_mime, extension, status, scan_state, patient_request_id'
+        )
+        .maybeSingle<PatientFileRow>()
 
       if (updateError) {
         console.error('[files] Failed to attach file to patient request', {
@@ -592,12 +607,29 @@ export async function attachConfirmedFileToPatientRequest(
         })
         return err('server_error')
       }
+
+      if (!updatedRow) {
+        const currentRowResult = await loadPatientFile(supabase, input.fileId)
+        if (!currentRowResult.ok) {
+          return currentRowResult
+        }
+        if (
+          currentRowResult.data.status !== FILE_STATUS.QUARANTINED ||
+          currentRowResult.data.scan_state !== SCAN_STATE.PENDING ||
+          currentRowResult.data.patient_request_id !== input.patientRequestId
+        ) {
+          return err('validation_failed')
+        }
+        attachedRow = currentRowResult.data
+      } else {
+        attachedRow = updatedRow
+      }
     }
 
     await auditFileConfirmed({
       fileId: row.id,
       patientRequestId: input.patientRequestId,
-      detectedMime: row.detected_mime,
+      detectedMime: attachedRow.detected_mime,
       sizeBytes: null,
       locale: input.locale,
       context: input.context,
@@ -605,9 +637,9 @@ export async function attachConfirmedFileToPatientRequest(
     })
 
     return ok({
-      fileId: row.id,
-      objectPath: row.object_path,
-      originalFilename: row.original_filename,
+      fileId: attachedRow.id,
+      objectPath: attachedRow.object_path,
+      originalFilename: attachedRow.original_filename,
     })
   } catch (error) {
     console.error('[files] Unexpected attachConfirmedFileToPatientRequest error', {
@@ -625,19 +657,62 @@ export async function deletePreparedFileObject(input: DeletePreparedFileInput): 
       return false
     }
 
-    const rowResult = await loadPatientFile(supabase, input.fileId)
-    if (!rowResult.ok) {
+    const { data: claimedRow, error: claimError } = await supabase
+      .from('patient_files')
+      .update({ status: FILE_STATUS.DELETED })
+      .eq('id', input.fileId)
+      .is('patient_request_id', null)
+      .not('expires_at', 'is', null)
+      .lte('expires_at', new Date().toISOString())
+      .in('status', [
+        FILE_STATUS.PENDING,
+        FILE_STATUS.UPLOADED,
+        FILE_STATUS.QUARANTINED,
+        FILE_STATUS.REJECTED,
+        FILE_STATUS.ORPHANED,
+      ])
+      .select('object_path')
+      .maybeSingle<{ object_path: string }>()
+
+    if (claimError) {
+      console.error('[files] Failed to claim prepared file cleanup', {
+        error: claimError.message,
+      })
+      return false
+    }
+    if (!claimedRow) {
       return false
     }
 
-    await supabase.storage.from(PATIENT_UPLOADS_BUCKET).remove([rowResult.data.object_path])
-    await supabase
-      .from('patient_files')
-      .update({
-        status: FILE_STATUS.DELETED,
-        expires_at: null,
+    const { error: removeError } = await supabase.storage
+      .from(PATIENT_UPLOADS_BUCKET)
+      .remove([claimedRow.object_path])
+
+    if (removeError) {
+      console.error('[files] Failed to remove claimed prepared file object', {
+        error: removeError.message,
       })
+      await supabase
+        .from('patient_files')
+        .update({ status: FILE_STATUS.ORPHANED })
+        .eq('id', input.fileId)
+        .is('patient_request_id', null)
+        .eq('status', FILE_STATUS.DELETED)
+      return false
+    }
+
+    const { error: finalizeError } = await supabase
+      .from('patient_files')
+      .update({ expires_at: null })
       .eq('id', input.fileId)
+      .is('patient_request_id', null)
+      .eq('status', FILE_STATUS.DELETED)
+
+    if (finalizeError) {
+      console.error('[files] Failed to finalize prepared file cleanup', {
+        error: finalizeError.message,
+      })
+    }
 
     return true
   } catch (error) {
@@ -660,7 +735,11 @@ export async function createPatientFileSignedUrl(
     }
     const row = rowResult.data
 
-    if (row.status !== FILE_STATUS.CLEAN || !row.patient_request_id) {
+    if (
+      row.status !== FILE_STATUS.CLEAN ||
+      row.scan_state !== SCAN_STATE.CLEAN ||
+      !row.patient_request_id
+    ) {
       return err('not_found')
     }
 

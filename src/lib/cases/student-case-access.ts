@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 import type { Database } from '@/lib/database.types'
+import { failDataLoad } from '@/lib/data/data-load'
 
 /**
  * Student case read-access wrappers (release fix lane).
@@ -65,8 +66,7 @@ export async function fetchStudentPoolCases(
 ): Promise<StudentPoolCase[]> {
   const { data, error } = await supabase.rpc('student_pool_cases')
   if (error) {
-    console.error('[student-case-access] student_pool_cases failed', { error: error.message })
-    return []
+    failDataLoad('student.cases.pool')
   }
   return (data ?? []) as StudentPoolCase[]
 }
@@ -76,8 +76,7 @@ export async function fetchStudentActiveCases(
 ): Promise<StudentActiveCase[]> {
   const { data, error } = await supabase.rpc('student_active_cases')
   if (error) {
-    console.error('[student-case-access] student_active_cases failed', { error: error.message })
-    return []
+    failDataLoad('student.cases.active')
   }
   return (data ?? []) as StudentActiveCase[]
 }
@@ -87,10 +86,7 @@ export async function fetchStudentRequestedCases(
 ): Promise<StudentRequestedCase[]> {
   const { data, error } = await supabase.rpc('student_requested_case_overview')
   if (error) {
-    console.error('[student-case-access] student_requested_case_overview failed', {
-      error: error.message,
-    })
-    return []
+    failDataLoad('student.requests.overview')
   }
   return (data ?? []) as StudentRequestedCase[]
 }

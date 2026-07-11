@@ -3,6 +3,7 @@ import 'server-only'
 import { randomUUID } from 'node:crypto'
 
 import { createSupabaseAdminClient, type SupabaseAdminClient } from '@/lib/supabase-admin'
+import { captureException } from '@/lib/observability/error-monitor'
 
 export const AUDIT_ACTIONS = {
   PATIENT_REQUEST_CREATED: 'patient_request_created',
@@ -465,6 +466,11 @@ export async function createAuditLog(input: AuditLogInput): Promise<boolean> {
         entityType: input.entityType ?? definition.entityType,
         error: error.message,
       })
+      void captureException(new Error('Mandatory audit write failed.'), {
+        actorType: input.actorType ?? AUDIT_ACTOR_TYPES.ANONYMOUS,
+        route: 'audit.create',
+        metadata: { action: input.action, entity_type: input.entityType ?? definition.entityType },
+      })
       return false
     }
 
@@ -474,6 +480,11 @@ export async function createAuditLog(input: AuditLogInput): Promise<boolean> {
       action: input.action,
       entityType: input.entityType ?? definition.entityType,
       error: error instanceof Error ? error.message : 'Unknown error',
+    })
+    void captureException(new Error('Mandatory audit write failed unexpectedly.'), {
+      actorType: input.actorType ?? AUDIT_ACTOR_TYPES.ANONYMOUS,
+      route: 'audit.create',
+      metadata: { action: input.action, entity_type: input.entityType ?? definition.entityType },
     })
     return false
   }
@@ -816,7 +827,12 @@ export async function auditFileSignedUrlCreated(
     actorUserId: input.actorUserId,
     actorEmail: input.actorEmail,
     actorRole: input.actorRole,
-    actorType: AUDIT_ACTOR_TYPES.SERVICE,
+    actorType:
+      input.actorRole === 'student'
+        ? AUDIT_ACTOR_TYPES.STUDENT
+        : input.actorRole === 'admin'
+          ? AUDIT_ACTOR_TYPES.ADMIN
+          : AUDIT_ACTOR_TYPES.FACULTY,
     entityId: input.fileId,
     metadata: {
       file_id: input.fileId,
