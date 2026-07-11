@@ -212,16 +212,6 @@ interface AuditLogInput {
   supabase?: SupabaseAdminClient
 }
 
-interface PatientRequestAuditInput {
-  patientRequestId: string
-  consentRecordCount: number
-  consentVersion: string
-  hasAttachment: boolean
-  locale: string
-  context: AuditRequestContext
-  supabase?: SupabaseAdminClient
-}
-
 interface PatientStatusOtpAuditInput {
   phoneLast4: string | null
   locale: string
@@ -490,23 +480,9 @@ export async function createAuditLog(input: AuditLogInput): Promise<boolean> {
   }
 }
 
-export async function auditPatientRequestCreated(
-  input: PatientRequestAuditInput
-): Promise<boolean> {
-  return createAuditLog({
-    action: AUDIT_ACTIONS.PATIENT_REQUEST_CREATED,
-    actorType: AUDIT_ACTOR_TYPES.ANONYMOUS,
-    entityId: input.patientRequestId,
-    metadata: {
-      consent_record_count: input.consentRecordCount,
-      consent_version: input.consentVersion,
-      has_attachment: input.hasAttachment,
-      locale: input.locale,
-    },
-    context: input.context,
-    supabase: input.supabase,
-  })
-}
+// The patient_request_created audit event is written inside the atomic intake
+// RPC (submit_patient_request_atomic) so it commits with the request itself;
+// AUDIT_ACTIONS.PATIENT_REQUEST_CREATED stays registered for that DB-side row.
 
 export async function auditPatientStatusOtpRequested(
   input: PatientStatusOtpAuditInput
