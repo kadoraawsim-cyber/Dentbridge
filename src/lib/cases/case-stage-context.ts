@@ -105,6 +105,7 @@ export async function getAuthorizedStageContext({
 
   const stageId = currentStageId ?? requestStageId
   let stageDepartment = currentCase.assigned_department ?? null
+  let stageStatus: string | null = null
 
   if (stageId) {
     const { data: currentStage, error: currentStageError } = await supabase
@@ -151,6 +152,7 @@ export async function getAuthorizedStageContext({
     }
 
     stageDepartment = currentStage.department ?? stageDepartment
+    stageStatus = currentStage.status ?? null
 
     if (!currentStageId) {
       const { error: linkCaseStageError } = await supabase
@@ -205,6 +207,8 @@ export async function getAuthorizedStageContext({
       currentCase,
       stageId: stageId as string | null,
       stageDepartment,
+      /** Stage status as loaded, for optimistic-concurrency compensation. */
+      stageStatus,
     },
     response: null,
   }

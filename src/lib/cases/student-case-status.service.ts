@@ -18,6 +18,7 @@ import {
   PLANNER_LIFECYCLE_STATE,
   resolveStudentLifecycleTransition,
   STAGE_STATUS,
+  SUBMIT_FOR_REVIEW_REQUIRED_STATUS,
   type StudentCaseAction,
 } from './case-lifecycle'
 
@@ -248,6 +249,27 @@ export async function updateStudentCaseStatus(
 
     const submittedAt = new Date().toISOString()
 
+    // Optimistic-concurrency guard: the case transition is conditional on the
+    // observed from-status, so a concurrent admin action (return-to-pool,
+    // cancel, …) yields a 409 instead of being silently overwritten.
+    const { data: caseUpdated, error: caseUpdateError } = await supabase
+      .from('patient_requests')
+      .update({
+        status: CASE_STATUS.FACULTY_REVIEW,
+        reviewed_by: input.actor.email,
+        reviewed_at: submittedAt,
+      })
+      .eq('id', input.caseId)
+      .eq('status', SUBMIT_FOR_REVIEW_REQUIRED_STATUS)
+      .select('id')
+
+    if (caseUpdateError) {
+      return { status: 500, body: { error: logServerError('[student-case-status] caseUpdateError', caseUpdateError.message) } }
+    }
+    if (!caseUpdated || caseUpdated.length === 0) {
+      return { status: 409, body: { error: LIFECYCLE_MESSAGES.CONFLICT_RETRY } }
+    }
+
     const { error: stageUpdateError } = await supabase
       .from('case_routing_stages')
       .update({
@@ -260,20 +282,18 @@ export async function updateStudentCaseStatus(
       .eq('case_id', input.caseId)
 
     if (stageUpdateError) {
+      // Compensate the already-applied case transition so case and stage do
+      // not disagree about who owns the review.
+      await supabase
+        .from('patient_requests')
+        .update({
+          status: SUBMIT_FOR_REVIEW_REQUIRED_STATUS,
+          reviewed_by: input.actor.email,
+          reviewed_at: submittedAt,
+        })
+        .eq('id', input.caseId)
+        .eq('status', CASE_STATUS.FACULTY_REVIEW)
       return { status: 500, body: { error: logServerError('[student-case-status] stageUpdateError', stageUpdateError.message) } }
-    }
-
-    const { error: caseUpdateError } = await supabase
-      .from('patient_requests')
-      .update({
-        status: CASE_STATUS.FACULTY_REVIEW,
-        reviewed_by: input.actor.email,
-        reviewed_at: submittedAt,
-      })
-      .eq('id', input.caseId)
-
-    if (caseUpdateError) {
-      return { status: 500, body: { error: logServerError('[student-case-status] caseUpdateError', caseUpdateError.message) } }
     }
 
     await auditStudentCaseStatusChanged({
@@ -413,16 +433,10 @@ export async function updateStudentCaseStatus(
     }
   }
 
-  const { error: updateError } = await supabase
-    .from('patient_requests')
-    .update({
-      status: newStatus,
-      reviewed_by: input.actor.email,
-      reviewed_at: new Date().toISOString(),
-    })
-    .eq('id', input.caseId)
-
-  if (updateError) {
+  // Undo the side-effect writes above when the final case transition cannot be
+  // applied, so a failed/raced action leaves no progress, planner, or stage
+  // residue behind.
+  const compensateSideEffects = async () => {
     if (progressEntry) {
       await supabase.from('case_progress_entries').delete().eq('id', progressEntry.id)
     }
@@ -434,7 +448,41 @@ export async function updateStudentCaseStatus(
         .eq('source_kind', CASE_APPOINTMENT_SOURCE_KIND)
         .eq('source_case_id', input.caseId)
     }
+    if (context.stageId && context.stageStatus) {
+      await supabase
+        .from('case_routing_stages')
+        .update({
+          status: context.stageStatus,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', context.stageId)
+        .eq('case_id', input.caseId)
+        .eq('status', newStatus)
+    }
+  }
+
+  // Optimistic-concurrency guard: conditional on the observed from-status so a
+  // concurrent admin action (return-to-pool, cancel, …) yields a 409 instead of
+  // being silently overwritten.
+  const { data: caseUpdated, error: updateError } = await supabase
+    .from('patient_requests')
+    .update({
+      status: newStatus,
+      reviewed_by: input.actor.email,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq('id', input.caseId)
+    .eq('status', context.currentCase.status ?? '')
+    .select('id')
+
+  if (updateError) {
+    await compensateSideEffects()
     return { status: 500, body: { error: logServerError('[student-case-status] updateError', updateError.message) } }
+  }
+
+  if (!caseUpdated || caseUpdated.length === 0) {
+    await compensateSideEffects()
+    return { status: 409, body: { error: LIFECYCLE_MESSAGES.CONFLICT_RETRY } }
   }
 
   if (progressEntry) {
