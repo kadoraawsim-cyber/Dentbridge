@@ -12,11 +12,10 @@ Do not deploy Phase 3, Phase 4, Phase 5, or Phase 6 code to Production unless al
 are true:
 
 - `SUPABASE_SERVICE_ROLE_KEY` is configured in the target Vercel environment.
-- `OTP_HASH_SECRET` is configured in the target Vercel environment.
+- All four server-only `TWILIO_*` variables are configured in the target Vercel environment.
 - `FILE_TICKET_SECRET` is configured in the target Vercel environment.
 - Production migrations have been reviewed and are ready to run.
-- A real SMS provider is configured, or the patient status page is intentionally
-  gated off until real OTP delivery is ready.
+- The Twilio Verify service is enabled for SMS and has passed Preview delivery checks.
 - The `patient-uploads` bucket is private, and the legacy anon/authenticated
   Storage INSERT path has been revoked by the Phase 5 migration.
 - Phase 6 service-role API routes have been verified in Preview before the
@@ -34,9 +33,12 @@ Required Production environment variables:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
-- `OTP_HASH_SECRET`
 - `FILE_TICKET_SECRET`
 - `OPENAI_API_KEY`
+- `TWILIO_ACCOUNT_SID`
+- `TWILIO_API_KEY_SID`
+- `TWILIO_API_KEY_SECRET`
+- `TWILIO_VERIFY_SERVICE_SID`
 - `APP_URL`
 - `NEXT_PUBLIC_SITE_URL`
 - `NEXT_PUBLIC_PASSWORD_RESET_REDIRECT_URL`
@@ -47,9 +49,12 @@ Required Preview environment variables:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
-- `OTP_HASH_SECRET`
 - `FILE_TICKET_SECRET`
 - `OPENAI_API_KEY`
+- `TWILIO_ACCOUNT_SID`
+- `TWILIO_API_KEY_SID`
+- `TWILIO_API_KEY_SECRET`
+- `TWILIO_VERIFY_SERVICE_SID`
 - `APP_URL`
 - `NEXT_PUBLIC_SITE_URL`
 - `NEXT_PUBLIC_PASSWORD_RESET_REDIRECT_URL`
@@ -60,12 +65,12 @@ Variable notes:
 - `SUPABASE_SERVICE_ROLE_KEY` is server-only. It is required for patient request
   API inserts, OTP operations, consent records, audit logs, Phase 5 file
   services, and Phase 6 sensitive mutation services.
-- `OTP_HASH_SECRET` is server-only. Generate a strong random secret and keep it
-  stable for the environment. Rotating it invalidates verification for existing
-  unconsumed OTP rows.
+- All `TWILIO_*` variables are server-only. DentBridge authenticates with the
+  API key SID and secret under the configured account and uses the configured
+  Verify service for SMS challenges.
 - `FILE_TICKET_SECRET` is server-only. Generate a strong random secret that is
-  distinct from `OTP_HASH_SECRET`. Rotating it invalidates only in-flight file
-  upload tickets.
+  independent from all other server-side credentials. Rotating it invalidates
+  only in-flight file upload tickets.
 - `APP_URL` should match the canonical app origin for the environment.
 - `NEXT_PUBLIC_SITE_URL` should match the public browser URL for the
   environment.
@@ -78,14 +83,9 @@ Variable notes:
 - `VERCEL_URL` is supplied by Vercel when available. Do not manually set it in
   the dashboard unless there is a reviewed reason.
 
-Future SMS variables, not required for the local mock but required before real
-OTP use:
-
-- SMS provider account SID or API key.
-- SMS provider auth token or API secret.
-- Sender phone number or approved sender ID.
-- Provider region or messaging service ID if required.
-- Optional webhook signing secret if inbound delivery callbacks are later used.
+Twilio Verify is the sole OTP provider for the current release. It uses SMS
+only, does not require DentBridge to purchase a Twilio phone number, and does
+not enable WhatsApp.
 
 ## 2. Supabase Manual Setup
 
@@ -146,40 +146,21 @@ Post-migration verification:
   removed and signed URLs are still minted only through
   `/api/v1/files/[id]/signed-url`.
 
-## 3. SMS Provider Setup
+## 3. Twilio Verify Setup
 
-Local development can use the mock SMS sender. Real OTP use requires a real SMS
-provider before public launch.
+Before enabling patient-status verification in Production:
 
-Provider options to evaluate:
-
-- Twilio.
-- MessageBird.
-- Vonage.
-- Local Turkish SMS provider with approved sender support.
-- Supabase-compatible Edge Function or server-side API integration later, if
-  chosen deliberately.
-
-Before enabling real OTP in Production:
-
-- Choose the provider.
-- Complete account verification and billing setup.
-- Configure sender number or sender ID.
+- Complete Twilio account verification and billing setup.
+- Create and configure the Verify service used by `TWILIO_VERIFY_SERVICE_SID`.
+- Create a scoped API key and configure all four `TWILIO_*` variables in Vercel.
 - Confirm whether Turkish telecom rules require approved sender names,
   opt-out text, registration, or message templates.
 - Confirm delivery works to expected patient countries.
 - Confirm SMS content does not include sensitive medical details.
-- Store provider credentials only in Vercel server-side environment variables.
-- Confirm logs at the SMS provider do not expose OTPs longer than necessary.
-
-SMS environment variables needed later:
-
-- Provider account ID or API key.
-- Provider secret or auth token.
-- Sender phone number or sender ID.
-- Optional messaging service ID.
-- Optional webhook signing secret.
-- Optional provider region or country routing setting.
+- Confirm credentials exist only in Vercel server-side environment variables.
+- Confirm application and provider logs do not expose verification codes.
+- Do not purchase a Twilio phone number for this flow; Verify does not require one.
+- Keep WhatsApp disabled until its sender and Meta business verification are complete.
 
 ## 4. GitHub/Vercel Preview Workflow
 
@@ -190,8 +171,8 @@ For Preview:
 - Confirm Preview uses Preview environment variables, not Production values.
 - Confirm Preview Supabase points to a safe test/staging Supabase project unless
   explicitly reviewed.
-- Confirm `SUPABASE_SERVICE_ROLE_KEY` and `OTP_HASH_SECRET` are configured for
-  Preview before testing Phase 3/4 flows.
+- Confirm `SUPABASE_SERVICE_ROLE_KEY` and all four `TWILIO_*` variables are
+  configured for Preview before testing patient-status flows.
 - Run manual QA on the Preview URL.
 - Record QA results in the PR before approving Production deployment.
 
@@ -252,7 +233,7 @@ Patient status OTP:
 
 - Request an OTP for an existing request.
 - Confirm the response does not reveal whether the phone exists.
-- Confirm OTP delivery works if a real SMS provider is configured.
+- Confirm Twilio Verify SMS delivery works.
 - Verify status with a valid OTP.
 - Confirm invalid, expired, reused, and over-attempted OTP cases return generic
   errors.
@@ -383,10 +364,13 @@ Planner:
 Do not deploy Phase 3/4/5/6 code to Production without:
 
 - `SUPABASE_SERVICE_ROLE_KEY`
-- `OTP_HASH_SECRET`
+- `TWILIO_ACCOUNT_SID`
+- `TWILIO_API_KEY_SID`
+- `TWILIO_API_KEY_SECRET`
+- `TWILIO_VERIFY_SERVICE_SID`
 - `FILE_TICKET_SECRET`
 - Production migrations applied or ready to apply in the correct order
-- SMS provider configured, or the status page intentionally gated off
+- Twilio Verify service configured and SMS delivery verified
 - Confirmed private `patient-uploads` bucket and revoked anon/authenticated
   Storage INSERT path
 - Verified Phase 6 Preview QA for profile completion, admin/faculty case

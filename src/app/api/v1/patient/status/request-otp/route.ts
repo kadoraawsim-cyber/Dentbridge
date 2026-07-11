@@ -13,12 +13,7 @@ import {
   createAuditRequestContext,
   getPhoneLast4,
 } from '@/lib/audit/audit.service'
-import {
-  computeOtpExpiry,
-  generateOtpCode,
-  hashOtpCode,
-  OTP_TTL_MINUTES,
-} from '@/lib/otp/otp.service'
+import { sendPatientStatusVerification } from '@/lib/otp/twilio-verify'
 import { captureException } from '@/lib/observability/error-monitor'
 import { logger } from '@/lib/observability/logger'
 import {
@@ -27,11 +22,9 @@ import {
   logRequestStart,
   type RequestEndMetadata,
 } from '@/lib/observability/request-context'
-import { getSmsSender } from '@/lib/otp/sms-sender'
 import { normalizePatientStatusPhone } from '@/lib/patient-status/phone'
 
-// node:crypto (via the OTP service) and the service-role client require the
-// Node.js runtime.
+// The Twilio Node SDK and the service-role client require the Node.js runtime.
 export const runtime = 'nodejs'
 
 const SECURITY_HEADERS: Record<string, string> = {
@@ -53,13 +46,6 @@ const GENERIC_SUCCESS_MESSAGE: Record<ApiLocale, string> = {
   tr: 'Eşleşen bir talep varsa, o telefon numarasına bir doğrulama kodu gönderdik. Durumunuzu görmek için kodu girin.',
 }
 
-function buildSmsBody(code: string, locale: ApiLocale): string {
-  if (locale === 'tr') {
-    return `DentBridge durum doğrulama kodunuz: ${code}. ${OTP_TTL_MINUTES} dakika içinde geçerliliğini yitirir.`
-  }
-  return `Your DentBridge status verification code is ${code}. It expires in ${OTP_TTL_MINUTES} minutes.`
-}
-
 function getHeaderLocale(request: NextRequest): ApiLocale {
   return request.headers.get('accept-language')?.toLowerCase().includes('tr') ? 'tr' : 'en'
 }
@@ -67,6 +53,22 @@ function getHeaderLocale(request: NextRequest): ApiLocale {
 function isJsonContentType(request: NextRequest): boolean {
   const contentType = request.headers.get('content-type') || ''
   return contentType.split(';')[0]?.trim().toLowerCase() === 'application/json'
+}
+
+function getTwilioProviderMetadata(error: unknown): Record<string, unknown> {
+  const metadata: Record<string, unknown> = { provider: 'twilio_verify' }
+  if (!error || typeof error !== 'object') {
+    return metadata
+  }
+
+  const candidate = error as { code?: unknown; status?: unknown }
+  if (typeof candidate.code === 'number' && Number.isInteger(candidate.code)) {
+    metadata.provider_code = candidate.code
+  }
+  if (typeof candidate.status === 'number' && Number.isInteger(candidate.status)) {
+    metadata.provider_status = candidate.status
+  }
+  return metadata
 }
 
 function successResponse(locale: ApiLocale): NextResponse {
@@ -94,15 +96,14 @@ function errorResponse(
 /**
  * POST /api/v1/patient/status/request-otp
  *
- * Issues a one-time verification code for a patient status lookup.
+ * Requests a Twilio Verify challenge for a patient status lookup.
  *
  * Privacy guarantees:
  *   - The public response is identical whether or not a request exists for the
  *     phone number. Existence is never revealed.
- *   - A code is generated, hashed, stored, and sent ONLY when a matching request
- *     exists; otherwise nothing is stored or sent, but the response is the same.
- *   - Only the HMAC hash of the code is stored (`otp_codes.code_hash`). The
- *     plaintext code is never persisted or logged by this route.
+ *   - Twilio Verify is called ONLY when a matching request exists; otherwise no
+ *     challenge is requested, but the response is the same.
+ *   - DentBridge never generates, stores, logs, or handles the issued code.
  *   - Rate limited by both phone number and client IP.
  *   - Responses are `Cache-Control: no-store`.
  */
@@ -207,62 +208,45 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     let otpIssued = false
     let smsDelivered: boolean | null = null
-    let smsProvider: string | null = null
+    const smsProvider = 'twilio_verify'
 
-    // ── 6. Issue + store + send ONLY when a request exists ───────────────────
+    // ── 6. Request a Twilio Verify challenge ONLY when a request exists ──────
     // Any failure inside this branch is swallowed (logged server-side) so the
     // public response stays identical and cannot be used to detect existence.
     if (existingRequest) {
       try {
-        const code = generateOtpCode()
+        const verification = await sendPatientStatusVerification(phone, locale)
+        otpIssued = verification.status === 'pending'
+        smsDelivered = otpIssued
 
-        const { error: insertError } = await admin.from('otp_codes').insert({
-          phone,
-          code_hash: hashOtpCode(code),
-          purpose: 'patient_status_lookup',
-          // attempts + max_attempts intentionally omitted: use DB defaults (0 / 5).
-          expires_at: computeOtpExpiry().toISOString(),
-          request_ip: clientIp,
-        })
-
-        if (insertError) {
-          throw insertError
-        }
-
-        otpIssued = true
-
-        const sms = getSmsSender()
-        const sendResult = await sms.send({ to: phone, body: buildSmsBody(code, locale) })
-        smsDelivered = sendResult.delivered
-        smsProvider = sendResult.provider
-
-        if (!sendResult.delivered) {
+        if (!otpIssued) {
           logger.warn('patient_status.otp_delivery_failed', {
             actorType: 'anonymous',
             correlationId: requestContext.correlationId,
             requestId: requestContext.requestId,
             route: requestContext.route,
             metadata: {
-              provider: sendResult.provider,
+              provider: smsProvider,
+              provider_status: verification.status,
             },
           })
         }
-      } catch (issueError) {
-        void captureException(issueError, {
+      } catch (error) {
+        smsDelivered = false
+        const providerMetadata = getTwilioProviderMetadata(error)
+        void captureException(new Error('Twilio Verify challenge request failed.'), {
           actorType: 'anonymous',
           correlationId: requestContext.correlationId,
           requestId: requestContext.requestId,
           route: requestContext.route,
-          metadata: { error_code: 'otp_issue_failed' },
+          metadata: { error_code: 'otp_issue_failed', ...providerMetadata },
         })
         logger.error('patient_status.otp_issue_failed', {
           actorType: 'anonymous',
           correlationId: requestContext.correlationId,
           requestId: requestContext.requestId,
           route: requestContext.route,
-          metadata: {
-            error_code: 'otp_issue_failed',
-          },
+          metadata: { error_code: 'otp_issue_failed', ...providerMetadata },
         })
       }
     }

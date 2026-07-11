@@ -14,13 +14,14 @@ import {
   getPhoneLast4,
 } from '@/lib/audit/audit.service'
 import { captureException } from '@/lib/observability/error-monitor'
+import { logger } from '@/lib/observability/logger'
 import {
   createRequestContext,
   logRequestEnd,
   logRequestStart,
   type RequestEndMetadata,
 } from '@/lib/observability/request-context'
-import { OTP_CODE_LENGTH, verifyOtpCode } from '@/lib/otp/otp.service'
+import { checkPatientStatusVerification } from '@/lib/otp/twilio-verify'
 import { normalizePatientStatusPhone } from '@/lib/patient-status/phone'
 
 export const runtime = 'nodejs'
@@ -35,15 +36,6 @@ const IP_RATE_LIMIT = { name: 'patient-status-verify:ip', windowMs: 15 * 60_000,
 
 const phoneRateLimiter = createRateLimiter(PHONE_RATE_LIMIT)
 const ipRateLimiter = createRateLimiter(IP_RATE_LIMIT)
-
-interface OtpCodeRow {
-  id: string
-  code_hash: string
-  attempts: number
-  max_attempts: number
-  expires_at: string
-  consumed_at: string | null
-}
 
 interface PatientStatusRow {
   treatment_type: string
@@ -67,7 +59,32 @@ function resolveLocale(rawLocale: unknown, headerLocale: ApiLocale): ApiLocale {
 }
 
 function isOtpFormatValid(raw: unknown): raw is string {
-  return typeof raw === 'string' && new RegExp(`^\\d{${OTP_CODE_LENGTH}}$`).test(raw)
+  return typeof raw === 'string' && /^\d{6}$/.test(raw)
+}
+
+function getTwilioProviderMetadata(error: unknown): Record<string, unknown> {
+  const metadata: Record<string, unknown> = { provider: 'twilio_verify' }
+  if (!error || typeof error !== 'object') {
+    return metadata
+  }
+
+  const candidate = error as { code?: unknown; status?: unknown }
+  if (typeof candidate.code === 'number' && Number.isInteger(candidate.code)) {
+    metadata.provider_code = candidate.code
+  }
+  if (typeof candidate.status === 'number' && Number.isInteger(candidate.status)) {
+    metadata.provider_status = candidate.status
+  }
+  return metadata
+}
+
+function isExpectedVerificationFailure(error: unknown): boolean {
+  if (!error || typeof error !== 'object') {
+    return false
+  }
+
+  const candidate = error as { code?: unknown; status?: unknown }
+  return candidate.status === 404 || candidate.code === 60202
 }
 
 function errorResponse(
@@ -101,33 +118,13 @@ function successResponse(status: PatientStatusRow): NextResponse {
   )
 }
 
-async function incrementFailedAttempt(admin: ReturnType<typeof createSupabaseAdminClient>, row: OtpCodeRow) {
-  if (row.consumed_at || row.attempts >= row.max_attempts) {
-    return
-  }
-
-  const { error } = await admin
-    .from('otp_codes')
-    .update({ attempts: row.attempts + 1 })
-    .eq('id', row.id)
-    .eq('attempts', row.attempts)
-    .is('consumed_at', null)
-
-  if (error) {
-    throw error
-  }
-}
-
-function isOtpUsable(row: OtpCodeRow, now: Date): boolean {
-  return row.consumed_at == null && row.attempts < row.max_attempts && new Date(row.expires_at) > now
-}
-
 /**
  * POST /api/v1/patient/status
  *
- * Verifies a patient status OTP and returns only non-sensitive status fields.
- * Invalid phone, missing/expired/consumed/exhausted OTP, wrong code, and absent
- * patient request all map to generic public errors.
+ * Verifies a patient status code through Twilio Verify and returns only
+ * non-sensitive status fields. DentBridge never stores or compares OTP codes.
+ * Invalid phone, missing/expired/rejected code, and absent patient request all
+ * map to generic public errors.
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const headerLocale = getHeaderLocale(request)
@@ -210,54 +207,46 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const admin = createSupabaseAdminClient()
-    const { data: latestOtp, error: otpLookupError } = await admin
-      .from('otp_codes')
-      .select('id, code_hash, attempts, max_attempts, expires_at, consumed_at')
-      .eq('phone', phone)
-      .eq('purpose', 'patient_status_lookup')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle<OtpCodeRow>()
-
-    if (otpLookupError) {
-      throw otpLookupError
+    const verificationFailed = async (): Promise<NextResponse> => {
+      await auditPatientStatusLookup({
+        phoneLast4,
+        locale,
+        success: false,
+        result: 'verification_failed',
+        context: auditContext,
+        supabase: admin,
+      })
+      return finish(errorResponse('verification_failed', locale), {
+        actorType: 'anonymous',
+        errorCode: 'verification_failed',
+      })
     }
 
-    const now = new Date()
+    if (!isOtpFormatValid(rawOtp)) {
+      return verificationFailed()
+    }
 
-    if (!latestOtp || !isOtpUsable(latestOtp, now) || !isOtpFormatValid(rawOtp)) {
-      if (latestOtp) {
-        await incrementFailedAttempt(admin, latestOtp)
+    let verificationStatus: string
+    try {
+      const verification = await checkPatientStatusVerification(phone, rawOtp)
+      verificationStatus = verification.status
+    } catch (error) {
+      const providerMetadata = getTwilioProviderMetadata(error)
+      logger.warn('patient_status.verification_check_failed', {
+        correlationId: requestContext.correlationId,
+        requestId: requestContext.requestId,
+        route: requestContext.route,
+        actorType: 'anonymous',
+        metadata: providerMetadata,
+      })
+      if (isExpectedVerificationFailure(error)) {
+        return verificationFailed()
       }
-      await auditPatientStatusLookup({
-        phoneLast4,
-        locale,
-        success: false,
-        result: 'verification_failed',
-        context: auditContext,
-        supabase: admin,
-      })
-      return finish(errorResponse('verification_failed', locale), {
-        actorType: 'anonymous',
-        errorCode: 'verification_failed',
-      })
+      throw new Error('Twilio Verify verification check unavailable.')
     }
 
-    const verified = verifyOtpCode(rawOtp, latestOtp.code_hash)
-    if (!verified) {
-      await incrementFailedAttempt(admin, latestOtp)
-      await auditPatientStatusLookup({
-        phoneLast4,
-        locale,
-        success: false,
-        result: 'verification_failed',
-        context: auditContext,
-        supabase: admin,
-      })
-      return finish(errorResponse('verification_failed', locale), {
-        actorType: 'anonymous',
-        errorCode: 'verification_failed',
-      })
+    if (verificationStatus !== 'approved') {
+      return verificationFailed()
     }
 
     const { data: statusRow, error: statusLookupError } = await admin
@@ -285,17 +274,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         actorType: 'anonymous',
         errorCode: 'verification_failed',
       })
-    }
-
-    const consumedAt = new Date().toISOString()
-    const { error: consumeError } = await admin
-      .from('otp_codes')
-      .update({ consumed_at: consumedAt })
-      .eq('id', latestOtp.id)
-      .is('consumed_at', null)
-
-    if (consumeError) {
-      throw consumeError
     }
 
     await auditPatientStatusLookup({

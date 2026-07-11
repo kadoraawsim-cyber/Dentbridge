@@ -86,16 +86,20 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 OPENAI_API_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
-OTP_HASH_SECRET=
 FILE_TICKET_SECRET=
+TWILIO_ACCOUNT_SID=
+TWILIO_API_KEY_SID=
+TWILIO_API_KEY_SECRET=
+TWILIO_VERIFY_SERVICE_SID=
 ```
 
 Notes:
 
 - `OPENAI_API_KEY` is required for the public patient chat route.
 - `SUPABASE_SERVICE_ROLE_KEY` is required for server-side patient, file,
-  profile, case, planner, audit, consent, OTP, and invitation workflows.
-- `OTP_HASH_SECRET` is required for OTP hashing.
+  profile, case, planner, audit, consent, patient-status, and invitation workflows.
+- The four `TWILIO_*` variables are server-only and required for SMS patient-status
+  verification through Twilio Verify.
 - `FILE_TICKET_SECRET` is required for signed file upload tickets.
 
 ## Local Development

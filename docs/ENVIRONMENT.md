@@ -127,27 +127,24 @@ must not silently send preview or staging users to production.
 - Do not expose service-role access through browser code or public static
   files.
 
-## OTP Secrets (Phase 3)
+## Patient Status Verification
 
-Phase 3 introduces secure OTP verification for patient status lookup. The
-`otp_codes` table (`20260708000000_otp_codes.sql`) is the storage layer and
-requires no environment variables on its own.
+Patient status codes are issued and verified exclusively by Twilio Verify. The
+legacy `otp_codes` table may remain in the database during rollout, but the
+application routes do not read from or write to it. DentBridge does not
+generate, hash, store, compare, consume, or log verification codes.
 
-Introduced with the server-side OTP primitives:
+Required server-only configuration:
 
-- `OTP_HASH_SECRET` — server-only secret used to hash (HMAC-SHA256) patient
-  status OTP codes before they are stored. Plaintext codes are never stored or
-  logged. A placeholder is present in `.env.example`. It is consumed by the OTP
-  service and patient status OTP endpoints.
+- `TWILIO_ACCOUNT_SID`
+- `TWILIO_API_KEY_SID`
+- `TWILIO_API_KEY_SECRET`
+- `TWILIO_VERIFY_SERVICE_SID`
 
-Still required before production SMS delivery (not present in `.env.example` yet):
-
-- Server-only SMS provider credentials for delivering OTP codes. Only a
-  dev/mock SMS sender exists so far; no paid provider is integrated.
-
-All of these are server-only secrets. Like `SUPABASE_SERVICE_ROLE_KEY` and
-`OPENAI_API_KEY`, they must never be prefixed with `NEXT_PUBLIC_` and must never
-be exposed to browser code, docs, logs, or client bundles.
+These variables must never be prefixed with `NEXT_PUBLIC_` or exposed to client
+components, browser bundles, logs, screenshots, or public documentation. The
+current release uses Twilio Verify SMS only; it does not require a purchased
+Twilio phone number. WhatsApp is not enabled.
 
 ## File Upload Secrets (Phase 5)
 
@@ -162,8 +159,8 @@ or attach a file id they did not prepare.
 
 Rules:
 
-- It must be a distinct value from `OTP_HASH_SECRET`. The two secrets protect
-  different flows and must not be shared or derived from one another.
+- It must be independent from all other server-side credentials and must not be
+  shared or derived from one of them.
 - It must be configured in both Preview and Production before the Phase 5
   server-mediated upload flow is enabled. Until then the prepare/confirm
   endpoints fail closed with generic errors.

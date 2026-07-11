@@ -291,8 +291,8 @@ audit hooks. Public patient endpoints stay anonymous but same-origin-guarded.
 Anonymous-flow integrity: `prepare-upload` returns a signed HMAC `ticket` binding
 the `fileId` (and an expiry). The patient request submit and `confirm` verify the
 ticket, so a caller cannot claim another session's `fileId` (IDOR defense). The
-ticket uses a new server-only secret (`FILE_TICKET_SECRET`), following the same
-pattern as `OTP_HASH_SECRET`.
+ticket uses a dedicated server-only secret (`FILE_TICKET_SECRET`) that is not
+shared with other integrations.
 
 ---
 
