@@ -333,8 +333,42 @@ export default function PatientRequestPage() {
   function getUploadErrorMessage(code: string | null): string {
     if (code === 'image_too_large') return t('request.errorImageTooLarge')
     if (code === 'image_unreadable') return t('request.errorImageUnreadable')
-    if (code === 'unsupported_image') return t('request.errorUnsupportedClinicalFile')
+    if (code === 'unsupported_image') return t('request.errorUnsupportedImageType')
+    if (code === 'rate_limited') return t('request.errorTooManyAttempts')
+    if (code === 'service_unavailable') return t('request.errorServiceUnavailable')
     return t('request.errorImageProcessing')
+  }
+
+  // Upload tickets are opaque "<expiryEpochSeconds>.<signature>" values (see
+  // src/lib/files/ticket.ts). The expiry prefix is the only part the client
+  // may read; it lets us tell an expired attachment apart from other
+  // validation failures, since the API reports both as 'invalid_request'.
+  function isExpiredUploadTicket(ticket: string): boolean {
+    const separatorIndex = ticket.indexOf('.')
+    if (separatorIndex <= 0) return false
+    const expirySeconds = Number(ticket.slice(0, separatorIndex))
+    return (
+      Number.isInteger(expirySeconds) &&
+      expirySeconds > 0 &&
+      expirySeconds * 1000 <= Date.now()
+    )
+  }
+
+  function getSubmissionErrorMessage(errorCode: string | null): string {
+    if (errorCode === 'rate_limited') return t('request.errorRateLimited')
+    if (errorCode === 'service_unavailable') return t('request.errorServiceUnavailable')
+    if (errorCode === 'conflict') return t('request.errorConflict')
+    if (errorCode === 'unsupported_image') return t('request.errorUnsupportedImageType')
+    if (errorCode === 'image_too_large') return t('request.errorImageTooLarge')
+    if (errorCode === 'image_unreadable') return t('request.errorImageUnreadable')
+    if (errorCode === 'image_processing_failed') return t('request.errorImageProcessing')
+    if (errorCode === 'invalid_request') {
+      if (preparedAttachment && isExpiredUploadTicket(preparedAttachment.fileTicket)) {
+        return t('request.errorAttachmentExpired')
+      }
+      return t('request.errorInvalidRequest')
+    }
+    return t('request.errorGeneric')
   }
 
   async function handleAttachmentChange(file: File | null) {
@@ -544,8 +578,8 @@ export default function PatientRequestPage() {
       },
       guard: submissionGuard,
       locale,
-      onFailure: () => {
-        setErrorMessage(t('request.errorGeneric'))
+      onFailure: (errorCode) => {
+        setErrorMessage(getSubmissionErrorMessage(errorCode))
       },
       onSubmitting: setIsSubmitting,
       onSuccess: () => {

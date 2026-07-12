@@ -102,4 +102,43 @@ describe('patient submission pipeline recovery', () => {
       fileTicket: 'file-ticket',
     })
   })
+
+  it('forwards the backend public error code to onFailure', async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(response(false, { error: 'Too many requests.', code: 'rate_limited' }))
+    const onFailure = vi.fn()
+
+    await expect(runPatientSubmission({
+      attachment: null,
+      dependencies: { fetcher, upload: vi.fn() },
+      guard: { current: false },
+      locale: 'en',
+      onFailure,
+      onSubmitting: vi.fn(),
+      onSuccess: vi.fn(),
+      requestPayload: { submissionId: 'submission-1' },
+    })).resolves.toBe('failed')
+
+    expect(onFailure).toHaveBeenCalledExactlyOnceWith('rate_limited')
+  })
+
+  it('falls back to request_failed when the failure body has no code', async () => {
+    const failing = { ok: false, json: vi.fn().mockRejectedValue(new Error('not json')) }
+    const fetcher = vi.fn().mockResolvedValueOnce(failing)
+    const onFailure = vi.fn()
+
+    await expect(runPatientSubmission({
+      attachment: null,
+      dependencies: { fetcher, upload: vi.fn() },
+      guard: { current: false },
+      locale: 'en',
+      onFailure,
+      onSubmitting: vi.fn(),
+      onSuccess: vi.fn(),
+      requestPayload: { submissionId: 'submission-1' },
+    })).resolves.toBe('failed')
+
+    expect(onFailure).toHaveBeenCalledExactlyOnceWith('request_failed')
+  })
 })

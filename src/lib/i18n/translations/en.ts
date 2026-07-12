@@ -231,6 +231,13 @@ export type TranslationShape = {
     errorImageProcessing: string
     errorImageUnreadable: string
     errorUnsupportedClinicalFile: string
+    errorUnsupportedImageType: string
+    errorAttachmentExpired: string
+    errorRateLimited: string
+    errorTooManyAttempts: string
+    errorServiceUnavailable: string
+    errorConflict: string
+    errorInvalidRequest: string
     errorGeneric: string
     cancel: string
     submit: string
@@ -1016,6 +1023,7 @@ export type TranslationShape = {
       reasonLabel: string
       reasonPlaceholder: string
       reasonRequired: string
+      optionalLabel: string
       deptChangeWarningGeneral: string
       deptChangeWarningAssigned: string
       saveDraft: string
@@ -1734,13 +1742,26 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     errorConsent: 'Please confirm both required consent checkboxes before submitting.',
     errorFileSize: 'File size must be 10 MB or less.',
     errorImageTooLarge:
-      'This image is too large to prepare. Please choose a smaller photo or upload a screenshot.',
+      'The selected image is too large. Please upload an image smaller than 10 MB.',
     errorImageProcessing:
       'We could not prepare this image for faculty view. Please try again or choose another photo.',
     errorImageUnreadable:
       'We could not read this image. Please take a screenshot of it and upload the screenshot.',
     errorUnsupportedClinicalFile:
       'This file needs a separate clinical upload workflow. For this form, please upload a photo or screenshot of the image.',
+    errorUnsupportedImageType:
+      'The selected file is not a supported image. Please upload a JPG or PNG image.',
+    errorAttachmentExpired:
+      'Your uploaded image has expired. Please upload the image again before submitting.',
+    errorRateLimited:
+      'This phone number has reached the maximum number of requests. Please try again in about one hour.',
+    errorTooManyAttempts: 'Too many attempts right now. Please wait a few minutes and try again.',
+    errorServiceUnavailable:
+      'The service is temporarily unavailable. Please try again in a few minutes.',
+    errorConflict:
+      'This request could not be completed because it conflicts with an earlier submission. Please refresh the page and try again.',
+    errorInvalidRequest:
+      'Some of the information provided could not be validated. Please review the form and try again.',
     errorGeneric: 'We could not submit your request right now. Please try again.',
     cancel: 'Cancel',
     submit: 'Submit Treatment Request',
@@ -2561,6 +2582,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       reasonLabel: 'Reason',
       reasonPlaceholder: 'Enter a short reason',
       reasonRequired: 'A short reason is required.',
+      optionalLabel: '(optional)',
       deptChangeWarningGeneral: 'Changing the department will update the case routing.',
       deptChangeWarningAssigned: 'Warning: this case already has a student assigned. Changing the department may affect the active assignment.',
       saveDraft: 'Save Draft',

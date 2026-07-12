@@ -311,13 +311,27 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
     errorConsent: 'Lütfen göndermeden önce iki zorunlu onay kutusunu da işaretleyin.',
     errorFileSize: 'Dosya boyutu 10 MB veya daha az olmalıdır.',
     errorImageTooLarge:
-      'Bu görüntü hazırlanamayacak kadar büyük. Lütfen daha küçük bir fotoğraf seçin veya ekran görüntüsü yükleyin.',
+      'Seçilen görüntü çok büyük. Lütfen 10 MB\'den küçük bir görüntü yükleyin.',
     errorImageProcessing:
       'Bu görüntüyü fakülte görünümü için hazırlayamadık. Lütfen tekrar deneyin veya başka bir fotoğraf seçin.',
     errorImageUnreadable:
       'Bu görüntüyü okuyamadık. Lütfen ekran görüntüsü alıp onu yükleyin.',
     errorUnsupportedClinicalFile:
       'Bu dosya ayrı bir klinik yükleme süreci gerektirir. Bu form için lütfen görüntünün fotoğrafını veya ekran görüntüsünü yükleyin.',
+    errorUnsupportedImageType:
+      'Seçilen dosya desteklenen bir görüntü değil. Lütfen JPG veya PNG formatında bir görüntü yükleyin.',
+    errorAttachmentExpired:
+      'Yüklediğiniz görüntünün süresi doldu. Lütfen göndermeden önce görüntüyü yeniden yükleyin.',
+    errorRateLimited:
+      'Bu telefon numarası en fazla talep sayısına ulaştı. Lütfen yaklaşık bir saat sonra tekrar deneyin.',
+    errorTooManyAttempts:
+      'Şu anda çok fazla deneme yapıldı. Lütfen birkaç dakika bekleyip tekrar deneyin.',
+    errorServiceUnavailable:
+      'Hizmet şu anda geçici olarak kullanılamıyor. Lütfen birkaç dakika sonra tekrar deneyin.',
+    errorConflict:
+      'Bu talep, daha önceki bir gönderimle çakıştığı için tamamlanamadı. Lütfen sayfayı yenileyip tekrar deneyin.',
+    errorInvalidRequest:
+      'Verilen bilgilerden bazıları doğrulanamadı. Lütfen formu kontrol edip tekrar deneyin.',
     errorGeneric: 'Talebiniz şu anda gönderilemedi. Lütfen tekrar deneyin.',
     cancel: 'İptal',
     submit: 'Tedavi Talebi Gönder',
@@ -1412,6 +1426,7 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
       reasonLabel: 'Sebep',
       reasonPlaceholder: 'Kısa bir sebep girin',
       reasonRequired: 'Kısa bir sebep zorunludur.',
+      optionalLabel: '(isteğe bağlı)',
       deptChangeWarningGeneral: 'Bölümü değiştirmek vaka yönlendirmesini günceller.',
       deptChangeWarningAssigned: 'Uyarı: bu vakaya zaten bir öğrenci atanmış. Bölümü değiştirmek aktif atamayı etkileyebilir.',
       saveDraft: 'Taslak Kaydet',

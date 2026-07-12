@@ -195,7 +195,8 @@ export function TriagePanel({
 
         <div className="space-y-2">
           <label className="text-sm font-semibold text-slate-700">
-            {t('admin.detail.clinicalNotesLabel')}
+            {t('admin.detail.clinicalNotesLabel')}{' '}
+            <span className="font-normal text-slate-400">{t('admin.detail.optionalLabel')}</span>
           </label>
           <textarea
             value={clinicalNotes}
@@ -217,7 +218,18 @@ export function TriagePanel({
         {departmentChanged && (
           <div className="space-y-2">
             <label className="text-sm font-semibold text-slate-700">
-              {t('admin.detail.reasonLabel')} *
+              {/* In the triage phase every action (save draft, reject, release
+                  to pool) submits without a reason; only the post-release
+                  "Update Triage" edit enforces one when the department
+                  changed, so the indicator must follow the phase. */}
+              {t('admin.detail.reasonLabel')}{' '}
+              {isTriagePhase ? (
+                <span className="font-normal text-slate-400">
+                  {t('admin.detail.optionalLabel')}
+                </span>
+              ) : (
+                '*'
+              )}
             </label>
             <input
               type="text"

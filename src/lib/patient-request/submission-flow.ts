@@ -38,7 +38,13 @@ export interface RunPatientSubmissionInput<TAttachment extends PatientAttachment
   dependencies: PatientSubmissionDependencies<TAttachment>
   guard: PatientSubmissionGuard
   locale: string
-  onFailure(): void
+  /**
+   * Called with the backend's public error code (e.g. 'rate_limited',
+   * 'service_unavailable') when the final submission responds non-OK, or a
+   * stage marker ('prepare_failed', 'upload_failed', 'confirm_failed',
+   * 'request_failed') / null when no code is available.
+   */
+  onFailure(errorCode: string | null): void
   onSubmitting(value: boolean): void
   onSuccess(): void
   preparedAttachment?: PreparedPatientAttachment | null
@@ -143,13 +149,14 @@ export async function runPatientSubmission<TAttachment extends PatientAttachment
       }),
     })
     if (!response.ok) {
-      throw new Error('request_failed')
+      const body = (await response.json().catch(() => null)) as { code?: unknown } | null
+      throw new Error(typeof body?.code === 'string' && body.code ? body.code : 'request_failed')
     }
 
     input.onSuccess()
     return 'submitted'
-  } catch {
-    input.onFailure()
+  } catch (error) {
+    input.onFailure(error instanceof Error && error.message ? error.message : null)
     return 'failed'
   } finally {
     input.guard.current = false
