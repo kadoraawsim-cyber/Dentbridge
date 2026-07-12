@@ -23,6 +23,10 @@ export type PublicErrorCode =
   | 'invalid_request'
   | 'rate_limited'
   | 'conflict'
+  | 'unsupported_image'
+  | 'image_too_large'
+  | 'image_unreadable'
+  | 'image_processing_failed'
   | 'verification_failed'
   | 'service_unavailable'
   | 'server_error'
@@ -61,6 +65,34 @@ const ERROR_DEFINITIONS: Record<
     messages: {
       en: 'This request conflicts with a completed or in-progress operation. Please refresh and try again.',
       tr: 'Bu istek tamamlanmış veya devam eden bir işlemle çakışıyor. Lütfen sayfayı yenileyip tekrar deneyin.',
+    },
+  },
+  unsupported_image: {
+    status: 400,
+    messages: {
+      en: 'This file needs a separate clinical upload workflow. Please upload a photo or screenshot of the image.',
+      tr: 'Bu dosya ayrı bir klinik yükleme süreci gerektirir. Lütfen görüntünün fotoğrafını veya ekran görüntüsünü yükleyin.',
+    },
+  },
+  image_too_large: {
+    status: 400,
+    messages: {
+      en: 'This image is too large to prepare. Please choose a smaller photo or upload a screenshot.',
+      tr: 'Bu görüntü hazırlanamayacak kadar büyük. Lütfen daha küçük bir fotoğraf seçin veya ekran görüntüsü yükleyin.',
+    },
+  },
+  image_unreadable: {
+    status: 400,
+    messages: {
+      en: 'We could not read this image. Please take a screenshot of it and upload the screenshot.',
+      tr: 'Bu görüntüyü okuyamadık. Lütfen ekran görüntüsü alıp onu yükleyin.',
+    },
+  },
+  image_processing_failed: {
+    status: 400,
+    messages: {
+      en: 'We could not prepare this image for faculty view. Please try again or choose another photo.',
+      tr: 'Bu görüntüyü fakülte görünümü için hazırlayamadık. Lütfen tekrar deneyin veya başka bir fotoğraf seçin.',
     },
   },
   verification_failed: {

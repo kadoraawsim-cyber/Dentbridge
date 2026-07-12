@@ -11,6 +11,7 @@ import { isAllowedSameOriginRequest } from '@/lib/api/same-origin'
 import { createAuditRequestContext } from '@/lib/audit/audit.service'
 import { getServerEnvironment } from '@/lib/env/server'
 import { confirmUpload } from '@/lib/files/files.service'
+import { PATIENT_UPLOAD_POLICY } from '@/lib/files/file.constants'
 import { captureException } from '@/lib/observability/error-monitor'
 import {
   createRequestContext,
@@ -60,8 +61,21 @@ function errorResponse(
 }
 
 function mapServiceError(
-  reason: 'invalid_request' | 'validation_failed' | 'not_found' | 'forbidden' | 'server_error'
+  reason:
+    | 'invalid_request'
+    | 'validation_failed'
+    | 'unsupported_format'
+    | 'image_too_large'
+    | 'image_unreadable'
+    | 'image_processing_failed'
+    | 'not_found'
+    | 'forbidden'
+    | 'server_error'
 ): PublicErrorCode {
+  if (reason === 'unsupported_format') return 'unsupported_image'
+  if (reason === 'image_too_large') return 'image_too_large'
+  if (reason === 'image_unreadable') return 'image_unreadable'
+  if (reason === 'image_processing_failed') return 'image_processing_failed'
   return reason === 'server_error' ? 'server_error' : 'invalid_request'
 }
 
@@ -90,10 +104,8 @@ export async function POST(
   try {
     const { id } = await params
 
-    // Production launch gate: while no approved malware scanner is configured,
-    // no new bytes may enter the quarantine pipeline. Fails closed with the
-    // same response as the prepare endpoint.
-    if (!getServerEnvironment().PATIENT_UPLOADS_ENABLED) {
+    const uploadPolicy = getServerEnvironment().PATIENT_UPLOAD_POLICY
+    if (uploadPolicy !== PATIENT_UPLOAD_POLICY.SANITIZED_IMAGES) {
       return finish(errorResponse('service_unavailable', headerLocale), {
         actorType: 'anonymous',
         errorCode: 'service_unavailable',

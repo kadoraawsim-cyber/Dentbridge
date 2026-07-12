@@ -1,6 +1,10 @@
 import 'server-only'
 
 import { getPublicEnvironment } from './public'
+import {
+  PATIENT_UPLOAD_POLICY,
+  type PatientUploadPolicy,
+} from '@/lib/files/file.constants'
 
 export interface ServerEnvironment {
   APP_URL: string
@@ -8,13 +12,8 @@ export interface ServerEnvironment {
   FILE_TICKET_SECRET: string
   INVITE_REDIRECT_URL: string
   OPENAI_API_KEY: string
-  /**
-   * Production launch gate for the patient attachment pipeline. Until an
-   * approved malware scanner is configured, new uploads stay disabled and the
-   * prepare/confirm endpoints fail closed. Patient request submission is NOT
-   * gated by this flag. Unset means disabled.
-   */
-  PATIENT_UPLOADS_ENABLED: boolean
+  /** Authoritative server-side patient upload policy. Unset means disabled. */
+  PATIENT_UPLOAD_POLICY: PatientUploadPolicy
   RATE_LIMIT_HMAC_SECRET: string
   SUPABASE_SERVICE_ROLE_KEY: string
   TWILIO_ACCOUNT_SID: string
@@ -55,19 +54,21 @@ function optionalUrl(name: string, value: string | undefined): string | undefine
   return normalized ? validUrl(name, normalized) : undefined
 }
 
-/**
- * Strict boolean flag parsing: only 'true' and 'false' are accepted so a typo
- * (e.g. 'ture', '1') cannot silently flip a security-relevant switch. An unset
- * flag resolves to the fail-closed default.
- */
-function optionalBooleanFlag(name: string, value: string | undefined, defaultValue: boolean): boolean {
+function optionalUploadPolicy(value: string | undefined): PatientUploadPolicy {
   const normalized = value?.trim()
   if (!normalized) {
-    return defaultValue
+    return PATIENT_UPLOAD_POLICY.DISABLED
   }
-  if (normalized === 'true') return true
-  if (normalized === 'false') return false
-  throw new Error(`${name} must be 'true' or 'false' when set.`)
+  if (
+    normalized === PATIENT_UPLOAD_POLICY.DISABLED ||
+    normalized === PATIENT_UPLOAD_POLICY.SANITIZED_IMAGES ||
+    normalized === PATIENT_UPLOAD_POLICY.MALWARE_SCANNED
+  ) {
+    return normalized
+  }
+  throw new Error(
+    `PATIENT_UPLOAD_POLICY must be '${PATIENT_UPLOAD_POLICY.DISABLED}', '${PATIENT_UPLOAD_POLICY.SANITIZED_IMAGES}', or '${PATIENT_UPLOAD_POLICY.MALWARE_SCANNED}' when set.`
+  )
 }
 
 export function getServerEnvironment(env: NodeJS.ProcessEnv = process.env): ServerEnvironment {
@@ -81,11 +82,7 @@ export function getServerEnvironment(env: NodeJS.ProcessEnv = process.env): Serv
       required('INVITE_REDIRECT_URL', env.INVITE_REDIRECT_URL)
     ),
     OPENAI_API_KEY: required('OPENAI_API_KEY', env.OPENAI_API_KEY),
-    PATIENT_UPLOADS_ENABLED: optionalBooleanFlag(
-      'PATIENT_UPLOADS_ENABLED',
-      env.PATIENT_UPLOADS_ENABLED,
-      false
-    ),
+    PATIENT_UPLOAD_POLICY: optionalUploadPolicy(env.PATIENT_UPLOAD_POLICY),
     RATE_LIMIT_HMAC_SECRET: required('RATE_LIMIT_HMAC_SECRET', env.RATE_LIMIT_HMAC_SECRET, 32),
     SUPABASE_SERVICE_ROLE_KEY: required('SUPABASE_SERVICE_ROLE_KEY', env.SUPABASE_SERVICE_ROLE_KEY),
     TWILIO_ACCOUNT_SID: required('TWILIO_ACCOUNT_SID', env.TWILIO_ACCOUNT_SID),

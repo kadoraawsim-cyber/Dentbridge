@@ -55,7 +55,16 @@ function errorResponse(
 }
 
 function mapServiceError(
-  reason: 'invalid_request' | 'validation_failed' | 'not_found' | 'forbidden' | 'server_error'
+  reason:
+    | 'invalid_request'
+    | 'validation_failed'
+    | 'unsupported_format'
+    | 'image_too_large'
+    | 'image_unreadable'
+    | 'image_processing_failed'
+    | 'not_found'
+    | 'forbidden'
+    | 'server_error'
 ): PublicErrorCode {
   return reason === 'server_error' ? 'server_error' : 'invalid_request'
 }

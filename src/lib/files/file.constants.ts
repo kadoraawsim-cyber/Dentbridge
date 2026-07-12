@@ -14,11 +14,18 @@ export const PATIENT_UPLOADS_BUCKET = 'patient-uploads'
 /** Lifecycle status of a `patient_files` row. Mirrors the DB CHECK constraint. */
 export const FILE_STATUS = {
   PENDING: 'pending',
+  ORIGINAL_RECEIVED: 'original_received',
+  STRUCTURALLY_VALID: 'structurally_valid',
+  SANITIZING: 'sanitizing',
+  SANITIZED_UNSCANNED: 'sanitized_unscanned',
   UPLOADED: 'uploaded',
   SCANNING: 'scanning',
   CLEAN: 'clean',
   QUARANTINED: 'quarantined',
   REJECTED: 'rejected',
+  SANITIZE_FAILED: 'sanitize_failed',
+  CLEANUP_ELIGIBLE: 'cleanup_eligible',
+  CLEANUP_CLAIMED: 'cleanup_claimed',
   ORPHANED: 'orphaned',
   DELETED: 'deleted',
 } as const
@@ -35,12 +42,33 @@ export const SCAN_STATE = {
 
 const MB = 1024 * 1024
 
-/** Per-type size caps (Phase 5B decision: 10 MB images, 15 MB PDF). */
+/** Per-type size caps. Scannerless production uploads are image-only. */
 export const MAX_IMAGE_BYTES = 10 * MB
 export const MAX_PDF_BYTES = 15 * MB
 
-/** Absolute ceiling enforced regardless of type (matches DB size CHECK). */
+/** Absolute ceiling enforced regardless of type (legacy PDFs may exist). */
 export const HARD_MAX_UPLOAD_BYTES = 15 * MB
+
+/** Scannerless sanitizer limits. Keep these in sync with the DB/docs/tests. */
+export const IMAGE_SANITIZER_VERSION = 'sharp-jpeg-v1'
+export const MAX_SOURCE_IMAGE_BYTES = MAX_IMAGE_BYTES
+export const MAX_IMAGE_WIDTH = 8192
+export const MAX_IMAGE_HEIGHT = 8192
+export const MAX_IMAGE_PIXELS = 40_000_000
+export const MAX_DERIVATIVE_LONG_EDGE = 4096
+export const JPEG_DERIVATIVE_QUALITY = 92
+export const IMAGE_PROCESSING_TIMEOUT_MS = 12_000
+export const DERIVATIVE_MIME = 'image/jpeg'
+export const DERIVATIVE_EXTENSION = 'jpg'
+
+export const PATIENT_UPLOAD_POLICY = {
+  DISABLED: 'disabled',
+  SANITIZED_IMAGES: 'sanitized_images',
+  MALWARE_SCANNED: 'malware_scanned',
+} as const
+
+export type PatientUploadPolicy =
+  (typeof PATIENT_UPLOAD_POLICY)[keyof typeof PATIENT_UPLOAD_POLICY]
 
 export interface AllowedFileType {
   mime: string
@@ -51,11 +79,10 @@ export interface AllowedFileType {
   maxBytes: number
 }
 
-/** The complete allowlist. Adding a type here is the single point of change. */
+/** The production scannerless allowlist. Future formats require Vercel proof. */
 export const ALLOWED_FILE_TYPES: readonly AllowedFileType[] = [
   { mime: 'image/jpeg', extensions: ['jpg', 'jpeg'], canonicalExtension: 'jpg', maxBytes: MAX_IMAGE_BYTES },
   { mime: 'image/png', extensions: ['png'], canonicalExtension: 'png', maxBytes: MAX_IMAGE_BYTES },
-  { mime: 'application/pdf', extensions: ['pdf'], canonicalExtension: 'pdf', maxBytes: MAX_PDF_BYTES },
 ]
 
 export const ALLOWED_EXTENSIONS: readonly string[] = ALLOWED_FILE_TYPES.flatMap(
@@ -103,5 +130,13 @@ export function buildPatientFileObjectPath(
   fileId: string,
   extension: string
 ): string {
-  return `patient-requests/${scopeId}/${fileId}.${extension.toLowerCase()}`
+  return `patient-requests/${scopeId}/original/${fileId}.${extension.toLowerCase()}`
+}
+
+/** Build the opaque, PII-free path for the sanitized JPEG derivative. */
+export function buildPatientFileDerivativeObjectPath(
+  scopeId: string,
+  fileId: string
+): string {
+  return `patient-requests/${scopeId}/sanitized/${fileId}.${DERIVATIVE_EXTENSION}`
 }

@@ -462,21 +462,39 @@ export type Database = {
           confirmed_at: string | null
           created_at: string
           declared_mime: string
+          derivative_checksum_sha256: string | null
+          derivative_mime: string | null
+          derivative_object_path: string | null
+          derivative_size_bytes: number | null
+          derivative_state: string | null
           detected_mime: string | null
           expires_at: string | null
           extension: string
+          height: number | null
           id: string
           ip_address: string | null
           object_path: string
+          original_object_path: string | null
           original_filename: string
           patient_request_id: string | null
+          pixel_count: number | null
+          processing_completed_at: string | null
+          processing_error_code: string | null
+          processing_started_at: string | null
+          rejection_reason: string | null
+          sanitizer_version: string | null
           scan_provider: string | null
           scan_state: string | null
+          security_state: string | null
           scanned_at: string | null
           size_bytes: number | null
+          source_mime: string | null
+          source_size_bytes: number | null
+          source_state: string | null
           status: string
           upload_session_id: string | null
           uploaded_by_actor: string | null
+          width: number | null
         }
         Insert: {
           bucket?: string
@@ -487,21 +505,39 @@ export type Database = {
           confirmed_at?: string | null
           created_at?: string
           declared_mime: string
+          derivative_checksum_sha256?: string | null
+          derivative_mime?: string | null
+          derivative_object_path?: string | null
+          derivative_size_bytes?: number | null
+          derivative_state?: string | null
           detected_mime?: string | null
           expires_at?: string | null
           extension: string
+          height?: number | null
           id?: string
           ip_address?: string | null
           object_path: string
+          original_object_path?: string | null
           original_filename: string
           patient_request_id?: string | null
+          pixel_count?: number | null
+          processing_completed_at?: string | null
+          processing_error_code?: string | null
+          processing_started_at?: string | null
+          rejection_reason?: string | null
+          sanitizer_version?: string | null
           scan_provider?: string | null
           scan_state?: string | null
+          security_state?: string | null
           scanned_at?: string | null
           size_bytes?: number | null
+          source_mime?: string | null
+          source_size_bytes?: number | null
+          source_state?: string | null
           status?: string
           upload_session_id?: string | null
           uploaded_by_actor?: string | null
+          width?: number | null
         }
         Update: {
           bucket?: string
@@ -512,21 +548,39 @@ export type Database = {
           confirmed_at?: string | null
           created_at?: string
           declared_mime?: string
+          derivative_checksum_sha256?: string | null
+          derivative_mime?: string | null
+          derivative_object_path?: string | null
+          derivative_size_bytes?: number | null
+          derivative_state?: string | null
           detected_mime?: string | null
           expires_at?: string | null
           extension?: string
+          height?: number | null
           id?: string
           ip_address?: string | null
           object_path?: string
+          original_object_path?: string | null
           original_filename?: string
           patient_request_id?: string | null
+          pixel_count?: number | null
+          processing_completed_at?: string | null
+          processing_error_code?: string | null
+          processing_started_at?: string | null
+          rejection_reason?: string | null
+          sanitizer_version?: string | null
           scan_provider?: string | null
           scan_state?: string | null
+          security_state?: string | null
           scanned_at?: string | null
           size_bytes?: number | null
+          source_mime?: string | null
+          source_size_bytes?: number | null
+          source_state?: string | null
           status?: string
           upload_session_id?: string | null
           uploaded_by_actor?: string | null
+          width?: number | null
         }
         Relationships: [
           {
@@ -947,10 +1001,15 @@ export type Database = {
       }
       claim_orphan_patient_files: {
         Args: { p_limit?: number }
-        Returns: { file_id: string; object_path: string }[]
+        Returns: {
+          file_id: string
+          original_object_path: string | null
+          derivative_object_path: string | null
+          cleanup_kind: string
+        }[]
       }
       complete_patient_file_cleanup: {
-        Args: { p_file_id: string; p_success: boolean }
+        Args: { p_file_id: string; p_success: boolean; p_cleanup_kind?: string }
         Returns: boolean
       }
       consume_rate_limit: {

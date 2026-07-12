@@ -10,6 +10,7 @@ import { PATIENT_UPLOADS_BUCKET } from './file.constants'
 export interface OrphanCleanupSummary {
   claimed: number
   deleted: number
+  originalsDeleted: number
   retryableFailures: number
 }
 
@@ -43,22 +44,36 @@ export async function cleanupOrphanPatientFiles(
   const summary: OrphanCleanupSummary = {
     claimed: claimed?.length ?? 0,
     deleted: 0,
+    originalsDeleted: 0,
     retryableFailures: 0,
   }
 
   for (const row of claimed ?? []) {
+    const paths = [
+      row.original_object_path,
+      row.derivative_object_path,
+    ].filter((path): path is string => typeof path === 'string' && path.length > 0)
+
     const { error: storageError } = await supabase.storage
       .from(PATIENT_UPLOADS_BUCKET)
-      .remove([row.object_path])
+      .remove(paths)
 
     const success = !storageError
     const { data: finalized, error: finalizeError } = await supabase.rpc(
       'complete_patient_file_cleanup',
-      { p_file_id: row.file_id, p_success: success }
+      {
+        p_file_id: row.file_id,
+        p_success: success,
+        p_cleanup_kind: row.cleanup_kind ?? 'full_row',
+      }
     )
 
     if (success && finalized && !finalizeError) {
-      summary.deleted += 1
+      if (row.cleanup_kind === 'original_only') {
+        summary.originalsDeleted += 1
+      } else {
+        summary.deleted += 1
+      }
       continue
     }
 
