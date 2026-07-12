@@ -70,10 +70,9 @@ CREATE POLICY "student_can_select_own_planner_events"
   FOR SELECT
   TO authenticated
   USING (
-    auth.uid() = student_id
+    auth.uid()::text = student_id
     AND (auth.jwt() -> 'app_metadata' ->> 'role') = 'student'
   );
-
 REVOKE INSERT, UPDATE, DELETE ON TABLE public.student_planner_events FROM anon;
 REVOKE INSERT, UPDATE, DELETE ON TABLE public.student_planner_events FROM authenticated;
 
