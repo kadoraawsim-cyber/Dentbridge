@@ -208,6 +208,11 @@ export type TranslationShape = {
     uploadTitle: string
     uploadSubtitle: string
     uploadSelectedLabel: string
+    uploadPreparing: string
+    uploadReady: string
+    uploadRetry: string
+    uploadRemove: string
+    uploadPreviewAlt: string
     consentInfo: string
     consentLabel: string
     kvkkAcknowledgementBeforeLink: string
@@ -222,6 +227,10 @@ export type TranslationShape = {
     errorRequiredFields: string
     errorConsent: string
     errorFileSize: string
+    errorImageTooLarge: string
+    errorImageProcessing: string
+    errorImageUnreadable: string
+    errorUnsupportedClinicalFile: string
     errorGeneric: string
     cancel: string
     submit: string
@@ -1699,9 +1708,14 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     dayWeekdayMornings: 'Weekday Mornings',
     dayWeekdayAfternoons: 'Weekday Afternoons',
     dayAsSoonAsPossible: 'As Soon As Possible',
-    uploadTitle: 'Click to upload photos, x-rays, or PDF',
-    uploadSubtitle: 'JPG, JPEG, PNG, or PDF up to 10 MB',
+    uploadTitle: 'Click to upload an image',
+    uploadSubtitle: 'Photos, screenshots, or x-ray image files up to 10 MB',
     uploadSelectedLabel: 'Selected file:',
+    uploadPreparing: 'Preparing your image…',
+    uploadReady: 'Image ready. Please check the preview.',
+    uploadRetry: 'Retry',
+    uploadRemove: 'Remove',
+    uploadPreviewAlt: 'Prepared image preview',
     consentInfo:
       'Before submitting, please note that DentiBridge is used for academic clinical coordination only. Submitting a request does not guarantee treatment, appointment, diagnosis, or acceptance. Urgent or emergency dental/medical situations should not be submitted through this form.',
     consentLabel:
@@ -1719,6 +1733,14 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     errorRequiredFields: 'Please complete all required fields.',
     errorConsent: 'Please confirm both required consent checkboxes before submitting.',
     errorFileSize: 'File size must be 10 MB or less.',
+    errorImageTooLarge:
+      'This image is too large to prepare. Please choose a smaller photo or upload a screenshot.',
+    errorImageProcessing:
+      'We could not prepare this image for faculty view. Please try again or choose another photo.',
+    errorImageUnreadable:
+      'We could not read this image. Please take a screenshot of it and upload the screenshot.',
+    errorUnsupportedClinicalFile:
+      'This file needs a separate clinical upload workflow. For this form, please upload a photo or screenshot of the image.',
     errorGeneric: 'We could not submit your request right now. Please try again.',
     cancel: 'Cancel',
     submit: 'Submit Treatment Request',

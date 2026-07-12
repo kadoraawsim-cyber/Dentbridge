@@ -1,14 +1,10 @@
 'use client'
 
 import React, { useMemo, useRef, useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import { useI18n } from '@/lib/i18n'
-import {
-  ALLOWED_EXTENSIONS,
-  HARD_MAX_UPLOAD_BYTES,
-  PATIENT_UPLOADS_BUCKET,
-} from '@/lib/files/file.constants'
+import { HARD_MAX_UPLOAD_BYTES } from '@/lib/files/file.constants'
 import { runPatientSubmission } from '@/lib/patient-request/submission-flow'
+import type { PreparedPatientAttachment } from '@/lib/patient-request/submission-flow'
 import {
   PatientRequestFooter,
   PatientRequestHeader,
@@ -29,17 +25,188 @@ function normalizePhoneNumber(value: string) {
   return value.replace(/[\s().-]/g, '')
 }
 
-const ALLOWED_ATTACHMENT_EXTENSIONS = new Set(ALLOWED_EXTENSIONS)
+const HEIC_EXTENSIONS = new Set(['heic', 'heif'])
+const UNSUPPORTED_CLINICAL_EXTENSIONS = new Set([
+  'pdf',
+  'svg',
+  'dcm',
+  'dicom',
+  'tif',
+  'tiff',
+  'bmp',
+  'gif',
+  'zip',
+  'rar',
+  '7z',
+])
 
-// Launch gate for the attachment pipeline. Must match the server-side
-// PATIENT_UPLOADS_ENABLED flag; the server enforces it regardless of this UI
-// switch, so a stale client can never smuggle an upload through.
+// Public UI mirror only; the server-side PATIENT_UPLOAD_POLICY is authoritative.
 const PATIENT_UPLOADS_ENABLED = process.env.NEXT_PUBLIC_PATIENT_UPLOADS_ENABLED === 'true'
 
-function getAllowedAttachmentExtension(fileName: string) {
-  const extension = fileName.split('.').pop()?.toLowerCase() ?? ''
+function getFileExtension(fileName: string): string {
+  return fileName.split('.').pop()?.toLowerCase() ?? ''
+}
 
-  return ALLOWED_ATTACHMENT_EXTENSIONS.has(extension) ? extension : null
+function getJpegOrPngDeclaration(file: File): { mime: 'image/jpeg' | 'image/png'; extension: 'jpg' | 'png' } | null {
+  const extension = getFileExtension(file.name)
+  if (
+    file.type === 'image/jpeg' ||
+    file.type === 'image/jpg' ||
+    file.type === 'image/pjpeg' ||
+    extension === 'jpg' ||
+    extension === 'jpeg'
+  ) {
+    return { mime: 'image/jpeg', extension: 'jpg' }
+  }
+  if (file.type === 'image/png' || extension === 'png') {
+    return { mime: 'image/png', extension: 'png' }
+  }
+  return null
+}
+
+function ensureDeclaredImageFile(file: File, declaration: { mime: string; extension: string }): File {
+  const extension = getFileExtension(file.name)
+  const extensionMatches =
+    declaration.extension === 'jpg'
+      ? extension === 'jpg' || extension === 'jpeg'
+      : extension === declaration.extension
+  if (file.type === declaration.mime && extensionMatches) {
+    return file
+  }
+
+  const baseName = file.name.replace(/\.[^/.]+$/, '').trim() || 'patient-image'
+  return new File([file], `${baseName}.${declaration.extension}`, {
+    type: declaration.mime,
+    lastModified: file.lastModified,
+  })
+}
+
+function isHeicCandidate(file: File): boolean {
+  const extension = getFileExtension(file.name)
+  return file.type === 'image/heic' || file.type === 'image/heif' || HEIC_EXTENSIONS.has(extension)
+}
+
+function isUnsupportedClinicalFile(file: File): boolean {
+  const extension = getFileExtension(file.name)
+  return (
+    UNSUPPORTED_CLINICAL_EXTENSIONS.has(extension) ||
+    file.type === 'application/pdf' ||
+    file.type === 'image/svg+xml' ||
+    file.type === 'image/gif' ||
+    file.type === 'image/tiff' ||
+    file.type === 'image/bmp' ||
+    file.type === 'application/dicom' ||
+    file.type === 'application/zip'
+  )
+}
+
+async function imageLoads(src: string): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const image = new window.Image()
+    image.onload = () => resolve()
+    image.onerror = () => reject(new Error('preview_failed'))
+    image.src = src
+  })
+}
+
+async function browserNormalizeHeicToJpeg(file: File): Promise<File> {
+  const bitmap = await window.createImageBitmap(file)
+  try {
+    const canvas = document.createElement('canvas')
+    canvas.width = bitmap.width
+    canvas.height = bitmap.height
+    const context = canvas.getContext('2d')
+    if (!context) {
+      throw new Error('canvas_unavailable')
+    }
+    context.drawImage(bitmap, 0, 0)
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, 'image/jpeg', 0.92)
+    })
+    if (!blob || blob.size <= 0) {
+      throw new Error('canvas_conversion_failed')
+    }
+    return new File([blob], 'patient-image.jpg', { type: 'image/jpeg' })
+  } finally {
+    bitmap.close()
+  }
+}
+
+async function normalizeForUpload(file: File): Promise<File> {
+  const declaration = getJpegOrPngDeclaration(file)
+  if (declaration) {
+    return ensureDeclaredImageFile(file, declaration)
+  }
+  if (isHeicCandidate(file)) {
+    try {
+      return await browserNormalizeHeicToJpeg(file)
+    } catch {
+      throw new Error('image_unreadable')
+    }
+  }
+  throw new Error(isUnsupportedClinicalFile(file) ? 'unsupported_format' : 'unsupported_format')
+}
+
+interface ConfirmedUploadResponse {
+  success: true
+  fileId: string
+  status: string
+  previewUrl?: string
+  previewExpiresAt?: string
+  mimeType?: string
+}
+
+interface PreparedUploadResponse {
+  success: true
+  fileId: string
+  uploadUrl: string
+  ticket: string
+}
+
+function isPreparedUploadResponse(value: unknown): value is PreparedUploadResponse {
+  const prepared = value as Partial<PreparedUploadResponse>
+  return (
+    Boolean(value) &&
+    typeof value === 'object' &&
+    prepared.success === true &&
+    typeof prepared.fileId === 'string' &&
+    typeof prepared.uploadUrl === 'string' &&
+    typeof prepared.ticket === 'string'
+  )
+}
+
+async function uploadToSignedUploadUrl(uploadUrl: string, file: File): Promise<void> {
+  const formData = new FormData()
+  formData.append('cacheControl', '3600')
+  formData.append('', file)
+  const response = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: { 'x-upsert': 'false' },
+    body: formData,
+  })
+  if (!response.ok) {
+    throw new Error('upload_failed')
+  }
+}
+
+function isConfirmedUploadResponse(value: unknown): value is ConfirmedUploadResponse {
+  const confirmed = value as Partial<ConfirmedUploadResponse>
+  return (
+    Boolean(value) &&
+    typeof value === 'object' &&
+    confirmed.success === true &&
+    typeof confirmed.fileId === 'string' &&
+    typeof confirmed.status === 'string'
+  )
+}
+
+async function parseErrorCode(response: Response): Promise<string | null> {
+  try {
+    const body = (await response.json()) as { code?: unknown }
+    return typeof body.code === 'string' ? body.code : null
+  } catch {
+    return null
+  }
 }
 
 export default function PatientRequestPage() {
@@ -53,7 +220,6 @@ export default function PatientRequestPage() {
           ageInvalid: 'Lutfen 1 ile 120 arasinda gecerli bir yas girin.',
           phoneRequired: 'Lutfen telefon numaranizi girin.',
           phoneInvalid: 'Lutfen gecerli bir telefon numarasi girin.',
-          fileTypeInvalid: 'Lutfen JPG, PNG veya PDF dosyasi yukleyin.',
         }
       : {
           fullNameRequired: 'Please enter your full name.',
@@ -62,7 +228,6 @@ export default function PatientRequestPage() {
           ageInvalid: 'Please enter a valid age between 1 and 120.',
           phoneRequired: 'Please enter your phone number.',
           phoneInvalid: 'Please enter a valid phone number.',
-          fileTypeInvalid: 'Please upload a JPG, PNG, or PDF file.',
         }
 
   const [fullName, setFullName] = useState('')
@@ -86,6 +251,10 @@ export default function PatientRequestPage() {
   const [kvkkAcknowledgement, setKvkkAcknowledgement] = useState(false)
   const [explicitConsent, setExplicitConsent] = useState(false)
   const [attachment, setAttachment] = useState<File | null>(null)
+  const [attachmentStatus, setAttachmentStatus] = useState<'idle' | 'preparing' | 'ready' | 'failed'>('idle')
+  const [attachmentPreviewUrl, setAttachmentPreviewUrl] = useState<string | null>(null)
+  const [attachmentErrorMessage, setAttachmentErrorMessage] = useState('')
+  const [preparedAttachment, setPreparedAttachment] = useState<PreparedPatientAttachment | null>(null)
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submittedId, setSubmittedId] = useState<string | null>(null)
@@ -93,6 +262,7 @@ export default function PatientRequestPage() {
   const stepSectionRefs = useRef<Array<HTMLElement | null>>([])
   const submissionGuard = useRef(false)
   const submissionId = useRef('')
+  const attachmentRunId = useRef(0)
 
   const requiredFieldChecks = useMemo(
     () => [
@@ -154,6 +324,116 @@ export default function PatientRequestPage() {
     setKvkkAcknowledgement(false)
     setExplicitConsent(false)
     setAttachment(null)
+    setAttachmentStatus('idle')
+    setAttachmentPreviewUrl(null)
+    setAttachmentErrorMessage('')
+    setPreparedAttachment(null)
+  }
+
+  function getUploadErrorMessage(code: string | null): string {
+    if (code === 'image_too_large') return t('request.errorImageTooLarge')
+    if (code === 'image_unreadable') return t('request.errorImageUnreadable')
+    if (code === 'unsupported_image') return t('request.errorUnsupportedClinicalFile')
+    return t('request.errorImageProcessing')
+  }
+
+  async function handleAttachmentChange(file: File | null) {
+    const runId = attachmentRunId.current + 1
+    attachmentRunId.current = runId
+    setAttachment(file)
+    setPreparedAttachment(null)
+    setAttachmentPreviewUrl(null)
+    setAttachmentErrorMessage('')
+
+    if (!file) {
+      setAttachmentStatus('idle')
+      return
+    }
+
+    if (!PATIENT_UPLOADS_ENABLED) {
+      setAttachmentStatus('idle')
+      return
+    }
+
+    if (file.size > HARD_MAX_UPLOAD_BYTES) {
+      setAttachmentStatus('failed')
+      setAttachmentErrorMessage(t('request.errorImageTooLarge'))
+      return
+    }
+
+    setAttachmentStatus('preparing')
+
+    try {
+      const uploadFile = await normalizeForUpload(file)
+      if (attachmentRunId.current !== runId) return
+
+      if (uploadFile.size > HARD_MAX_UPLOAD_BYTES) {
+        throw new Error('image_too_large')
+      }
+
+      const prepareResponse = await fetch('/api/v1/files/prepare-upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: uploadFile.name,
+          mimeType: uploadFile.type,
+          sizeBytes: uploadFile.size,
+          locale,
+        }),
+      })
+      if (!prepareResponse.ok) {
+        throw new Error((await parseErrorCode(prepareResponse)) ?? 'prepare_failed')
+      }
+
+      const preparedValue = await prepareResponse.json()
+      if (!isPreparedUploadResponse(preparedValue)) {
+        throw new Error('prepare_failed')
+      }
+
+      await uploadToSignedUploadUrl(preparedValue.uploadUrl, uploadFile)
+
+      const confirmResponse = await fetch(`/api/v1/files/${preparedValue.fileId}/confirm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ticket: preparedValue.ticket,
+          locale,
+        }),
+      })
+      if (!confirmResponse.ok) {
+        throw new Error((await parseErrorCode(confirmResponse)) ?? 'confirm_failed')
+      }
+
+      const confirmedValue = await confirmResponse.json()
+      if (!isConfirmedUploadResponse(confirmedValue) || !confirmedValue.previewUrl) {
+        throw new Error('preview_failed')
+      }
+
+      await imageLoads(confirmedValue.previewUrl)
+      if (attachmentRunId.current !== runId) return
+
+      setPreparedAttachment({
+        fileId: preparedValue.fileId,
+        fileTicket: preparedValue.ticket,
+      })
+      setAttachmentPreviewUrl(confirmedValue.previewUrl)
+      setAttachmentStatus('ready')
+    } catch (error) {
+      if (attachmentRunId.current !== runId) return
+      const code = error instanceof Error ? error.message : null
+      setPreparedAttachment(null)
+      setAttachmentPreviewUrl(null)
+      setAttachmentStatus('failed')
+      setAttachmentErrorMessage(
+        code === 'image_too_large'
+          ? t('request.errorImageTooLarge')
+          : code === 'unsupported_format'
+            ? t('request.errorUnsupportedClinicalFile')
+            : code === 'image_unreadable'
+              ? t('request.errorImageUnreadable')
+              : getUploadErrorMessage(code)
+      )
+    }
   }
 
   async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
@@ -240,18 +520,9 @@ export default function PatientRequestPage() {
 
     const effectiveAttachment = PATIENT_UPLOADS_ENABLED ? attachment : null
 
-    if (effectiveAttachment && effectiveAttachment.size > HARD_MAX_UPLOAD_BYTES) {
-      setErrorMessage(t('request.errorFileSize'))
+    if (effectiveAttachment && attachmentStatus !== 'ready') {
+      setErrorMessage(attachmentErrorMessage || t('request.uploadPreparing'))
       return
-    }
-
-    if (effectiveAttachment) {
-      const fileExt = getAllowedAttachmentExtension(effectiveAttachment.name)
-
-      if (!fileExt) {
-        setErrorMessage(validationText.fileTypeInvalid)
-        return
-      }
     }
 
     if (!submissionId.current) {
@@ -262,11 +533,13 @@ export default function PatientRequestPage() {
       attachment: effectiveAttachment,
       dependencies: {
         fetcher: (input, init) => fetch(input, init),
-        upload: async ({ attachment: file, objectPath, token }) => {
-          const { error } = await supabase.storage
-            .from(PATIENT_UPLOADS_BUCKET)
-            .uploadToSignedUrl(objectPath, token, file)
-          return { error }
+        upload: async ({ attachment: file, uploadUrl }) => {
+          try {
+            await uploadToSignedUploadUrl(uploadUrl, file as File)
+            return { error: null }
+          } catch (error) {
+            return { error }
+          }
         },
       },
       guard: submissionGuard,
@@ -280,6 +553,7 @@ export default function PatientRequestPage() {
         submissionId.current = ''
         setSubmittedId('submitted')
       },
+      preparedAttachment,
       requestPayload: {
         submissionId: submissionId.current,
         fullName: trimmedFullName,
@@ -376,7 +650,14 @@ export default function PatientRequestPage() {
                 preferredLanguage={preferredLanguage}
                 bestContactTime={bestContactTime}
                 preferredDays={preferredDays}
-                onAttachmentChange={setAttachment}
+                attachmentStatus={attachmentStatus}
+                attachmentPreviewUrl={attachmentPreviewUrl}
+                attachmentErrorMessage={attachmentErrorMessage}
+                onAttachmentChange={handleAttachmentChange}
+                onAttachmentRemove={() => void handleAttachmentChange(null)}
+                onAttachmentRetry={() => {
+                  if (attachment) void handleAttachmentChange(attachment)
+                }}
                 onContactMethodChange={setContactMethod}
                 onPreferredLanguageChange={setPreferredLanguage}
                 onBestContactTimeChange={setBestContactTime}

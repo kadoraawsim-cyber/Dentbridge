@@ -16,17 +16,20 @@ interface SubmissionResponse {
 interface PreparedUpload {
   success: true
   fileId: string
-  objectPath: string
-  token: string
+  uploadUrl: string
   ticket: string
+}
+
+export interface PreparedPatientAttachment {
+  fileId: string
+  fileTicket: string
 }
 
 export interface PatientSubmissionDependencies<TAttachment extends PatientAttachmentLike> {
   fetcher(input: string, init: RequestInit): Promise<SubmissionResponse>
   upload(input: {
     attachment: TAttachment
-    objectPath: string
-    token: string
+    uploadUrl: string
   }): Promise<{ error: unknown | null }>
 }
 
@@ -38,6 +41,7 @@ export interface RunPatientSubmissionInput<TAttachment extends PatientAttachment
   onFailure(): void
   onSubmitting(value: boolean): void
   onSuccess(): void
+  preparedAttachment?: PreparedPatientAttachment | null
   requestPayload: Record<string, unknown>
 }
 
@@ -53,10 +57,8 @@ function isPreparedUpload(value: unknown): value is PreparedUpload {
     prepared.success === true &&
     typeof prepared.fileId === 'string' &&
     Boolean(prepared.fileId) &&
-    typeof prepared.objectPath === 'string' &&
-    Boolean(prepared.objectPath) &&
-    typeof prepared.token === 'string' &&
-    Boolean(prepared.token) &&
+    typeof prepared.uploadUrl === 'string' &&
+    Boolean(prepared.uploadUrl) &&
     typeof prepared.ticket === 'string' &&
     Boolean(prepared.ticket)
   )
@@ -76,7 +78,10 @@ export async function runPatientSubmission<TAttachment extends PatientAttachment
     let fileId: string | null = null
     let fileTicket: string | null = null
 
-    if (input.attachment) {
+    if (input.preparedAttachment) {
+      fileId = input.preparedAttachment.fileId
+      fileTicket = input.preparedAttachment.fileTicket
+    } else if (input.attachment) {
       const prepareResponse = await input.dependencies.fetcher(
         '/api/v1/files/prepare-upload',
         {
@@ -102,8 +107,7 @@ export async function runPatientSubmission<TAttachment extends PatientAttachment
 
       const uploadResult = await input.dependencies.upload({
         attachment: input.attachment,
-        objectPath: preparedValue.objectPath,
-        token: preparedValue.token,
+        uploadUrl: preparedValue.uploadUrl,
       })
       if (uploadResult.error) {
         throw new Error('upload_failed')

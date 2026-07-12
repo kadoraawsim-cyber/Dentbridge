@@ -4,6 +4,17 @@ Status: IMPLEMENTED / PHASE 5 COMPLETE. This document records the Phase 5
 (File Upload Security) architecture, rollout decisions, QA checklist, and
 remaining deferred work.
 
+Update, 12 July 2026: Production patient uploads now use the approved temporary
+scannerless image-sanitization policy. New patient image uploads are private
+quarantined originals, decoded and re-encoded server-side with Sharp/libvips
+into sanitized JPEG derivatives. Only `sanitized_unscanned` derivatives may be
+previewed or served; original uploaded bytes are never signed for faculty,
+students, or admins and are deleted after successful derivative creation. This
+is not malware scanning, and `clean` / `scan_state = clean` remain reserved for
+a future real scanner verdict. See
+`docs/PATIENT_IMAGE_SANITIZATION_PREVIEW_CHECKLIST.md` for the required Vercel
+Preview proof before widening formats beyond JPEG/PNG.
+
 Phase 5 replaces the current browser-direct upload with a server-mediated,
 audited, portability-friendly file pipeline. It is the concrete execution of the
 `Phase 5 - File Upload Security` section of
@@ -16,12 +27,14 @@ Related docs: [DATABASE.md](./DATABASE.md), [ENVIRONMENT.md](./ENVIRONMENT.md).
 
 ## 1. Scope
 
-In scope for Phase 5:
+In scope for the current patient image upload flow:
 
-- Patient intake attachments uploaded from `patient/request` (JPEG, PNG, PDF).
+- Patient intake image attachments uploaded from `patient/request` (JPEG/JPG
+  and PNG for the initial production policy).
 - The private `patient-uploads` Supabase Storage bucket.
 - Admin, faculty, and student read access to those attachments via signed URLs.
-- File metadata, validation, orphan prevention, retention, and audit.
+- File metadata, validation, server-side image sanitization, orphan prevention,
+  retention, and audit.
 
 Out of scope for Phase 5 (tracked elsewhere):
 
@@ -99,11 +112,13 @@ prepare-upload   validate metadata, mint signed upload token,
                  create a `pending` patient_files row, return fileId + ticket
       |
       v
-client PUT       browser uploads bytes directly to Storage using the token
+client PUT       browser uploads original bytes directly to Storage using the token
       |
       v
-confirm          server verifies object exists, checks real size, sniffs magic
-                 bytes, computes checksum, sets status = clean (or rejected)
+confirm          server verifies object exists, downloads within strict bounds,
+                 decodes and re-encodes JPEG/PNG to a metadata-stripped JPEG
+                 derivative, deletes the original after success, and sets
+                 status = sanitized_unscanned (or rejected/failed)
       |
       v
 attach           patient request submit references the confirmed fileId + ticket
@@ -115,15 +130,16 @@ attach           patient request submit references the confirmed fileId + ticket
 | --- | --- | --- | --- |
 | Server proxy (bytes stream through the API) | No: serverless body/bandwidth/time limits, costly at scale | Yes, before storage | Contract-owned but heavy |
 | Bare signed upload URL (no confirm) | Yes | No | Thin adapter |
-| **Prepare/confirm + signed upload URL (chosen)** | Yes: direct to storage | Yes, at confirm via a small Range read | Contract-owned; only URL minting is Supabase-specific |
+| **Prepare/confirm + signed upload URL (chosen)** | Yes: direct to storage | Yes, at confirm via bounded server download and Sharp re-encode | Contract-owned; only URL minting is Supabase-specific |
 
 Rationale:
 
-- At 6000+ users with multi-MB medical images/PDFs, proxying bytes through
+- At 6000+ users with multi-MB medical images, proxying bytes through
   serverless functions is the wrong cost/latency/limit profile. Direct-to-storage
   keeps file bytes off the function.
 - The `confirm` step restores the server control point (existence, real size,
-  checksum, magic-byte sniff on the first bytes) without full-proxy bandwidth.
+  full-byte bounded download, decoder limits, metadata stripping, checksum, and
+  signed derivative creation) without pre-storage proxy bandwidth.
 - The prepare/confirm contract is DentBridge-owned. This honors the roadmap's
   database/storage portability principle: replacing Supabase Storage with S3,
   MinIO, or institution-controlled storage later swaps one adapter, not the API
@@ -140,65 +156,40 @@ Service-role-only, mirroring the access posture of `audit_logs` and
 `consent_records`. This is the DentBridge-owned abstraction that makes storage
 swappable and reads auditable. Implemented shape:
 
-```sql
-CREATE TABLE IF NOT EXISTS public.patient_files (
-  id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  patient_request_id uuid NULL REFERENCES public.patient_requests(id) ON DELETE CASCADE,
-  upload_session_id  uuid NULL,                 -- pre-submit binding for anon flow
-  bucket             text NOT NULL DEFAULT 'patient-uploads',
-  object_path        text NOT NULL UNIQUE,      -- opaque UUID key, no PII
-  original_filename  text NOT NULL,             -- PII lives HERE, not in the key
-  declared_mime      text NOT NULL,
-  detected_mime      text NULL,
-  extension          text NOT NULL,
-  size_bytes         bigint NULL,               -- authoritative value set at confirm
-  checksum_sha256    text NULL,
-  status             text NOT NULL DEFAULT 'pending',
-  scan_state         text NULL,                 -- 'skipped' | 'pending' | 'clean' | 'infected'
-  scan_provider      text NULL,
-  scanned_at         timestamptz NULL,
-  uploaded_by_actor  text NULL,                 -- 'anonymous_patient' | user id
-  ip_address         text NULL,
-  created_at         timestamptz NOT NULL DEFAULT now(),
-  confirmed_at       timestamptz NULL,
-  expires_at         timestamptz NULL,          -- pending TTL for orphan cleanup
-  CONSTRAINT patient_files_status_chk CHECK (status IN (
-    'pending','uploaded','scanning','clean','quarantined','rejected','orphaned','deleted'
-  )),
-  CONSTRAINT patient_files_mime_chk CHECK (declared_mime IN (
-    'image/jpeg','image/png','application/pdf'
-  )),
-  CONSTRAINT patient_files_ext_chk CHECK (extension IN ('jpg','jpeg','png','pdf')),
-  CONSTRAINT patient_files_size_chk CHECK (size_bytes IS NULL OR size_bytes <= 15728640)
-);
+Current fields include:
 
-CREATE INDEX IF NOT EXISTS patient_files_request_idx
-  ON public.patient_files (patient_request_id);
-CREATE INDEX IF NOT EXISTS patient_files_status_idx
-  ON public.patient_files (status);
-CREATE INDEX IF NOT EXISTS patient_files_pending_expiry_idx
-  ON public.patient_files (expires_at) WHERE status = 'pending';
-CREATE INDEX IF NOT EXISTS patient_files_created_at_idx
-  ON public.patient_files (created_at DESC);
+- `object_path` / `original_object_path`: quarantined original upload path.
+- `derivative_object_path`: sanitized JPEG derivative path used for every
+  preview/download.
+- `status`: `pending`, `original_received`, `structurally_valid`,
+  `sanitizing`, `sanitized_unscanned`, `rejected`, `sanitize_failed`,
+  `cleanup_eligible`, `cleanup_claimed`, plus legacy scanner states for future
+  compatibility.
+- `scan_state`: remains `pending` for scannerless derivatives; `clean` is only
+  for a future real scanner verdict.
+- `source_state`, `derivative_state`, `security_state`: distinguish original
+  handling from derivative readiness and avoid representing unscanned files as
+  malware-clean.
+- `source_mime`, `derivative_mime`, source/derivative sizes, dimensions,
+  `pixel_count`, derivative SHA-256, sanitizer version, processing timestamps,
+  and failure/rejection reason fields.
 
-ALTER TABLE public.patient_files ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON TABLE public.patient_files FROM anon;
-REVOKE ALL ON TABLE public.patient_files FROM authenticated;
-```
+The table remains service-role-only with RLS enabled and browser grants revoked.
 
 Transition compatibility: `patient_requests.attachment_path` and
-`attachment_name` are retained and kept in sync with `object_path` /
-`original_filename` at confirm. This keeps the existing admin/faculty/student
-read code and the `attachment_path = name` student RLS policy working during the
-transition. Those columns are marked legacy and must not be removed during
-Phase 6; removal belongs in a later, separately reviewed compatibility cleanup.
+`attachment_name` are retained, but new scannerless submissions write the
+sanitized derivative path and a stable `patient-image.jpg` display name. Those
+columns are marked legacy and must not be removed during Phase 6; removal
+belongs in a later, separately reviewed compatibility cleanup.
 
 ---
 
 ## 5. Storage paths and the PII rule
 
-- Object key: `patient-requests/{request_or_session_uuid}/{file_uuid}` — all
-  UUIDs. No name, no timestamp-name.
+- Original key: `patient-requests/{request_or_session_uuid}/original/{file_uuid}.{ext}`.
+- Derivative key: `patient-requests/{request_or_session_uuid}/sanitized/{file_uuid}.jpg`.
+- All dynamic segments are UUIDs or normalized extensions. No name, no
+  timestamp-name.
 - The original filename is stored only in `patient_files.original_filename`,
   protected by RLS. It never appears in the object key.
 - The extension may be kept on the key for operability, but it is a normalized,
@@ -216,12 +207,13 @@ values are untrusted.
 
 | Check | Where | Notes |
 | --- | --- | --- |
-| Size cap | client (UX) -> prepare (declared) -> confirm (real object size) | Proposed: 10 MB images, 15 MB PDF, hard ceiling 15 MB |
-| Declared MIME allowlist | prepare | `image/jpeg`, `image/png`, `application/pdf` |
-| Extension allowlist | prepare | `jpg`, `jpeg`, `png`, `pdf` |
-| Extension matches MIME | prepare | jpg/jpeg <-> image/jpeg, png <-> image/png, pdf <-> application/pdf |
-| Magic bytes match declared type | confirm | see section 7 |
-| SHA-256 checksum | confirm | integrity, dedup |
+| Size cap | client (UX) -> prepare (declared) -> confirm (real object size) | 10 MB source image cap, hard ceiling enforced before decode |
+| Declared MIME allowlist | prepare | `image/jpeg`, `image/png` |
+| Extension allowlist | prepare | `jpg`, `jpeg`, `png` |
+| Extension matches MIME | prepare | jpg/jpeg <-> image/jpeg, png <-> image/png |
+| Magic bytes match accepted image type | confirm | see section 7 |
+| Decode / dimension / pixel limits | confirm | Sharp/libvips with `limitInputPixels`, width/height/pixel caps, and processing timeout |
+| Derivative SHA-256 checksum | confirm | integrity for the sanitized JPEG derivative |
 
 Filename hygiene: reject path separators, `..`, control characters, and
 over-length names; store the sanitized display name only in the DB row.
@@ -230,53 +222,56 @@ over-length names; store the sanitized display name only in the DB row.
 
 ## 7. Magic-byte validation
 
-The signed-upload-URL model still allows byte inspection because `confirm` reads
-the first bytes server-side (a Range read of the first ~4 KB via a service-minted
-signed URL or the storage API). No full-proxy download is required.
+The signed-upload-URL model still allows byte inspection because `confirm`
+downloads the uploaded object server-side through a short-lived service-minted
+signed URL, bounded by the hard upload cap. The server sniffs the bytes before
+decoder work and then treats the decoder as untrusted input behind strict limits.
 
 Required signatures:
 
 - JPEG: `FF D8 FF`
 - PNG: `89 50 4E 47 0D 0A 1A 0A`
-- PDF: `25 50 44 46 2D` (`%PDF-`)
+- PDF, DICOM, TIFF, BMP, GIF, AVIF, HEIC/HEIF, SVG, ZIP, and other active or
+  unsupported formats are detected where practical so they can be rejected with
+  specific guidance instead of falling through as malformed JPEG/PNG.
 
-If the detected type does not match the declared type, set
-`status = 'rejected'`, delete the storage object, write a `file_rejected` audit
-event, and return a generic error to the caller.
-
-This is recommended to ship in the Phase 5B branch (roadmap 5C) rather than as a
-separate later branch, because it is cheap once `confirm` exists and it removes
-the disguised-content vector.
+If the detected type is not accepted by the current production policy, set
+`status = 'rejected'`, keep the object in a cleanup-eligible state or delete it
+immediately when safe, write a `file_rejected` audit event, and return localized
+patient guidance.
 
 ---
 
-## 8. Malware scanning and quarantine (future)
+## 8. Scannerless sanitization and future malware scanning
 
-Ship the status state machine and quarantine gating now; defer the real scanning
-engine to 5F.
+The temporary production policy does not claim malware scanning. It creates a
+new sanitized JPEG derivative and makes only that derivative viewable.
 
 ```
-pending -> uploaded -> scanning -> clean          (viewable)
-                              \-> quarantined      (never viewable)
-                              \-> rejected         (validation / magic-byte fail)
+pending -> original_received -> structurally_valid -> sanitizing
+        -> sanitized_unscanned                     (derivative viewable)
+        -> rejected                                (unsupported / unsafe input)
+        -> sanitize_failed                         (recoverable processing failure)
 ```
 
-- Nothing renders until `status = 'clean'` AND `scan_state = 'clean'`.
-- Interim mode (as shipped): structurally validated uploads stay `quarantined`
-  with `scan_state = 'pending'`. No code path may mark a file clean without a
-  real scanner verdict — a fake/no-op scanner must never set `clean`. The
-  `unavailableMalwareScanner` adapter returns `unavailable` so everything fails
-  closed.
-- Launch gate: the server-only `PATIENT_UPLOADS_ENABLED` flag (default
-  disabled) gates `prepare-upload`/`confirm` with a generic 503, and
-  `NEXT_PUBLIC_PATIENT_UPLOADS_ENABLED` hides the upload form, so uploads can
-  be turned off without disabling patient request submission. See
+- Nothing renders until `status = 'sanitized_unscanned'`,
+  `security_state = 'sanitized_unscanned'`, `derivative_state = 'ready'`, and a
+  derivative object path is present.
+- `scan_state = 'clean'` and `security_state = 'malware_clean'` remain reserved
+  for a future real scanner verdict. A fake/no-op scanner must never set those
+  states.
+- Launch gate: the server-only `PATIENT_UPLOAD_POLICY` flag (default
+  `disabled`) gates `prepare-upload`/`confirm`; the active temporary value is
+  `sanitized_images`. `NEXT_PUBLIC_PATIENT_UPLOADS_ENABLED` hides the upload
+  form only, so uploads can be turned off without disabling patient request
+  submission. See
   `docs/ENVIRONMENT.md` and `docs/PRODUCTION_RELEASE_GATES_2026-07-11.md`.
 - 5F engine options: a ClamAV worker/container, a scanning API, a background
   job, or a Supabase storage-trigger Edge Function calling
   `POST /api/internal/files/{id}/scan-callback`.
-- Optional hardening (documented, deferrable): server-side image re-encode to
-  strip EXIF/GPS metadata; PDF sanitization.
+- Future scanner mode can promote sanitized derivatives to malware-clean only
+  after a real scanner verdict. PDF/DICOM clinical-document workflows remain
+  separate future work.
 
 ---
 
@@ -288,10 +283,10 @@ audit hooks. Public patient endpoints stay anonymous but same-origin-guarded.
 
 | Endpoint | Purpose | Key guards |
 | --- | --- | --- |
-| `POST /api/v1/files/prepare-upload` | Validate metadata, mint signed upload URL, create `pending` row; return `{ fileId, uploadUrl, objectPath, expiresAt, ticket }` | same-origin, IP rate limit, size/MIME/extension validation; audit `file_upload_prepared` |
-| `POST /api/v1/files/{id}/confirm` | Verify object exists, real size, magic bytes, checksum; set status | same-origin, IP rate limit, ticket check; audit `file_confirmed` / `file_rejected` |
-| `POST /api/v1/files/{id}/signed-url` | Role-checked, audited, short-expiry download/preview URL | auth + role + `status = clean`; audit `file_signed_url_created` |
-| `POST /api/internal/files/cleanup` (deferred) | Cron orphan/retention purge | shared secret |
+| `POST /api/v1/files/prepare-upload` | Validate metadata, mint signed upload URL, create `pending` row; return `{ fileId, uploadUrl, expiresAt, ticket }` without a separate raw object path | same-origin, IP rate limit, size/MIME/extension validation; audit `file_upload_prepared` |
+| `POST /api/v1/files/{id}/confirm` | Verify object exists, decode/re-encode accepted JPEG/PNG, upload sanitized derivative, mark source cleanup/deleted | same-origin, IP rate limit, ticket check; audit `file_confirmed` / `file_rejected` |
+| `POST /api/v1/files/{id}/signed-url` | Role-checked, audited, short-expiry derivative preview/download URL | auth + role + derivative-ready `sanitized_unscanned`; audit `file_signed_url_created` |
+| `POST /api/internal/files/cleanup` | Cron orphan/original/retention purge | shared secret |
 | `POST /api/internal/files/{id}/scan-callback` (deferred, 5F) | Scanner webhook -> status | signature |
 | Modify `POST /api/v1/patient/requests` | Accept a confirmed `fileId` + `ticket` instead of raw `attachmentPath` / `attachmentName`; verify and link | existing guards |
 
@@ -315,20 +310,19 @@ DROP POLICY IF EXISTS "patient_uploads_insert" ON storage.objects;
 REVOKE INSERT ON storage.objects FROM anon;   -- if any residual grant exists
 ```
 
-   With signed upload URLs (`createSignedUploadUrl` server-side ->
-   `uploadToSignedUrl` client-side), the upload token authorizes the single
-   write, so no anon INSERT policy is needed. This removes the last
-   unauthenticated write path.
+   With signed upload URLs (`createSignedUploadUrl` server-side -> direct
+   browser `PUT` to the signed URL), the signed URL authorizes the single write,
+   so no anon INSERT policy is needed. This removes the last unauthenticated
+   write path.
 
-3. Backfill: for existing `patient_requests` rows that have `attachment_path`,
-   insert a legacy `patient_files` row with `status = 'clean'`,
-   `object_path = attachment_path`, `original_filename = attachment_name`. This
-   keeps the `attachment_path = name` student policy valid.
+3. New scannerless migration adds original/derivative object paths, source and
+   derivative states, sanitizer metadata, derivative dimensions/checksum, and
+   fail-closed atomic intake checks for `sanitized_unscanned` derivatives.
 
 Deferred policy work (Phase 6):
 
 - Remove direct client storage SELECT policies once all reads go through the
-  service, and gate signed-URL minting on `status = 'clean'`.
+  service, and gate signed-URL minting on derivative-ready states.
 - Narrow `faculty_can_read_patient_uploads` from "any object" to case-scoped.
 
 Sequencing rule: do not combine the anon-insert revocation with the Phase 6 read
@@ -340,7 +334,9 @@ migration or a large RLS refactor in the same branch or day.
 
 - All signed-URL creation moves into a server-side files service. No more
   client-side `createSignedUrl`.
-- A URL is minted only after a role check and a `status = 'clean'` check.
+- A URL is minted only after a role check and derivative-ready checks:
+  `status = 'sanitized_unscanned'`, `security_state = 'sanitized_unscanned'`,
+  `derivative_state = 'ready'`, and a non-null derivative path.
 - Each mint writes `file_signed_url_created` with safe metadata only: `file_id`,
   `patient_request_id`, `actor_role`, `purpose` (`preview` | `download`),
   `expiry_seconds`. Never the path or filename.
@@ -352,11 +348,12 @@ migration or a large RLS refactor in the same branch or day.
 
 - `prepare` creates a `pending` row with `expires_at`.
 - The object is unusable until `confirm` links it to a persisted request.
-- The patient request submit accepts only a confirmed `fileId` bound by the HMAC
-  ticket; without confirmation the submit either fails or proceeds with no
-  attachment.
-- Any `pending` or `uploaded`-but-unconfirmed file past `expires_at` becomes
-  `orphaned` and is purged by the cleanup job.
+- The patient request submit accepts only a sanitized derivative `fileId` bound
+  by the HMAC ticket; without a ready derivative the submit either fails with an
+  actionable upload message or proceeds with no attachment only when the patient
+  removed the attachment.
+- Any unlinked `pending`, failed, rejected, or cleanup-eligible source object is
+  purged by the cleanup job.
 
 Upload-before-submit orphans become impossible by construction.
 
@@ -366,12 +363,13 @@ Upload-before-submit orphans become impossible by construction.
 
 - Scheduled job (Vercel Cron -> `POST /api/internal/files/cleanup` with a shared
   secret, or pg_cron + Edge Function):
-  - purge `pending` / `orphaned` objects and rows past TTL;
-  - delete the storage object and the metadata row together; audit
-    `file_deleted`.
-- Clinical retention for `clean`, linked files: retain per institutional / KVKK
-  policy; purge a defined period after case closure. This value is a policy
-  decision to capture here before automation is enabled.
+  - purge expired unlinked rows and their original/derivative objects;
+  - purge cleanup-eligible originals left behind after a successful derivative
+    commit;
+  - audit `file_deleted`.
+- Clinical retention for linked sanitized derivatives: retain per institutional
+  / KVKK policy; purge a defined period after case closure. This value is a
+  policy decision to capture here before automation is enabled.
 - The same job pattern should later also purge expired `otp_codes` (separate
   ticket).
 
@@ -385,16 +383,16 @@ defense in depth.
 | Actor | Access |
 | --- | --- |
 | anon / patient | No read. Write only via prepare/confirm token. |
-| student | Signed URL only for `clean` files on cases `approved` to them (post-approval only; no `matched`-pool raw-file access). |
-| faculty | Signed URL for `clean` files (current parity); recommend case-scoping in a follow-up. |
-| admin | Signed URL for any `clean` file; audited. |
+| student | Signed URL only for derivative-ready files on cases `approved` to them (post-approval only; no `matched`-pool raw-file access). |
+| faculty | Signed URL for derivative-ready files only when current-stage authorization allows it. |
+| admin | Signed URL for derivative-ready files; audited. |
 
-Download hardening: force `Content-Disposition`, set an explicit content type,
-and send `X-Content-Type-Options: nosniff` to neutralize active-content (PDF)
-risk.
+Download hardening: force a safe `Content-Disposition`, set explicit
+`image/jpeg`, and send `X-Content-Type-Options: nosniff`. Original uploaded
+bytes are never served to viewers.
 
 Resolved decision (roadmap 5A): students do not get raw-file access before
-approval. The implemented behavior mints signed URLs only for `clean` files on
+approval. The implemented behavior mints signed URLs only for derivative-ready files on
 cases that are `approved` to the requesting student (`canActorReadFile` in
 `src/lib/files/files.service.ts`) — the stricter, minimum-PHI option. Any future
 change to allow pre-approval (`matched` pool) access is a clinical stakeholder
@@ -429,8 +427,10 @@ leak file paths or names. Callers should still reference files by `file_id` only
 
 Happy path:
 
-- [ ] Upload a JPEG, a PNG, and a PDF; confirm succeeds; request submits; admin
-      preview renders; `patient_files.status = 'clean'`.
+- [ ] Upload a JPEG and PNG; confirm succeeds; preview renders before submit;
+      request submits; admin/faculty preview renders from a JPEG derivative;
+      `patient_files.status = 'sanitized_unscanned'` and
+      `scan_state = 'pending'`.
 - [ ] Submit a request with no attachment; still works.
 
 Validation negatives:
@@ -440,6 +440,8 @@ Validation negatives:
 - [ ] MIME/extension mismatch rejected.
 - [ ] Magic-byte mismatch (e.g. a `.png` that is actually a PDF, or a disguised
       binary) rejected and the object deleted.
+- [ ] PDF and DICOM are rejected with clinical-workflow guidance, not accepted
+      as patient image uploads.
 
 Security:
 
@@ -454,8 +456,10 @@ Security:
 
 Orphans and retention:
 
-- [ ] Prepare then abandon (no confirm); cleanup marks the row `orphaned` and
-      purges the object.
+- [ ] Prepare then abandon (no confirm); cleanup claims the row and purges the
+      object.
+- [ ] Derivative success deletes the original, or marks it cleanup-eligible if
+      storage deletion fails.
 
 Reproducibility:
 
@@ -469,9 +473,9 @@ Reproducibility:
 
 - Direct-to-storage signed upload keeps file bytes off serverless functions —
   the primary scalability win over a proxy.
-- `prepare` and `confirm` are small JSON calls; `confirm` reads only the first
-  ~4 KB for magic bytes. Rate-limit both (durable limiter is Phase 12; the
-  current in-memory limiter is per-instance).
+- `prepare` is a small JSON call; `confirm` downloads one bounded object and
+  runs Sharp/libvips under byte, pixel, dimension, and timeout limits.
+  Rate-limit both.
 - Index `patient_files` on `(patient_request_id)`, `(status)`, and a partial
   `(expires_at) WHERE status = 'pending'`.
 - Mint signed URLs on demand only; avoid N+1 minting in admin/queue lists.
@@ -482,16 +486,16 @@ Reproducibility:
 
 ## 18. Implemented now vs deferred
 
-Implemented in Phase 5: sections 4, 5, 6, 7, 9
-(prepare/confirm/signed-url), 10 (create table, revoke anon insert, backfill),
-11, 12, 14 (matrix + hardening), 15 (audit actions), plus the quarantine status
-machine and `clean`-gating from section 8.
+Implemented in Phase 5 and the scannerless update: sections 4, 5, 6, 7, 9
+(prepare/confirm/signed-url), 10, 11, 12, 13 cleanup, 14 (matrix + hardening),
+15 (audit actions), plus the derivative-ready `sanitized_unscanned` gate from
+section 8.
 
 Deferred, with structure in place:
 
 - 5E full `file_viewed` / download audit beyond `file_signed_url_created`.
 - 5F real malware scanning engine and `scan-callback`.
-- Cleanup/retention automation (cron) and the clinical retention value.
+- Clinical retention automation value after case closure.
 - Phase 6: remove client storage SELECT policies after signed URL APIs are
   verified. Case-scoped faculty file authorization and removal of legacy
   `attachment_path` / `attachment_name` remain separate future cleanups.
@@ -550,7 +554,7 @@ Phase 5B (single dedicated branch, e.g. `file-upload-security`):
 10. Modify `POST /api/v1/patient/requests` to accept `fileId` + `ticket`, verify
     and link, and set `attachment_path` / `attachment_name` from `patient_files`.
 11. Rewrite client upload in `src/app/patient/request/page.tsx` to
-    prepare -> `uploadToSignedUrl` -> confirm, sending `fileId` + `ticket`.
+    prepare -> signed URL `PUT` -> confirm, sending `fileId` + `ticket`.
 12. Replace client `createSignedUrl` in
     `src/app/admin/requests/[id]/detail-client.tsx` and
     `src/app/student/cases/cases-client.tsx` (+ its `page.tsx`) with calls to
@@ -610,9 +614,10 @@ SELECT policies; case-scope faculty; drop legacy `attachment_path` /
 1. Student pre-approval raw-file access: RESOLVED — restricted to post-approval
    only. Signed URLs are minted only for cases `approved` to the student; there
    is no `matched`-pool raw-file access.
-2. Size caps: implemented as 10 MB images / 15 MB PDF.
+2. Size caps: implemented as 10 MB source images with strict dimension and
+   pixel caps.
 3. Signed-URL expiries: implemented as preview 120s and download 300s.
 4. Whether to fold 5C/5D into 5B (recommended) or keep them as separate
    follow-up branches.
-5. Clinical retention period for `clean`, linked files (institutional / KVKK
-   input required).
+5. Clinical retention period for linked sanitized derivatives (institutional /
+   KVKK input required).

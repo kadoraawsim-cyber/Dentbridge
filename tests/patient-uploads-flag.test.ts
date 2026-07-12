@@ -55,8 +55,8 @@ function confirmRequest(): NextRequest {
 
 const confirmParams = { params: Promise.resolve({ id: 'file-1' }) }
 
-describe('PATIENT_UPLOADS_ENABLED launch gate', () => {
-  const originalFlag = process.env.PATIENT_UPLOADS_ENABLED
+describe('PATIENT_UPLOAD_POLICY launch gate', () => {
+  const originalPolicy = process.env.PATIENT_UPLOAD_POLICY
 
   beforeEach(() => {
     mocks.checkDurableRateLimit.mockResolvedValue({
@@ -67,27 +67,27 @@ describe('PATIENT_UPLOADS_ENABLED launch gate', () => {
   })
 
   afterEach(() => {
-    if (originalFlag === undefined) {
-      delete process.env.PATIENT_UPLOADS_ENABLED
+    if (originalPolicy === undefined) {
+      delete process.env.PATIENT_UPLOAD_POLICY
     } else {
-      process.env.PATIENT_UPLOADS_ENABLED = originalFlag
+      process.env.PATIENT_UPLOAD_POLICY = originalPolicy
     }
   })
 
-  it('defaults to disabled when the flag is unset', () => {
-    delete process.env.PATIENT_UPLOADS_ENABLED
-    expect(getServerEnvironment().PATIENT_UPLOADS_ENABLED).toBe(false)
+  it('defaults to disabled when the policy is unset', () => {
+    delete process.env.PATIENT_UPLOAD_POLICY
+    expect(getServerEnvironment().PATIENT_UPLOAD_POLICY).toBe('disabled')
   })
 
-  it('rejects any value other than true/false at validation time', () => {
-    process.env.PATIENT_UPLOADS_ENABLED = 'yes'
+  it('rejects unknown policy values at validation time', () => {
+    process.env.PATIENT_UPLOAD_POLICY = 'yes'
     expect(() => getServerEnvironment()).toThrow(
-      "PATIENT_UPLOADS_ENABLED must be 'true' or 'false' when set."
+      "PATIENT_UPLOAD_POLICY must be 'disabled', 'sanitized_images', or 'malware_scanned' when set."
     )
   })
 
   it('fails prepare-upload closed with a generic 503 while disabled', async () => {
-    process.env.PATIENT_UPLOADS_ENABLED = 'false'
+    process.env.PATIENT_UPLOAD_POLICY = 'disabled'
 
     const response = await preparePost(prepareRequest())
 
@@ -98,7 +98,7 @@ describe('PATIENT_UPLOADS_ENABLED launch gate', () => {
   })
 
   it('fails confirm closed with a generic 503 while disabled', async () => {
-    process.env.PATIENT_UPLOADS_ENABLED = 'false'
+    process.env.PATIENT_UPLOAD_POLICY = 'disabled'
 
     const response = await confirmPost(confirmRequest(), confirmParams)
 
@@ -108,15 +108,13 @@ describe('PATIENT_UPLOADS_ENABLED launch gate', () => {
     expect(mocks.confirmUpload).not.toHaveBeenCalled()
   })
 
-  it('lets prepare-upload reach the service when enabled', async () => {
-    process.env.PATIENT_UPLOADS_ENABLED = 'true'
+  it('lets prepare-upload reach the service under sanitized_images', async () => {
+    process.env.PATIENT_UPLOAD_POLICY = 'sanitized_images'
     mocks.prepareUpload.mockResolvedValue({
       ok: true,
       data: {
         fileId: 'file-1',
-        objectPath: 'patient-requests/session/file-1.png',
         uploadUrl: 'https://storage.example/upload',
-        token: 'signed-token',
         expiresAt: new Date(Date.now() + 60_000).toISOString(),
         ticket: '123.abc',
       },
@@ -125,14 +123,18 @@ describe('PATIENT_UPLOADS_ENABLED launch gate', () => {
     const response = await preparePost(prepareRequest())
 
     expect(response.status).toBe(200)
+    const body = (await response.json()) as Record<string, unknown>
+    expect(body.uploadUrl).toBe('https://storage.example/upload')
+    expect(body.objectPath).toBeUndefined()
+    expect(body.token).toBeUndefined()
     expect(mocks.prepareUpload).toHaveBeenCalledTimes(1)
   })
 
-  it('lets confirm reach the service when enabled', async () => {
-    process.env.PATIENT_UPLOADS_ENABLED = 'true'
+  it('lets confirm reach the service under sanitized_images', async () => {
+    process.env.PATIENT_UPLOAD_POLICY = 'sanitized_images'
     mocks.confirmUpload.mockResolvedValue({
       ok: true,
-      data: { fileId: 'file-1', status: 'quarantined' },
+      data: { fileId: 'file-1', status: 'sanitized_unscanned' },
     })
 
     const response = await confirmPost(confirmRequest(), confirmParams)
@@ -141,11 +143,11 @@ describe('PATIENT_UPLOADS_ENABLED launch gate', () => {
     expect(mocks.confirmUpload).toHaveBeenCalledTimes(1)
   })
 
-  it('keeps patient request submission independent of the upload flag', async () => {
-    // The requests route module must not import the upload gate; disabling
-    // uploads must never disable patient intake.
+  it('keeps patient request submission independent of the upload policy', async () => {
+    // The requests route module must not import the upload policy; disabling
+    // uploads must never disable patient intake when no image is selected.
     const { readFileSync } = await import('node:fs')
     const source = readFileSync('src/app/api/v1/patient/requests/route.ts', 'utf8')
-    expect(source).not.toContain('PATIENT_UPLOADS_ENABLED')
+    expect(source).not.toContain('PATIENT_UPLOAD_POLICY')
   })
 })

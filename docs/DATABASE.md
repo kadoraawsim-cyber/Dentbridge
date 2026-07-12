@@ -152,10 +152,19 @@ and other identifying metadata live here, protected by RLS, never in the key.
   file is attached to a submitted request).
 - `object_path` is a unique, opaque UUID storage key. No patient name, phone, or
   free text is ever placed in the key.
-- Tracks `status` (`pending`, `uploaded`, `scanning`, `clean`, `quarantined`,
-  `rejected`, `orphaned`, `deleted`), `scan_state`, `declared_mime` /
+- Tracks `status` (`pending`, `original_received`, `structurally_valid`,
+  `sanitizing`, `sanitized_unscanned`, `uploaded`, `scanning`, `clean`,
+  `quarantined`, `rejected`, `sanitize_failed`, `cleanup_eligible`,
+  `cleanup_claimed`, `orphaned`, `deleted`), `scan_state`, `declared_mime` /
   `detected_mime`, `extension`, `size_bytes`, `checksum_sha256`, and
   `expires_at` for pending-upload orphan cleanup.
+- Scannerless image sanitization adds separate original/derivative fields:
+  `original_object_path`, `derivative_object_path`, `source_state`,
+  `derivative_state`, `security_state`, `sanitizer_version`, source and
+  derivative MIME/size/checksum/dimension metadata, and processing failure
+  fields. The production scannerless viewable state is
+  `sanitized_unscanned`; it is not malware-clean and must not set
+  `scan_state = clean`.
 - Access model: service-role/server only. RLS is enabled with no anon or
   authenticated policies; all file access goes through the DentBridge files
   service/API.

@@ -27,20 +27,33 @@ interface FileRowOverrides {
   status?: string
   scan_state?: string | null
   patient_request_id?: string | null
+  derivative_object_path?: string | null
+  derivative_state?: string | null
+  security_state?: string | null
 }
 
 function fileRow(overrides: FileRowOverrides = {}) {
   return {
     id: 'file-1',
-    object_path: 'patient-requests/session/file-1.png',
+    object_path: 'patient-requests/session/original/file-1.png',
+    original_object_path: null,
+    derivative_object_path:
+      overrides.derivative_object_path === undefined
+        ? 'patient-requests/session/sanitized/file-1.jpg'
+        : overrides.derivative_object_path,
     original_filename: 'xray.png',
     declared_mime: 'image/png',
     detected_mime: 'image/png',
     extension: 'png',
-    status: overrides.status ?? 'clean',
-    scan_state: overrides.scan_state === undefined ? 'clean' : overrides.scan_state,
+    status: overrides.status ?? 'sanitized_unscanned',
+    scan_state: overrides.scan_state === undefined ? 'pending' : overrides.scan_state,
+    source_state: 'deleted',
+    derivative_state: overrides.derivative_state === undefined ? 'ready' : overrides.derivative_state,
+    security_state:
+      overrides.security_state === undefined ? 'sanitized_unscanned' : overrides.security_state,
     patient_request_id:
       overrides.patient_request_id === undefined ? 'case-1' : overrides.patient_request_id,
+    upload_session_id: 'session',
   }
 }
 
@@ -110,7 +123,7 @@ describe('createPatientFileSignedUrl — fail-closed quarantine gate', () => {
 
   it('never mints a URL when status is clean but scan_state is not clean', async () => {
     const { supabase, createSignedUrl } = makeSupabase({
-      patient_files: [{ data: fileRow({ scan_state: 'pending' }), error: null }],
+      patient_files: [{ data: fileRow({ status: 'clean', scan_state: 'pending' }), error: null }],
     })
 
     const result = await createPatientFileSignedUrl({
@@ -126,7 +139,7 @@ describe('createPatientFileSignedUrl — fail-closed quarantine gate', () => {
     expect(createSignedUrl).not.toHaveBeenCalled()
   })
 
-  it('never mints a URL for an unlinked file even when fully clean', async () => {
+  it('never mints a URL for an unlinked file even when derivative-ready', async () => {
     const { supabase, createSignedUrl } = makeSupabase({
       patient_files: [{ data: fileRow({ patient_request_id: null }), error: null }],
     })
@@ -164,7 +177,7 @@ describe('createPatientFileSignedUrl — fail-closed quarantine gate', () => {
     expect(mocks.auditFileSignedUrlCreated).not.toHaveBeenCalled()
   })
 
-  it('mints and audits a URL for faculty on a clean, scanned, linked file', async () => {
+  it('mints and audits a URL for faculty on a sanitized, unscanned derivative', async () => {
     const { supabase, createSignedUrl } = makeSupabase({
       patient_files: [{ data: fileRow(), error: null }],
     })
@@ -182,7 +195,7 @@ describe('createPatientFileSignedUrl — fail-closed quarantine gate', () => {
     expect(result.ok).toBe(true)
     if (result.ok) {
       expect(result.data.signedUrl).toBe('https://storage.example/signed')
-      expect(result.data.fileName).toBe('xray.png')
+      expect(result.data.fileName).toBe('patient-image.jpg')
     }
     expect(createSignedUrl).toHaveBeenCalledTimes(1)
     expect(mocks.auditFileSignedUrlCreated).toHaveBeenCalledTimes(1)

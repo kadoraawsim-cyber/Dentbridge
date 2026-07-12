@@ -2,7 +2,7 @@
 
 import type { RefCallback } from 'react'
 import Link from 'next/link'
-import { Info, UploadCloud } from 'lucide-react'
+import { Info, RotateCcw, Trash2, UploadCloud } from 'lucide-react'
 
 import { useI18n } from '@/lib/i18n'
 
@@ -447,11 +447,16 @@ interface SupportSectionProps {
   sectionRef: RefCallback<HTMLElement>
   attachment: File | null
   attachmentEnabled: boolean
+  attachmentStatus: 'idle' | 'preparing' | 'ready' | 'failed'
+  attachmentPreviewUrl: string | null
+  attachmentErrorMessage: string
   contactMethod: string
   preferredLanguage: string
   bestContactTime: string
   preferredDays: string
-  onAttachmentChange: (file: File | null) => void
+  onAttachmentChange: (file: File | null) => void | Promise<void>
+  onAttachmentRemove: () => void
+  onAttachmentRetry: () => void
   onContactMethodChange: (value: string) => void
   onPreferredLanguageChange: (value: string) => void
   onBestContactTimeChange: (value: string) => void
@@ -462,11 +467,16 @@ export function SupportSection({
   sectionRef,
   attachment,
   attachmentEnabled,
+  attachmentStatus,
+  attachmentPreviewUrl,
+  attachmentErrorMessage,
   contactMethod,
   preferredLanguage,
   bestContactTime,
   preferredDays,
   onAttachmentChange,
+  onAttachmentRemove,
+  onAttachmentRetry,
   onContactMethodChange,
   onPreferredLanguageChange,
   onBestContactTimeChange,
@@ -506,19 +516,71 @@ export function SupportSection({
 
               <input
                 type="file"
-                accept=".jpg,.jpeg,.png,.pdf"
+                accept="image/*,.heic,.heif"
                 className="hidden"
                 onChange={(e) => {
                   const file = e.target.files?.[0] || null
-                  onAttachmentChange(file)
+                  void onAttachmentChange(file)
+                  e.currentTarget.value = ''
                 }}
               />
             </label>
 
             {attachment && (
-              <div className="mt-4 rounded-xl border border-slate-200 bg-white px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-700">
-                {t('request.uploadSelectedLabel')}{' '}
-                <span className="font-medium truncate block sm:inline mt-1 sm:mt-0">{attachment.name}</span>
+              <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-700 sm:p-4 sm:text-sm">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="min-w-0">
+                    {t('request.uploadSelectedLabel')}{' '}
+                    <span className="font-medium truncate block sm:inline mt-1 sm:mt-0">{attachment.name}</span>
+                  </p>
+                  <div className="flex items-center gap-2">
+                    {attachmentStatus === 'failed' && (
+                      <button
+                        type="button"
+                        onClick={onAttachmentRetry}
+                        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                        {t('request.uploadRetry')}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={onAttachmentRemove}
+                      className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      {t('request.uploadRemove')}
+                    </button>
+                  </div>
+                </div>
+
+                {attachmentStatus === 'preparing' && (
+                  <div className="mt-3 flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-slate-600">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-teal-600" />
+                    {t('request.uploadPreparing')}
+                  </div>
+                )}
+
+                {attachmentStatus === 'ready' && attachmentPreviewUrl && (
+                  <div className="mt-3 overflow-hidden rounded-lg border border-emerald-100 bg-emerald-50">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- Patient preview uses a short-lived signed URL returned by the sanitizer confirmation step. */}
+                    <img
+                      src={attachmentPreviewUrl}
+                      alt={t('request.uploadPreviewAlt')}
+                      className="max-h-72 w-full object-contain bg-white"
+                    />
+                    <p className="px-3 py-2 text-xs font-semibold text-emerald-800">
+                      {t('request.uploadReady')}
+                    </p>
+                  </div>
+                )}
+
+                {attachmentStatus === 'failed' && attachmentErrorMessage && (
+                  <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
+                    {attachmentErrorMessage}
+                  </div>
+                )}
               </div>
             )}
           </div>

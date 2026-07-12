@@ -12,23 +12,26 @@
 - Rollback must disable the cron before reverting application code. Deleted orphan bytes are not
   restored; linked clinical files are outside cleanup eligibility.
 
-## Malware scanning — production blocker
+## Patient image uploads — scannerless temporary policy
 
-DentBridge currently performs size, extension, MIME magic-byte, and SHA-256 structural validation.
-That is not malware scanning. New valid JPG/JPEG, PNG, and PDF uploads remain `quarantined` with
-`scan_state = pending`. Signed preview/download URLs require both `status = clean` and
-`scan_state = clean`, so quarantined files fail closed.
+DentBridge now uses a temporary scannerless image policy for patient uploads. This is not malware
+scanning and must never be described as malware-clean. The accepted production state is
+`sanitized_unscanned`.
 
-Launch policy: patient uploads ship DISABLED. The server-only `PATIENT_UPLOADS_ENABLED` flag
-(default `false`) gates the `prepare-upload` and `confirm` endpoints with a generic 503, and
-`NEXT_PUBLIC_PATIENT_UPLOADS_ENABLED` hides the upload form. Patient request submission is not
-affected by either flag. See `docs/ENVIRONMENT.md`.
+The active architecture is: private quarantined original upload -> strict server-side Sharp/libvips
+decode and JPEG re-encode -> sanitized derivative -> delete the original after durable derivative
+metadata -> serve only the derivative through short-lived signed URLs.
 
-Production file access must remain gated until Waseem selects a scanner, completes privacy and
-data-processing review, configures credentials, implements the `MalwareScanner` adapter, and
-validates clean/infected/unavailable callbacks in Preview. Only then may both flags be set to
-`true`. Do not send patient files to a third party before those approvals. Twilio Verify is
-unrelated to file scanning.
+Authoritative server policy is `PATIENT_UPLOAD_POLICY`:
+
+- `disabled`: all upload prepare/confirm requests fail closed.
+- `sanitized_images`: JPEG/PNG are accepted for sanitizer processing; derivatives are viewable as
+  `sanitized_unscanned`.
+- `malware_scanned`: reserved for a future real scanner integration.
+
+The public `NEXT_PUBLIC_PATIENT_UPLOADS_ENABLED` flag only hides or shows the upload UI. Patient
+request submission is not affected when no image is selected. Do not send patient files to a third
+party before privacy/data-processing approval.
 
 ## Required server-only configuration
 
@@ -37,7 +40,7 @@ unrelated to file scanning.
 - `FILE_TICKET_SECRET`
 - `INVITE_REDIRECT_URL`
 - `OPENAI_API_KEY`
-- `PATIENT_UPLOADS_ENABLED` (`false` at launch; see malware scanning gate)
+- `PATIENT_UPLOAD_POLICY` (`disabled`, `sanitized_images`, or `malware_scanned`)
 - `RATE_LIMIT_HMAC_SECRET`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `TWILIO_ACCOUNT_SID`
@@ -48,7 +51,7 @@ unrelated to file scanning.
 Public configuration:
 
 - `NEXT_PUBLIC_PASSWORD_RESET_REDIRECT_URL`
-- `NEXT_PUBLIC_PATIENT_UPLOADS_ENABLED` (`false` at launch; mirrors the server flag)
+- `NEXT_PUBLIC_PATIENT_UPLOADS_ENABLED` (UI mirror; `true` only when the server policy is enabled)
 - `NEXT_PUBLIC_SITE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `NEXT_PUBLIC_SUPABASE_URL`

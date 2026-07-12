@@ -169,22 +169,24 @@ Rules:
 
 ## Patient Upload Launch Gate
 
-Patient uploads are additionally gated behind an explicit launch flag because
-malware scanning is not yet configured (see
+Patient uploads are controlled by an explicit server-side policy (see
 `docs/PRODUCTION_RELEASE_GATES_2026-07-11.md`).
 
-- `PATIENT_UPLOADS_ENABLED` — server-only flag. Unset or `false` disables the
-  `prepare-upload` and `confirm` endpoints (they return a generic 503) while
-  patient request submission continues to work without attachments. Only
-  `true`/`false` are accepted when set; any other value fails environment
-  validation at startup.
-- `NEXT_PUBLIC_PATIENT_UPLOADS_ENABLED` — browser flag that hides the upload
-  form on `/patient/request`. It is a UI convenience only; the server flag is
-  the enforcement point. Keep both flags in the same state per environment.
+- `PATIENT_UPLOAD_POLICY` — server-only policy. Valid values are `disabled`,
+  `sanitized_images`, and `malware_scanned`. Unset means `disabled`; any unknown
+  value fails environment validation at startup. `sanitized_images` enables the
+  accepted temporary scannerless workflow: private original upload, server-side
+  Sharp/libvips JPEG sanitization, original deletion, and derivative-only
+  viewing as `sanitized_unscanned`. `malware_scanned` is reserved for a future
+  real scanner integration.
+- `NEXT_PUBLIC_PATIENT_UPLOADS_ENABLED` — browser flag that hides or shows the
+  upload form on `/patient/request`. It is a UI convenience only; the server
+  policy is the enforcement point.
 
-Keep both flags `false` in Production until a malware scanner is selected,
-privacy/data-processing review is complete, the `MalwareScanner` adapter is
-implemented, and clean/infected/unavailable verdicts are validated in Preview.
+Production should use `PATIENT_UPLOAD_POLICY=sanitized_images` only after the
+Preview fixture checklist proves the enabled codecs in the Vercel runtime.
+Additional formats such as WebP, HEIC/HEIF, and AVIF must not be advertised as
+supported until that proof exists.
 
 ## Phase 6 API Mutation Boundary
 

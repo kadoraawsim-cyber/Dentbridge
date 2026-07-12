@@ -29,14 +29,20 @@ function tableBuilder(single: SingleResult) {
 
 const CLEAN_FILE_ROW = {
   id: 'file-1',
-  object_path: 'patient-requests/sess/file-1.pdf',
-  original_filename: 'xray.pdf',
-  declared_mime: 'application/pdf',
-  detected_mime: 'application/pdf',
-  extension: 'pdf',
-  status: 'clean',
-  scan_state: 'clean',
+  object_path: 'patient-requests/sess/original/file-1.png',
+  original_object_path: null,
+  derivative_object_path: 'patient-requests/sess/sanitized/file-1.jpg',
+  original_filename: 'xray.png',
+  declared_mime: 'image/png',
+  detected_mime: 'image/png',
+  extension: 'png',
+  status: 'sanitized_unscanned',
+  scan_state: 'pending',
+  source_state: 'deleted',
+  derivative_state: 'ready',
+  security_state: 'sanitized_unscanned',
   patient_request_id: 'case-1',
+  upload_session_id: 'sess',
 }
 
 function makeSupabase(results: Record<string, SingleResult>, signedUrl = 'https://signed.example/x'): SupabaseAdminClient {

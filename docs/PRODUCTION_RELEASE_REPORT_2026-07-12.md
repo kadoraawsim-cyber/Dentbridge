@@ -4,6 +4,12 @@ Release branch: `release/final-production-2026-07-11`
 Release engineer sign-off basis: local validation on Node 22.17.0 (pinned line), macOS x64.
 Baseline: Codex handoff checkpoint `829d8d2` (tag `codex-handoff-2026-07-11`), preserved untouched.
 
+Scannerless upload update note: this report records the pre-sanitization release
+evidence. The active patient-upload launch gate is now
+`PATIENT_UPLOAD_POLICY` (`disabled`, `sanitized_images`, future
+`malware_scanned`) plus the browser-only
+`NEXT_PUBLIC_PATIENT_UPLOADS_ENABLED` UI mirror.
+
 ---
 
 ## 1. Verdict: CONDITIONAL GO
@@ -13,7 +19,7 @@ release-ready. The conditions are operational, not code defects:
 
 | # | Condition | Why it blocks an unconditional GO |
 |---|-----------|-----------------------------------|
-| C1 | Patient uploads must launch DISABLED (`PATIENT_UPLOADS_ENABLED=false`, `NEXT_PUBLIC_PATIENT_UPLOADS_ENABLED=false`) | No malware scanner is configured. The pipeline fails closed and the flag gates it, but the feature must not be enabled until the scanner gate in `docs/PRODUCTION_RELEASE_GATES_2026-07-11.md` is satisfied. |
+| C1 | Patient uploads must launch only under the documented policy (`PATIENT_UPLOAD_POLICY=disabled` or, after Preview proof, `sanitized_images`; `NEXT_PUBLIC_PATIENT_UPLOADS_ENABLED` mirrors UI only) | No malware scanner is configured. Scannerless launch depends on server-side image sanitization, derivative-only viewing, and the Preview proof in `docs/PATIENT_IMAGE_SANITIZATION_PREVIEW_CHECKLIST.md`. |
 | C2 | The 44-file migration chain has been validated only against an isolated Postgres 17 instance | It has NOT been applied to production. Apply to Preview first, run the QA script there, then apply to production during the deployment window. |
 | C3 | External integrations (Supabase, Vercel, Twilio, Sentry, backups, cron) are unverified from this environment | No production service was contacted during this phase, by instruction. Complete §8 manual verification before deploy. |
 | C4 | No Preview-environment end-to-end QA has run for this release candidate | Run §9 QA script in Preview with real Supabase + Twilio test credentials before promoting. |
@@ -137,7 +143,7 @@ the Preview QA script (§9).
 
 **Vercel**
 1. Project → Settings → Node.js version = 22.x for Production AND Preview.
-2. Environment variables: every name in `docs/PRODUCTION_RELEASE_GATES_2026-07-11.md` §"Required server-only configuration" present in the right scopes; `PATIENT_UPLOADS_ENABLED=false` and `NEXT_PUBLIC_PATIENT_UPLOADS_ENABLED=false` in Production.
+2. Environment variables: every name in `docs/PRODUCTION_RELEASE_GATES_2026-07-11.md` §"Required server-only configuration" present in the right scopes; use `PATIENT_UPLOAD_POLICY=disabled` until Preview proof passes, then `sanitized_images` with `NEXT_PUBLIC_PATIENT_UPLOADS_ENABLED=true` for the UI.
 3. Cron: `vercel.json` schedule (`17 * * * *` → `/api/internal/files/cleanup`) appears under Project → Cron Jobs after deploy; Vercel sends `Authorization: Bearer $CRON_SECRET` — confirm `CRON_SECRET` is set in Production.
 4. Domains: production domain attached; `dentbridge.com` redirect host rule resolves.
 
@@ -157,11 +163,11 @@ the Preview QA script (§9).
 2. Perform one restore drill to a scratch project BEFORE launch; record duration.
 3. Storage: confirm `patient-uploads` objects are included in the disaster-recovery story (Supabase Storage is not covered by Postgres PITR — document an object-storage replication/export policy or accept and record the risk).
 
-**Malware scanner (pre-condition for ever enabling uploads)**
+**Malware scanner (future upgrade beyond scannerless sanitization)**
 1. Select vendor; complete privacy/data-processing agreement (patient files leave Supabase only after this).
 2. Implement the `MalwareScanner` adapter; wire quarantine → scan → clean/infected transitions.
 3. In Preview: validate clean, infected (EICAR), and scanner-unavailable paths; confirm unavailable keeps files quarantined.
-4. Only then flip both upload flags in Production.
+4. Only then switch from `sanitized_images` to a future `malware_scanned` policy.
 
 **Cron**
 1. After first production deploy, watch one execution of `/api/internal/files/cleanup` in Vercel logs: expect 200 with `{claimed, deleted, retryableFailures}`.
@@ -189,7 +195,7 @@ the Preview QA script (§9).
 3. Take a fresh Supabase production backup snapshot (and note PITR point).
 4. Apply the migration chain to production (Supabase CLI `supabase db push` or SQL editor, in filename order). Migrations are additive/forward-only; no destructive statements.
 5. Immediately run post-migration checks: RPC grants (§8 Supabase #3), RLS flags, one `consume_rate_limit` smoke call as service role.
-6. Promote/deploy the release SHA to Vercel Production (`PATIENT_UPLOADS_ENABLED=false`).
+6. Promote/deploy the release SHA to Vercel Production (`PATIENT_UPLOAD_POLICY=disabled` until Preview proof, then `sanitized_images`).
 7. Production smoke (10 min): `/api/health` 200; `/api/readiness` 200 `ready`; public pages render; unauthenticated portal redirects; one real patient intake with a test phone + OTP lookup; admin login + queue loads.
 8. Watch the first cron run (next `HH:17`) and Sentry for 1 hour.
 9. Announce launch; keep the rollback window staffed for 24h.
@@ -201,8 +207,9 @@ the Preview QA script (§9).
   version does not call the new RPCs.
 - **Cron:** if cleanup misbehaves, disable the cron job in Vercel first; quarantined rows
   simply persist (fail-safe direction).
-- **Uploads:** if anything is wrong with the upload pipeline after a future enablement,
-  set `PATIENT_UPLOADS_ENABLED=false` (env change + redeploy) — intake keeps working.
+- **Uploads:** if anything is wrong with the upload pipeline after enablement,
+  set `PATIENT_UPLOAD_POLICY=disabled` and `NEXT_PUBLIC_PATIENT_UPLOADS_ENABLED=false`
+  (env change + redeploy) — intake keeps working.
 - **Database:** do NOT roll back migrations ad hoc. For catastrophic schema issues,
   restore the pre-deploy snapshot/PITR point taken in step 10.3 and accept the recorded
   data-loss window; otherwise fix forward with a new migration.
@@ -222,8 +229,8 @@ scope, and is now the durable register for future audits.
 | F-03 | Upload replay/IDOR protection (HMAC ticket bound to fileId + expiry, constant-time verify) | PASS | ticket tests + new intake pairing tests |
 | F-04 | Orphan cleanup: atomic claim (`FOR UPDATE SKIP LOCKED`), retry on storage failure, crash reclaim | PASS | claim/finalize RPCs; orphan-cleanup tests |
 | F-05 | Quarantine fail-closed: signed URLs require `status=clean` AND `scan_state=clean` AND linked | PASS | new fail-closed signed-URL tests + source-guard test |
-| F-06 | Malware scanning operational | **CONDITIONAL** | adapter fails closed (`unavailable`); real scanner deferred behind C1 |
-| F-07 | Uploads disableable without disabling intake (`PATIENT_UPLOADS_ENABLED`) | PASS | flag tests incl. intake-independence guard; smoke 503 + hidden UI |
+| F-06 | Malware scanning operational | **CONDITIONAL** | real scanner remains a future upgrade; scannerless mode must stay honest as `sanitized_unscanned` |
+| F-07 | Uploads disableable without disabling intake (`PATIENT_UPLOAD_POLICY`) | PASS | flag tests incl. intake-independence guard; smoke 503 + hidden UI |
 | F-08 | Structural validation (size caps, extension/MIME allowlist, magic bytes, checksum) | PASS | file-upload-security tests; confirm-time inspection |
 | F-09 | Signed URL discipline (short TTLs, purpose-bound, audited, role+current-stage authz) | PASS | files-current-stage-access + new tests; audit row per mint |
 | F-10 | OTP via Twilio Verify only — no codes generated/stored/logged locally | PASS | twilio-verify tests; legacy phone RPC revoked |

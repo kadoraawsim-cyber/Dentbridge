@@ -6,8 +6,7 @@ const attachment = { name: 'xray.jpg', type: 'image/jpeg', size: 100 }
 const prepared = {
   success: true,
   fileId: 'file-1',
-  objectPath: 'opaque/file-1.jpg',
-  token: 'upload-token',
+  uploadUrl: 'https://storage.example/upload/sign',
   ticket: 'file-ticket',
 }
 
@@ -78,5 +77,29 @@ describe('patient submission pipeline recovery', () => {
     expect(fetcher).toHaveBeenCalledOnce()
     resolveRequest?.(response(true))
     await expect(first).resolves.toBe('submitted')
+  })
+
+  it('submits a prepared sanitized image without re-uploading it', async () => {
+    const fetcher = vi.fn().mockResolvedValue(response(true))
+    const upload = vi.fn()
+
+    await expect(runPatientSubmission({
+      attachment,
+      dependencies: { fetcher, upload },
+      guard: { current: false },
+      locale: 'en',
+      onFailure: vi.fn(),
+      onSubmitting: vi.fn(),
+      onSuccess: vi.fn(),
+      preparedAttachment: { fileId: 'file-1', fileTicket: 'file-ticket' },
+      requestPayload: { submissionId: 'submission-1' },
+    })).resolves.toBe('submitted')
+
+    expect(fetcher).toHaveBeenCalledOnce()
+    expect(upload).not.toHaveBeenCalled()
+    expect(JSON.parse(fetcher.mock.calls[0]?.[1]?.body as string)).toMatchObject({
+      fileId: 'file-1',
+      fileTicket: 'file-ticket',
+    })
   })
 })

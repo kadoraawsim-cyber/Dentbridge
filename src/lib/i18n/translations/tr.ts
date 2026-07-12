@@ -285,9 +285,14 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
     dayWeekdayMornings: 'Hafta İçi Sabahları',
     dayWeekdayAfternoons: 'Hafta İçi Öğleden Sonra',
     dayAsSoonAsPossible: 'En Kısa Sürede',
-    uploadTitle: 'Fotoğraf, röntgen veya PDF yüklemek için tıklayın',
-    uploadSubtitle: 'JPG, JPEG, PNG veya PDF, en fazla 10 MB',
+    uploadTitle: 'Görüntü yüklemek için tıklayın',
+    uploadSubtitle: 'Fotoğraf, ekran görüntüsü veya röntgen görüntüsü, en fazla 10 MB',
     uploadSelectedLabel: 'Seçilen dosya:',
+    uploadPreparing: 'Görüntünüz hazırlanıyor…',
+    uploadReady: 'Görüntü hazır. Lütfen önizlemeyi kontrol edin.',
+    uploadRetry: 'Tekrar dene',
+    uploadRemove: 'Kaldır',
+    uploadPreviewAlt: 'Hazırlanan görüntü önizlemesi',
     consentInfo:
       'Göndermeden önce lütfen DentiBridge’in yalnızca akademik klinik koordinasyon amacıyla kullanıldığını unutmayınız. Talep göndermek; tedavi, randevu, teşhis veya kabul garantisi oluşturmaz. Acil dental veya tıbbi durumlar bu form üzerinden iletilmemelidir.',
     consentLabel:
@@ -305,6 +310,14 @@ urgencyHigh: 'Yüksek (Acil / Şiddetli Ağrı)',
     errorRequiredFields: 'Lütfen tüm zorunlu alanları doldurun.',
     errorConsent: 'Lütfen göndermeden önce iki zorunlu onay kutusunu da işaretleyin.',
     errorFileSize: 'Dosya boyutu 10 MB veya daha az olmalıdır.',
+    errorImageTooLarge:
+      'Bu görüntü hazırlanamayacak kadar büyük. Lütfen daha küçük bir fotoğraf seçin veya ekran görüntüsü yükleyin.',
+    errorImageProcessing:
+      'Bu görüntüyü fakülte görünümü için hazırlayamadık. Lütfen tekrar deneyin veya başka bir fotoğraf seçin.',
+    errorImageUnreadable:
+      'Bu görüntüyü okuyamadık. Lütfen ekran görüntüsü alıp onu yükleyin.',
+    errorUnsupportedClinicalFile:
+      'Bu dosya ayrı bir klinik yükleme süreci gerektirir. Bu form için lütfen görüntünün fotoğrafını veya ekran görüntüsünü yükleyin.',
     errorGeneric: 'Talebiniz şu anda gönderilemedi. Lütfen tekrar deneyin.',
     cancel: 'İptal',
     submit: 'Tedavi Talebi Gönder',

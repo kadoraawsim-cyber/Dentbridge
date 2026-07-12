@@ -136,8 +136,9 @@ This file reflects the current checked-in app state.
   `docs/OBSERVABILITY.md`.
 - Legacy phone-only patient status RPC execution is revoked for browser-facing
   roles.
-- Patient uploads remain private and are accessed through audited signed URL
-  APIs.
+- Patient uploads remain private. Patient-selected images are converted into
+  sanitized, unscanned JPEG derivatives before any faculty/admin preview URL is
+  minted; original uploaded bytes are not served.
 
 ## Services In Use
 
@@ -210,12 +211,13 @@ Expected environment variables for local or deployed environments (see
 - `FILE_TICKET_SECRET`
 - `INVITE_REDIRECT_URL`
 - `NEXT_PUBLIC_PASSWORD_RESET_REDIRECT_URL`
-- `NEXT_PUBLIC_PATIENT_UPLOADS_ENABLED` (`false` until malware scanning ships)
+- `NEXT_PUBLIC_PATIENT_UPLOADS_ENABLED` (browser UI mirror only)
 - `NEXT_PUBLIC_SITE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `OPENAI_API_KEY`
-- `PATIENT_UPLOADS_ENABLED` (`false` until malware scanning ships)
+- `PATIENT_UPLOAD_POLICY` (`disabled`, `sanitized_images`, or future
+  `malware_scanned`)
 - `RATE_LIMIT_HMAC_SECRET`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `TWILIO_ACCOUNT_SID`

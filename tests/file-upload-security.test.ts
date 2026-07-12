@@ -17,7 +17,7 @@ describe('patient file upload security primitives', () => {
   it('allows only the supported MIME and extension combinations', () => {
     expect(getAllowedTypeByMime('image/jpeg')?.extensions).toEqual(['jpg', 'jpeg'])
     expect(getAllowedTypeByMime('image/png')?.extensions).toEqual(['png'])
-    expect(getAllowedTypeByMime('application/pdf')?.extensions).toEqual(['pdf'])
+    expect(getAllowedTypeByMime('application/pdf')).toBeNull()
     expect(getAllowedTypeByMime('text/plain')).toBeNull()
 
     expect(getAllowedTypeByExtension('JPEG')?.mime).toBe('image/jpeg')
@@ -32,14 +32,14 @@ describe('patient file upload security primitives', () => {
   it('keeps per-type and hard upload size limits explicit', () => {
     expect(maxBytesForMime('image/jpeg')).toBe(MAX_IMAGE_BYTES)
     expect(maxBytesForMime('image/png')).toBe(MAX_IMAGE_BYTES)
-    expect(maxBytesForMime('application/pdf')).toBe(MAX_PDF_BYTES)
+    expect(maxBytesForMime('application/pdf')).toBeNull()
     expect(maxBytesForMime('application/octet-stream')).toBeNull()
     expect(HARD_MAX_UPLOAD_BYTES).toBe(MAX_PDF_BYTES)
   })
 
   it('builds opaque object paths without patient-supplied filenames', () => {
     expect(buildPatientFileObjectPath('session-123', 'file-456', 'PDF')).toBe(
-      'patient-requests/session-123/file-456.pdf'
+      'patient-requests/session-123/original/file-456.pdf'
     )
   })
 
