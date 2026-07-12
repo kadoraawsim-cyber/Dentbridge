@@ -4,6 +4,11 @@
 -- migrations in this directory continue to add review, consent, gender,
 -- planner source-linking, and routing columns/constraints in their original
 -- order.
+--
+-- Reconciliation note: this baseline keeps student_case_requests as a base
+-- table because the production-recorded 20260415 lifecycle migration references
+-- it. The re-versioned 20260414010000 migration adds the historical indexes and
+-- policies before 20260415 runs.
 
 CREATE TABLE IF NOT EXISTS patient_requests (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

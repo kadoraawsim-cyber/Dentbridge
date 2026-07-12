@@ -98,6 +98,13 @@ CREATE INDEX IF NOT EXISTS patient_files_original_cleanup_idx
   ON public.patient_files (source_state, expires_at)
   WHERE original_object_path IS NOT NULL;
 
+-- Keep this function cluster inside one top-level statement for Supabase CLI replay.
+DO $migration$
+BEGIN
+  EXECUTE 'DROP FUNCTION IF EXISTS public.claim_orphan_patient_files(integer)';
+  EXECUTE 'DROP FUNCTION IF EXISTS public.complete_patient_file_cleanup(uuid, boolean)';
+
+  EXECUTE $ddl$
 CREATE OR REPLACE FUNCTION public.submit_patient_request_atomic(
   p_submission_id uuid,
   p_request jsonb,
@@ -276,7 +283,9 @@ BEGIN
   RETURN v_request_id;
 END;
 $function$;
+$ddl$;
 
+  EXECUTE $ddl$
 CREATE OR REPLACE FUNCTION public.claim_orphan_patient_files(p_limit integer DEFAULT 50)
 RETURNS TABLE(file_id uuid, original_object_path text, derivative_object_path text, cleanup_kind text)
 LANGUAGE sql
@@ -355,7 +364,9 @@ AS $function$
     END,
     candidates.cleanup_kind;
 $function$;
+$ddl$;
 
+  EXECUTE $ddl$
 CREATE OR REPLACE FUNCTION public.complete_patient_file_cleanup(
   p_file_id uuid,
   p_success boolean,
@@ -418,13 +429,12 @@ BEGIN
   RETURN FOUND;
 END;
 $function$;
+$ddl$;
 
-REVOKE EXECUTE ON FUNCTION
-  public.claim_orphan_patient_files(integer),
-  public.complete_patient_file_cleanup(uuid, boolean, text)
-FROM PUBLIC, anon, authenticated, service_role;
+  EXECUTE 'REVOKE EXECUTE ON FUNCTION public.claim_orphan_patient_files(integer) FROM PUBLIC, anon, authenticated, service_role';
+  EXECUTE 'REVOKE EXECUTE ON FUNCTION public.complete_patient_file_cleanup(uuid, boolean, text) FROM PUBLIC, anon, authenticated, service_role';
 
-GRANT EXECUTE ON FUNCTION
-  public.claim_orphan_patient_files(integer),
-  public.complete_patient_file_cleanup(uuid, boolean, text)
-TO service_role;
+  EXECUTE 'GRANT EXECUTE ON FUNCTION public.claim_orphan_patient_files(integer) TO service_role';
+  EXECUTE 'GRANT EXECUTE ON FUNCTION public.complete_patient_file_cleanup(uuid, boolean, text) TO service_role';
+END;
+$migration$;

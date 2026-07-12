@@ -1,4 +1,8 @@
 -- Narrow student read access for private patient uploads.
+--
+-- Historical replay note: later file-security migrations remove this direct
+-- browser storage read path. Keep this migration in the active sequence so fresh
+-- database replay preserves the same historical policy transitions.
 -- This does not make the bucket public; it only allows authenticated students
 -- to generate signed URLs for attachments attached to cases they are already
 -- allowed to see in the current workflow.

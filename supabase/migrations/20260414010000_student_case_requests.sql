@@ -1,5 +1,9 @@
 -- student_case_requests
 -- Tracks each student's request to claim a pool case.
+--
+-- Reconciliation note: this was re-versioned from the conflicting local
+-- 20260415 timestamp so the canonical production-recorded 20260415
+-- lifecycle_statuses migration can occupy that version.
 -- One row per (case_id, student_id) pair — enforced by UNIQUE constraint.
 -- Status lifecycle: pending → approved | rejected
 --
