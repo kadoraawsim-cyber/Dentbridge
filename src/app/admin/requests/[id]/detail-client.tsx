@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { portalFetch } from '@/lib/api/portal-fetch'
 import { buildCaseTimeline } from '@/lib/case-timeline'
 import { useI18n } from '@/lib/i18n'
 import { AdminPortalHeader } from '@/components/admin/AdminPortalHeader'
@@ -164,7 +165,7 @@ export function CaseDetailClient({
       }
     })
 
-    fetch(`/api/v1/files/${request.attachment_file_id}/signed-url`, {
+    portalFetch('admin', `/api/v1/files/${request.attachment_file_id}/signed-url`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ purpose: 'preview' }),
@@ -273,11 +274,15 @@ export function CaseDetailClient({
 
     let data: SignedFileUrlResponse | null = null
     try {
-      const response = await fetch(`/api/v1/files/${request.attachment_file_id}/signed-url`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ purpose: 'download' }),
-      })
+      const response = await portalFetch(
+        'admin',
+        `/api/v1/files/${request.attachment_file_id}/signed-url`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ purpose: 'download' }),
+        }
+      )
 
       if (response.ok) {
         data = (await response.json()) as SignedFileUrlResponse
@@ -324,7 +329,7 @@ export function CaseDetailClient({
     setRequestActionId(requestId)
     setErrorMessage('')
 
-    const res = await fetch(`/api/admin/cases/${request.id}`, {
+    const res = await portalFetch('admin', `/api/admin/cases/${request.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action, request_id: requestId, reason }),
@@ -427,7 +432,7 @@ export function CaseDetailClient({
       return
     }
 
-    const res = await fetch(`/api/admin/cases/${request.id}`, {
+    const res = await portalFetch('admin', `/api/admin/cases/${request.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -493,7 +498,7 @@ export function CaseDetailClient({
     setSaving(true)
     setErrorMessage('')
 
-    const res = await fetch(`/api/admin/cases/${request.id}`, {
+    const res = await portalFetch('admin', `/api/admin/cases/${request.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -581,7 +586,7 @@ export function CaseDetailClient({
     setLifecycleLoading(true)
     setErrorMessage('')
 
-    const res = await fetch(`/api/admin/cases/${request.id}`, {
+    const res = await portalFetch('admin', `/api/admin/cases/${request.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action, reason }),
@@ -631,7 +636,7 @@ export function CaseDetailClient({
     setLifecycleLoading(true)
     setErrorMessage('')
 
-    const res = await fetch(`/api/admin/cases/${request.id}`, {
+    const res = await portalFetch('admin', `/api/admin/cases/${request.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -711,7 +716,7 @@ export function CaseDetailClient({
     setSaving(true)
     setErrorMessage('')
 
-    const res = await fetch(`/api/admin/cases/${request.id}`, {
+    const res = await portalFetch('admin', `/api/admin/cases/${request.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -756,7 +761,7 @@ export function CaseDetailClient({
     setErrorMessage('')
     setPendingAction(null)
 
-    const res = await fetch(`/api/admin/cases/${request.id}`, {
+    const res = await portalFetch('admin', `/api/admin/cases/${request.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -805,7 +810,7 @@ export function CaseDetailClient({
     setErrorMessage('')
     setPendingAction(null)
 
-    const res = await fetch(`/api/admin/cases/${request.id}`, {
+    const res = await portalFetch('admin', `/api/admin/cases/${request.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'reject' }),

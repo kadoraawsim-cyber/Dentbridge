@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { portalFetch } from '@/lib/api/portal-fetch'
 import { Clock } from 'lucide-react'
 import type { PoolCase, RequestInfo, ContactInfo } from './page'
 import { useI18n } from '@/lib/i18n'
@@ -55,7 +56,9 @@ export function CasesClient({ initialCases, requestsByCaseId, contactDetails }: 
     setSubmitting(caseId)
     setRequestErrors((prev) => { const next = { ...prev }; delete next[caseId]; return next })
 
-    const res = await fetch(`/api/student/cases/${caseId}/request`, { method: 'POST' })
+    const res = await portalFetch('student', `/api/student/cases/${caseId}/request`, {
+      method: 'POST',
+    })
     setSubmitting(null)
 
     if (!res.ok) {

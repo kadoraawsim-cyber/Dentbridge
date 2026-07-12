@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { portalFetch } from '@/lib/api/portal-fetch'
 import { useI18n } from '@/lib/i18n'
 import { Plus } from 'lucide-react'
 import { PlannerEventModal } from '@/components/student/planner/PlannerEventModal'
@@ -358,7 +359,8 @@ export function PlannerClient({ studentEmail, studentFullName, initialEvents, in
     setSaving(true)
     setSaveError('')
 
-    const response = await fetch(
+    const response = await portalFetch(
+      'student',
       editingEventId ? `/api/student/planner/${editingEventId}` : '/api/student/planner',
       {
         method: editingEventId ? 'PATCH' : 'POST',
@@ -409,7 +411,7 @@ export function PlannerClient({ studentEmail, studentFullName, initialEvents, in
     setDeleting(true)
     setSaveError('')
 
-    const response = await fetch(`/api/student/planner/${editingEventId}`, {
+    const response = await portalFetch('student', `/api/student/planner/${editingEventId}`, {
       method: 'DELETE',
     })
 

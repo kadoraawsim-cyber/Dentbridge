@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { portalFetch } from '@/lib/api/portal-fetch'
 import { AlertCircle, ArrowLeft, Phone, Search } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import { AdminPortalHeader } from '@/components/admin/AdminPortalHeader'
@@ -469,7 +470,7 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
         }
       : { action }
 
-    const response = await fetch(`/api/admin/cases/${request.id}`, {
+    const response = await portalFetch('admin', `/api/admin/cases/${request.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),

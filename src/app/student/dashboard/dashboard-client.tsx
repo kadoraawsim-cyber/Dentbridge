@@ -4,6 +4,7 @@ import { type ChangeEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import InstallBanner from '@/components/InstallBanner'
 import { supabase } from '@/lib/supabase'
+import { portalFetch } from '@/lib/api/portal-fetch'
 import { useI18n } from '@/lib/i18n'
 import { StudentActiveCasesSection } from '@/components/student/dashboard/StudentActiveCasesSection'
 import { StudentCompletedCasesSection } from '@/components/student/dashboard/StudentCompletedCasesSection'
@@ -471,7 +472,7 @@ export function DashboardClient({
       return next
     })
 
-    const res = await fetch(`/api/student/cases/${caseId}/status`, {
+    const res = await portalFetch('student', `/api/student/cases/${caseId}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action }),
@@ -585,7 +586,7 @@ export function DashboardClient({
       }
     }
 
-    const res = await fetch(requestInit.url, {
+    const res = await portalFetch('student', requestInit.url, {
       method: requestInit.method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestInit.body),
