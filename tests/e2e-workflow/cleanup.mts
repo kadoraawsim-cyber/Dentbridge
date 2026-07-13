@@ -1,5 +1,8 @@
+import { resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
+
 import { loadWorkflowEnvironment } from './lib/env.mts'
-import { createServiceReadClient } from './lib/supabase-readers.mts'
+import { createServiceReadClient, type SupabaseServiceClient } from './lib/supabase-readers.mts'
 import {
   assertSafeTarget,
   buildRunIdLikePattern,
@@ -7,18 +10,122 @@ import {
   validateRunId,
 } from './lib/safety.mts'
 
-interface CleanupRecord {
-  table: string
+export const CLEANUP_DELETE_ORDER = [
+  'case_decision_history',
+  'student_planner_events',
+  'case_progress_entries',
+  'student_case_requests',
+  'case_routing_stages',
+  'consent_records',
+  'patient_files',
+  'patient_requests',
+] as const
+
+export type CleanupTable = (typeof CLEANUP_DELETE_ORDER)[number]
+
+export interface CleanupRecord {
+  table: CleanupTable
   id: string
   extra?: Record<string, string | null>
 }
 
-interface CleanupPlan {
+export interface CleanupPlan {
   runId: string
   dryRun: boolean
   patientRequestIds: string[]
   records: CleanupRecord[]
   storageObjects: string[]
+}
+
+export interface CleanupTableDelete {
+  table: CleanupTable
+  ids: string[]
+}
+
+export interface CleanupStorageResult {
+  requested: string[]
+  removed: string[]
+  alreadyRemoved: string[]
+}
+
+export interface CleanupExecutionResult {
+  database: Array<CleanupTableDelete & { deletedIds: string[]; alreadyRemovedIds: string[] }>
+  storage: CleanupStorageResult
+}
+
+type CleanupQueryError = {
+  message?: string
+  code?: string
+  status?: number
+  statusCode?: string | number
+}
+
+type CleanupMutationResult = {
+  data: Array<{ id: string | number }> | null
+  error: CleanupQueryError | null
+}
+
+type CleanupDeleteQuery = PromiseLike<CleanupMutationResult> & {
+  explain: (options?: { analyze?: boolean; format?: 'text' }) => Promise<CleanupMutationResult>
+}
+
+type CleanupTableClient = {
+  delete: () => {
+    in: (column: string, values: string[]) => {
+      select: (columns: string) => CleanupDeleteQuery
+    }
+  }
+}
+
+type CleanupStorageBucket = {
+  exists: (path: string) => Promise<{ data: boolean | null; error: CleanupQueryError | null }>
+  remove: (paths: string[]) => Promise<{ data: unknown; error: CleanupQueryError | null }>
+}
+
+type CleanupExecutionHooks = {
+  preflightDelete?: (service: SupabaseServiceClient, deletion: CleanupTableDelete) => Promise<void>
+  deleteRows?: (service: SupabaseServiceClient, deletion: CleanupTableDelete) => Promise<string[]>
+  removeStorageObjects?: (
+    service: SupabaseServiceClient,
+    storageObjects: string[]
+  ) => Promise<CleanupStorageResult>
+}
+
+function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message
+  if (typeof error === 'object' && error && 'message' in error) {
+    return String((error as { message: unknown }).message)
+  }
+  return String(error)
+}
+
+function sqlLiteral(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`
+}
+
+function cleanupTable(service: SupabaseServiceClient, table: CleanupTable): CleanupTableClient {
+  return service.from(table) as unknown as CleanupTableClient
+}
+
+function storageBucket(service: SupabaseServiceClient): CleanupStorageBucket {
+  return service.storage.from('patient-uploads') as unknown as CleanupStorageBucket
+}
+
+function isMissingStorageObject(error: CleanupQueryError | null): boolean {
+  if (!error) return false
+  const status = Number(error.status ?? error.statusCode)
+  const message = (error.message ?? '').toLowerCase()
+  return status === 400 || status === 404 || message.includes('not found') || message.includes('not exist')
+}
+
+export class CleanupPreflightError extends Error {
+  readonly manualSql: string
+
+  constructor(message: string, plan: CleanupPlan) {
+    super(`${message} No cleanup mutations were attempted.`)
+    this.name = 'CleanupPreflightError'
+    this.manualSql = generateManualSqlCleanupPlan(plan)
+  }
 }
 
 function readFlag(argv: string[], name: string): string | null {
@@ -46,7 +153,7 @@ function unique(values: Array<string | null | undefined>): string[] {
 
 function addRows(
   records: CleanupRecord[],
-  table: string,
+  table: CleanupTable,
   rows: Array<{ id: string | number } & Record<string, unknown>>,
   extraKeys: string[] = []
 ) {
@@ -62,6 +169,154 @@ function addRows(
       extra: Object.keys(extra).length > 0 ? extra : undefined,
     })
   }
+}
+
+export function buildDatabaseDeletePlan(records: CleanupRecord[]): CleanupTableDelete[] {
+  const idsByTable = new Map<CleanupTable, string[]>(
+    CLEANUP_DELETE_ORDER.map((table) => [table, []])
+  )
+
+  for (const record of records) {
+    idsByTable.get(record.table)?.push(record.id)
+  }
+
+  return CLEANUP_DELETE_ORDER.map((table) => ({
+    table,
+    ids: unique(idsByTable.get(table) ?? []),
+  })).filter((deletion) => deletion.ids.length > 0)
+}
+
+export function generateManualSqlCleanupPlan(plan: CleanupPlan): string {
+  const deletions = buildDatabaseDeletePlan(plan.records)
+  const lines = [
+    `-- Manual database cleanup for RUN_ID=${plan.runId}`,
+    '-- Execute as the database owner only after reviewing the exact IDs below.',
+    'begin;',
+  ]
+
+  if (deletions.length === 0) {
+    lines.push('-- No database rows were captured in the cleanup plan.')
+  } else {
+    for (const deletion of deletions) {
+      lines.push(
+        `delete from public.${deletion.table} where id in (${deletion.ids.map(sqlLiteral).join(', ')});`
+      )
+    }
+  }
+
+  lines.push('commit;')
+  return lines.join('\n')
+}
+
+export async function preflightDeleteByExactIds(
+  service: SupabaseServiceClient,
+  deletion: CleanupTableDelete
+): Promise<void> {
+  const query = cleanupTable(service, deletion.table)
+    .delete()
+    .in('id', deletion.ids)
+    .select('id')
+
+  const { error } = await query.explain({ analyze: false, format: 'text' })
+  if (error) {
+    throw new Error(error.message ?? `Delete preflight failed for ${deletion.table}.`)
+  }
+}
+
+export async function deleteRowsByExactIds(
+  service: SupabaseServiceClient,
+  deletion: CleanupTableDelete
+): Promise<string[]> {
+  const { data, error } = await cleanupTable(service, deletion.table)
+    .delete()
+    .in('id', deletion.ids)
+    .select('id')
+
+  if (error) {
+    throw new Error(error.message ?? `Delete failed for ${deletion.table}.`)
+  }
+
+  return (data ?? []).map((row) => String(row.id))
+}
+
+export async function preflightDatabaseDeletes(
+  service: SupabaseServiceClient,
+  plan: CleanupPlan,
+  preflightDelete: NonNullable<CleanupExecutionHooks['preflightDelete']> = preflightDeleteByExactIds
+): Promise<void> {
+  for (const deletion of buildDatabaseDeletePlan(plan.records)) {
+    try {
+      await preflightDelete(service, deletion)
+    } catch (error) {
+      throw new CleanupPreflightError(
+        `Database cleanup preflight failed for ${deletion.table}: ${errorMessage(error)}.`,
+        plan
+      )
+    }
+  }
+}
+
+export async function removePlannedStorageObjects(
+  service: SupabaseServiceClient,
+  storageObjects: string[]
+): Promise<CleanupStorageResult> {
+  const bucket = storageBucket(service)
+  const result: CleanupStorageResult = {
+    requested: storageObjects,
+    removed: [],
+    alreadyRemoved: [],
+  }
+
+  for (const objectPath of storageObjects) {
+    const existsResult = await bucket.exists(objectPath)
+    if (existsResult.error && !isMissingStorageObject(existsResult.error)) {
+      throw new Error(`Storage existence check failed for ${objectPath}: ${existsResult.error.message}`)
+    }
+
+    if (!existsResult.data) {
+      result.alreadyRemoved.push(objectPath)
+      continue
+    }
+
+    const removeResult = await bucket.remove([objectPath])
+    if (removeResult.error) {
+      if (isMissingStorageObject(removeResult.error)) {
+        result.alreadyRemoved.push(objectPath)
+        continue
+      }
+      throw new Error(`Storage cleanup failed for ${objectPath}: ${removeResult.error.message}`)
+    }
+    result.removed.push(objectPath)
+  }
+
+  return result
+}
+
+export async function executeCleanupPlan(
+  service: SupabaseServiceClient,
+  plan: CleanupPlan,
+  hooks: CleanupExecutionHooks = {}
+): Promise<CleanupExecutionResult> {
+  const preflightDelete = hooks.preflightDelete ?? preflightDeleteByExactIds
+  const deleteRows = hooks.deleteRows ?? deleteRowsByExactIds
+  const removeStorageObjects = hooks.removeStorageObjects ?? removePlannedStorageObjects
+
+  await preflightDatabaseDeletes(service, plan, preflightDelete)
+
+  const database: CleanupExecutionResult['database'] = []
+  for (const deletion of buildDatabaseDeletePlan(plan.records)) {
+    const deletedIds = await deleteRows(service, deletion)
+    const deletedSet = new Set(deletedIds)
+    database.push({
+      ...deletion,
+      deletedIds,
+      alreadyRemovedIds: deletion.ids.filter((id) => !deletedSet.has(id)),
+    })
+  }
+
+  const storage = await removeStorageObjects(service, plan.storageObjects)
+
+  return { database, storage }
 }
 
 async function main() {
@@ -193,29 +448,28 @@ async function main() {
     return
   }
 
-  if (storageObjects.length > 0) {
-    const { error: storageError } = await service.storage.from('patient-uploads').remove(storageObjects)
-    if (storageError) {
-      throw new Error(`Storage cleanup failed before database deletes: ${storageError.message}`)
-    }
-  }
+  const result = await executeCleanupPlan(service, plan)
+  console.log(JSON.stringify({ cleanupResult: result }, null, 2))
 
-  if (caseIds.length > 0) {
-    await service.from('case_decision_history').delete().in('case_id', caseIds).throwOnError()
-    await service.from('student_planner_events').delete().in('patient_id', caseIds).throwOnError()
-    await service.from('student_planner_events').delete().in('source_case_id', caseIds).throwOnError()
-    await service.from('case_progress_entries').delete().in('case_id', caseIds).throwOnError()
-    await service.from('student_case_requests').delete().in('case_id', caseIds).throwOnError()
-    await service.from('case_routing_stages').delete().in('case_id', caseIds).throwOnError()
-    await service.from('consent_records').delete().in('patient_request_id', caseIds).throwOnError()
-    await service.from('patient_files').delete().in('patient_request_id', caseIds).throwOnError()
-    await service.from('patient_requests').delete().in('id', caseIds).throwOnError()
+  if (result.storage.alreadyRemoved.length > 0) {
+    console.log(
+      `Storage objects already absent before cleanup: ${result.storage.alreadyRemoved.join(', ')}`
+    )
   }
 
   console.log(`Deleted records for RUN_ID=${runId}. Test user accounts were not touched.`)
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : error)
-  process.exitCode = 1
-})
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  main().catch((error) => {
+    if (error instanceof CleanupPreflightError) {
+      console.error(error.message)
+      console.error('')
+      console.error('Manual SQL cleanup plan for database-owner execution:')
+      console.error(error.manualSql)
+    } else {
+      console.error(error instanceof Error ? error.message : error)
+    }
+    process.exitCode = 1
+  })
+}

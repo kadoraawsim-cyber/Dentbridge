@@ -7,6 +7,7 @@ import { requestJson, uploadJpegToSignedUrl } from './lib/http.mts'
 import { WorkflowReporter, type WorkflowSummary } from './lib/reporter.mts'
 import { authenticateSession, type AuthenticatedSession } from './lib/session.mts'
 import {
+  assertAcceptedPatientRequestConsents,
   createServiceReadClient,
   findPatientRequestBySubmission,
   loadFacultyCaseDetail,
@@ -268,9 +269,7 @@ async function main() {
       ) {
         throw new Error('Patient file was not sanitized into the expected ready state.')
       }
-      if (consistency.consents.length < 2) {
-        throw new Error('Expected consent records were not created.')
-      }
+      assertAcceptedPatientRequestConsents(consistency.consents)
     })
 
       await reporter.step(caseNumber, 'faculty_open_triage_release', async () => {

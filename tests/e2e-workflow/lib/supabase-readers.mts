@@ -5,6 +5,60 @@ import type { AuthenticatedSession } from './session.mts'
 
 export type SupabaseServiceClient = ReturnType<typeof createClient<Database>>
 
+export const CONSENT_RECORDS_CONSISTENCY_SELECT =
+  'id, patient_request_id, consent_type, consent_version, consent_status, accepted_at, source, withdrawn_at, document_title, canonical_route'
+
+export type ConsentConsistencyRow =
+  Database['public']['Tables']['consent_records']['Row'] & {
+    id: string
+    patient_request_id: string
+    consent_type: string
+    consent_version: string
+    consent_status: string
+    accepted_at: string
+    source: string
+    withdrawn_at: string | null
+    document_title: string | null
+    canonical_route: string | null
+  }
+
+const REQUIRED_CONSENT_TYPES = ['kvkk_acknowledgement', 'explicit_consent'] as const
+
+export function assertAcceptedPatientRequestConsents(
+  consents: Pick<
+    ConsentConsistencyRow,
+    | 'consent_type'
+    | 'consent_status'
+    | 'accepted_at'
+    | 'source'
+    | 'withdrawn_at'
+    | 'document_title'
+    | 'canonical_route'
+  >[]
+): void {
+  for (const consentType of REQUIRED_CONSENT_TYPES) {
+    const consent = consents.find((row) => row.consent_type === consentType)
+    if (!consent) {
+      throw new Error(`Missing consent record for ${consentType}.`)
+    }
+    if (consent.consent_status !== 'accepted') {
+      throw new Error(`Consent ${consentType} is not accepted.`)
+    }
+    if (!consent.accepted_at) {
+      throw new Error(`Consent ${consentType} is missing accepted_at.`)
+    }
+    if (consent.source !== 'patient_request') {
+      throw new Error(`Consent ${consentType} has unexpected source ${consent.source}.`)
+    }
+    if (consent.withdrawn_at !== null) {
+      throw new Error(`Consent ${consentType} was withdrawn.`)
+    }
+    if (!consent.document_title || !consent.canonical_route) {
+      throw new Error(`Consent ${consentType} is missing document metadata.`)
+    }
+  }
+}
+
 export function createServiceReadClient(input: {
   supabaseUrl: string
   serviceRoleKey: string
@@ -119,7 +173,7 @@ export async function loadServiceConsistency(input: {
       .maybeSingle(),
     input.service
       .from('consent_records')
-      .select('id, patient_request_id, consent_type, accepted')
+      .select(CONSENT_RECORDS_CONSISTENCY_SELECT)
       .eq('patient_request_id', input.caseId),
     input.service
       .from('case_decision_history')
