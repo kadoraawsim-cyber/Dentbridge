@@ -5,6 +5,8 @@ import type { AuthenticatedSession } from './session.mts'
 
 export type SupabaseServiceClient = ReturnType<typeof createClient<Database>>
 
+export const REQUIRED_WORKFLOW_DECISION_HISTORY_ACTIONS = ['update_triage', 'mark_completed'] as const
+
 export const CONSENT_RECORDS_CONSISTENCY_SELECT =
   'id, patient_request_id, consent_type, consent_version, consent_status, accepted_at, source, withdrawn_at, document_title, canonical_route'
 
@@ -23,6 +25,44 @@ export type ConsentConsistencyRow =
   }
 
 const REQUIRED_CONSENT_TYPES = ['kvkk_acknowledgement', 'explicit_consent'] as const
+
+export function missingWorkflowDecisionHistoryActions(
+  history: Pick<Database['public']['Tables']['case_decision_history']['Row'], 'action'>[]
+): string[] {
+  const historyActions = new Set(history.map((row) => row.action))
+  return REQUIRED_WORKFLOW_DECISION_HISTORY_ACTIONS.filter((action) => !historyActions.has(action))
+}
+
+export function assertStudentRequestApprovedAndAssigned(input: {
+  studentRequests: Array<
+    Pick<
+      Database['public']['Tables']['student_case_requests']['Row'],
+      'id' | 'status' | 'student_id'
+    >
+  >
+  stages: Array<
+    Pick<
+      Database['public']['Tables']['case_routing_stages']['Row'],
+      'student_request_id' | 'student_id'
+    >
+  >
+  studentRequestId: string
+  studentUserId: string
+}): void {
+  const approvedRequest = input.studentRequests.find((row) => row.id === input.studentRequestId)
+  if (!approvedRequest || approvedRequest.status !== 'approved') {
+    throw new Error('Student request was not approved.')
+  }
+  if (approvedRequest.student_id !== input.studentUserId) {
+    throw new Error('Student request was assigned to the wrong student.')
+  }
+  const assignedStage = input.stages.find(
+    (stage) => stage.student_request_id === input.studentRequestId
+  )
+  if (!assignedStage || assignedStage.student_id !== input.studentUserId) {
+    throw new Error('Routing stage was not assigned to the expected student.')
+  }
+}
 
 export function assertAcceptedPatientRequestConsents(
   consents: Pick<

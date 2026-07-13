@@ -8,12 +8,14 @@ import { WorkflowReporter, type WorkflowSummary } from './lib/reporter.mts'
 import { authenticateSession, type AuthenticatedSession } from './lib/session.mts'
 import {
   assertAcceptedPatientRequestConsents,
+  assertStudentRequestApprovedAndAssigned,
   createServiceReadClient,
   findPatientRequestBySubmission,
   loadFacultyCaseDetail,
   loadServiceConsistency,
   loadStudentActiveCases,
   loadStudentPool,
+  missingWorkflowDecisionHistoryActions,
 } from './lib/supabase-readers.mts'
 import {
   buildRunIdLikePattern,
@@ -372,17 +374,12 @@ async function main() {
       })
 
       const detail = await loadFacultyCaseDetail(approvalFaculty, patientRequestId)
-      const approvedRequest = detail.studentRequests.find((row) => row.id === studentRequestId)
-      if (!approvedRequest || approvedRequest.status !== 'approved') {
-        throw new Error('Student request was not approved.')
-      }
-      if (approvedRequest.student_id !== student.userId) {
-        throw new Error('Student request was assigned to the wrong student.')
-      }
-      const assignedStage = detail.stages.find((stage) => stage.student_request_id === studentRequestId)
-      if (!assignedStage || assignedStage.student_id !== student.userId) {
-        throw new Error('Routing stage was not assigned to the expected student.')
-      }
+      assertStudentRequestApprovedAndAssigned({
+        studentRequests: detail.studentRequests,
+        stages: detail.stages,
+        studentRequestId,
+        studentUserId: student.userId,
+      })
     })
 
       await reporter.step(caseNumber, 'cross_account_assignment_checks', async () => {
@@ -555,6 +552,13 @@ async function main() {
       if (!detail.progressEntries.some((entry) => entry.note?.includes(runMarker))) {
         throw new Error('Progress entry with RUN_ID marker was not stored.')
       }
+      assertPresent(studentRequestId, 'Student request id is required for final consistency checks.')
+      assertStudentRequestApprovedAndAssigned({
+        studentRequests: detail.studentRequests,
+        stages: detail.stages,
+        studentRequestId,
+        studentUserId: student.userId,
+      })
       const consistency = await loadServiceConsistency({
         service,
         caseId: patientRequestId,
@@ -563,13 +567,10 @@ async function main() {
       if (!consistency.file || consistency.file.patient_request_id !== patientRequestId) {
         throw new Error('Final consistency check found missing or unlinked patient file.')
       }
-      const historyActions = new Set(consistency.history.map((row) => row.action))
-      for (const expected of ['update_triage', 'approve_student_request', 'mark_completed']) {
-        if (!historyActions.has(expected)) {
-          consistencyFailures.push(
-            `Workflow ${caseNumber} missing case_decision_history action ${expected}.`
-          )
-        }
+      for (const expected of missingWorkflowDecisionHistoryActions(consistency.history)) {
+        consistencyFailures.push(
+          `Workflow ${caseNumber} missing case_decision_history action ${expected}.`
+        )
       }
       if (consistency.history.length === 0) {
         throw new Error('No case_decision_history rows were created.')

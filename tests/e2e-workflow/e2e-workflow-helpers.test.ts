@@ -14,7 +14,9 @@ import { buildPatientPayload, buildWorkflowSeed } from './lib/data.mts'
 import { parseDotenv } from './lib/env.mts'
 import {
   assertAcceptedPatientRequestConsents,
+  assertStudentRequestApprovedAndAssigned,
   CONSENT_RECORDS_CONSISTENCY_SELECT,
+  missingWorkflowDecisionHistoryActions,
   type SupabaseServiceClient,
 } from './lib/supabase-readers.mts'
 import {
@@ -163,6 +165,56 @@ describe('e2e workflow helper safety', () => {
         { ...baseConsent, consent_type: 'kvkk_acknowledgement' },
       ])
     ).toThrow('Missing consent record')
+  })
+
+  it('matches the current decision-history contract for completed workflows', () => {
+    expect(
+      missingWorkflowDecisionHistoryActions([
+        { action: 'update_triage' },
+        { action: 'mark_completed' },
+      ])
+    ).toEqual([])
+
+    expect(
+      missingWorkflowDecisionHistoryActions([
+        { action: 'update_triage' },
+        { action: 'mark_completed' },
+        { action: 'approve_student_request' },
+      ])
+    ).toEqual([])
+
+    expect(missingWorkflowDecisionHistoryActions([{ action: 'update_triage' }])).toEqual([
+      'mark_completed',
+    ])
+  })
+
+  it('proves student approval and assignment through current workflow state', () => {
+    expect(() =>
+      assertStudentRequestApprovedAndAssigned({
+        studentRequests: [{ id: 'request-1', status: 'approved', student_id: 'student-1' }],
+        stages: [{ student_request_id: 'request-1', student_id: 'student-1' }],
+        studentRequestId: 'request-1',
+        studentUserId: 'student-1',
+      })
+    ).not.toThrow()
+
+    expect(() =>
+      assertStudentRequestApprovedAndAssigned({
+        studentRequests: [{ id: 'request-1', status: 'pending', student_id: 'student-1' }],
+        stages: [{ student_request_id: 'request-1', student_id: 'student-1' }],
+        studentRequestId: 'request-1',
+        studentUserId: 'student-1',
+      })
+    ).toThrow('Student request was not approved')
+
+    expect(() =>
+      assertStudentRequestApprovedAndAssigned({
+        studentRequests: [{ id: 'request-1', status: 'approved', student_id: 'student-1' }],
+        stages: [{ student_request_id: 'request-1', student_id: 'student-2' }],
+        studentRequestId: 'request-1',
+        studentUserId: 'student-1',
+      })
+    ).toThrow('Routing stage was not assigned')
   })
 
   it('selects only exact bracketed run markers', () => {
