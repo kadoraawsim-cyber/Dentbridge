@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => {
   const verificationChecksCreate = vi.fn()
@@ -14,13 +14,43 @@ const mocks = vi.hoisted(() => {
 
 vi.mock('twilio', () => ({ default: mocks.twilio }))
 
-import {
-  checkPatientStatusVerification,
-  sendPatientStatusVerification,
-} from '@/lib/otp/twilio-verify'
+const TWILIO_TEST_ENV = {
+  TWILIO_ACCOUNT_SID: 'AC00000000000000000000000000000000',
+  TWILIO_API_KEY_SID: 'SK00000000000000000000000000000000',
+  TWILIO_API_KEY_SECRET: 'test-twilio-api-key-secret',
+  TWILIO_VERIFY_SERVICE_SID: 'VA00000000000000000000000000000000',
+} as const
+
+const originalTwilioEnv = Object.fromEntries(
+  Object.keys(TWILIO_TEST_ENV).map((key) => [key, process.env[key]])
+) as Record<keyof typeof TWILIO_TEST_ENV, string | undefined>
 
 describe('Twilio Verify patient-status adapter', () => {
+  beforeEach(() => {
+    vi.resetModules()
+
+    for (const [key, value] of Object.entries(TWILIO_TEST_ENV)) {
+      process.env[key] = value
+    }
+  })
+
+  afterEach(() => {
+    for (const key of Object.keys(TWILIO_TEST_ENV) as Array<keyof typeof TWILIO_TEST_ENV>) {
+      const original = originalTwilioEnv[key]
+      if (original === undefined) {
+        delete process.env[key]
+      } else {
+        process.env[key] = original
+      }
+    }
+  })
+
   it('uses API-key authentication and the configured Verify service', async () => {
+    const {
+      checkPatientStatusVerification,
+      sendPatientStatusVerification,
+    } = await import('@/lib/otp/twilio-verify')
+
     mocks.verificationsCreate.mockResolvedValue({ status: 'pending' })
     mocks.verificationChecksCreate.mockResolvedValue({ status: 'approved' })
 
