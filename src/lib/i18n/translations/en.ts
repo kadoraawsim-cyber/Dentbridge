@@ -208,6 +208,11 @@ export type TranslationShape = {
     uploadTitle: string
     uploadSubtitle: string
     uploadSelectedLabel: string
+    uploadPreparing: string
+    uploadReady: string
+    uploadRetry: string
+    uploadRemove: string
+    uploadPreviewAlt: string
     consentInfo: string
     consentLabel: string
     kvkkAcknowledgementBeforeLink: string
@@ -222,6 +227,18 @@ export type TranslationShape = {
     errorRequiredFields: string
     errorConsent: string
     errorFileSize: string
+    errorImageTooLarge: string
+    errorImageProcessing: string
+    errorImageUnreadable: string
+    errorUnsupportedClinicalFile: string
+    errorUnsupportedImageType: string
+    errorAttachmentExpired: string
+    errorRateLimited: string
+    errorTooManyAttempts: string
+    errorServiceUnavailable: string
+    errorConflict: string
+    errorInvalidRequest: string
+    errorGeneric: string
     cancel: string
     submit: string
     submitting: string
@@ -235,6 +252,20 @@ export type TranslationShape = {
     phoneLabel: string
     searchButton: string
     searching: string
+    requestOtpButton: string
+    requestingOtp: string
+    otpTitle: string
+    otpLabel: string
+    otpPlaceholder: string
+    verifyButton: string
+    verifying: string
+    changePhone: string
+    checkAnother: string
+    resultTitle: string
+    otpSentMessage: string
+    errorGeneric: string
+    errorVerification: string
+    errorRateLimited: string
     notFoundTitle: string
     notFoundBefore: string
     notFoundLink: string
@@ -992,6 +1023,7 @@ export type TranslationShape = {
       reasonLabel: string
       reasonPlaceholder: string
       reasonRequired: string
+      optionalLabel: string
       deptChangeWarningGeneral: string
       deptChangeWarningAssigned: string
       saveDraft: string
@@ -1684,9 +1716,14 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     dayWeekdayMornings: 'Weekday Mornings',
     dayWeekdayAfternoons: 'Weekday Afternoons',
     dayAsSoonAsPossible: 'As Soon As Possible',
-    uploadTitle: 'Click to upload photos, x-rays, or PDF',
-    uploadSubtitle: 'JPG, JPEG, PNG, or PDF up to 10 MB',
+    uploadTitle: 'Click to upload an image',
+    uploadSubtitle: 'Photos, screenshots, or x-ray image files up to 10 MB',
     uploadSelectedLabel: 'Selected file:',
+    uploadPreparing: 'Preparing your image…',
+    uploadReady: 'Image ready. Please check the preview.',
+    uploadRetry: 'Retry',
+    uploadRemove: 'Remove',
+    uploadPreviewAlt: 'Prepared image preview',
     consentInfo:
       'Before submitting, please note that DentiBridge is used for academic clinical coordination only. Submitting a request does not guarantee treatment, appointment, diagnosis, or acceptance. Urgent or emergency dental/medical situations should not be submitted through this form.',
     consentLabel:
@@ -1704,6 +1741,28 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     errorRequiredFields: 'Please complete all required fields.',
     errorConsent: 'Please confirm both required consent checkboxes before submitting.',
     errorFileSize: 'File size must be 10 MB or less.',
+    errorImageTooLarge:
+      'The selected image is too large. Please upload an image smaller than 10 MB.',
+    errorImageProcessing:
+      'We could not prepare this image for faculty view. Please try again or choose another photo.',
+    errorImageUnreadable:
+      'We could not read this image. Please take a screenshot of it and upload the screenshot.',
+    errorUnsupportedClinicalFile:
+      'This file needs a separate clinical upload workflow. For this form, please upload a photo or screenshot of the image.',
+    errorUnsupportedImageType:
+      'The selected file is not a supported image. Please upload a JPG or PNG image.',
+    errorAttachmentExpired:
+      'Your uploaded image has expired. Please upload the image again before submitting.',
+    errorRateLimited:
+      'This phone number has reached the maximum number of requests. Please try again in about one hour.',
+    errorTooManyAttempts: 'Too many attempts right now. Please wait a few minutes and try again.',
+    errorServiceUnavailable:
+      'The service is temporarily unavailable. Please try again in a few minutes.',
+    errorConflict:
+      'This request could not be completed because it conflicts with an earlier submission. Please refresh the page and try again.',
+    errorInvalidRequest:
+      'Some of the information provided could not be validated. Please review the form and try again.',
+    errorGeneric: 'We could not submit your request right now. Please try again.',
     cancel: 'Cancel',
     submit: 'Submit Treatment Request',
     submitting: 'Submitting…',
@@ -1717,6 +1776,21 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     phoneLabel: 'Phone Number',
     searchButton: 'Check Status',
     searching: 'Searching…',
+    requestOtpButton: 'Send Code',
+    requestingOtp: 'Sending…',
+    otpTitle: 'Enter Verification Code',
+    otpLabel: 'Verification Code',
+    otpPlaceholder: '6-digit code',
+    verifyButton: 'View Status',
+    verifying: 'Verifying…',
+    changePhone: 'Use a different phone number',
+    checkAnother: 'Check another request',
+    resultTitle: 'Verified Status',
+    otpSentMessage:
+      'If a matching request exists, we have sent a verification code to that phone number. Enter the code to view your status.',
+    errorGeneric: 'We could not complete this request. Please try again.',
+    errorVerification: 'We could not verify the information provided. Please check the code and try again.',
+    errorRateLimited: 'Too many attempts. Please wait a moment and try again.',
     notFoundTitle: 'No request found',
     notFoundBefore:
       "We couldn't find a request for that number. Double-check and try again, or",
@@ -2508,6 +2582,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       reasonLabel: 'Reason',
       reasonPlaceholder: 'Enter a short reason',
       reasonRequired: 'A short reason is required.',
+      optionalLabel: '(optional)',
       deptChangeWarningGeneral: 'Changing the department will update the case routing.',
       deptChangeWarningAssigned: 'Warning: this case already has a student assigned. Changing the department may affect the active assignment.',
       saveDraft: 'Save Draft',

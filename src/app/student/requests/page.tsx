@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { fetchStudentRequestedCases } from '@/lib/cases/student-case-access'
 import { RequestsClient } from './requests-client'
 
 export type RequestRow = {
@@ -32,67 +33,31 @@ export default async function StudentRequestsPage() {
     redirect('/student/login')
   }
 
-  const { data: myRequests } = await supabase
-    .from('student_case_requests')
-    .select('id, case_id, stage_id, status, created_at')
-    .eq('student_id', user.id)
-    .order('created_at', { ascending: false })
+  // The overview RPC returns the caller's own requests joined to non-identifying
+  // case fields and the request's stage department. It also downgrades the
+  // effective status to 'revoked' when the request's stage is no longer the
+  // case's current stage, so a handed-off student cannot appear to retain access.
+  const overview = await fetchStudentRequestedCases(supabase)
 
-  const caseIds = (myRequests ?? []).map((r) => r.case_id)
-  const stageIds = (myRequests ?? [])
-    .map((r) => r.stage_id)
-    .filter((id): id is string => Boolean(id))
+  const myRequests: RequestRow[] = overview.map((row) => ({
+    id: row.request_id,
+    case_id: row.case_id,
+    stage_id: row.stage_id,
+    stage_dept: row.stage_department,
+    status: row.effective_status,
+    created_at: row.created_at,
+  }))
 
-  let caseMap: Record<string, CaseInfo> = {}
-  let stageDeptMap: Record<string, string> = {}
+  const caseMap: Record<string, CaseInfo> = {}
+  for (const row of overview) {
+    caseMap[row.case_id] = {
+      treatment_type: row.treatment_type,
+      assigned_department: row.assigned_department,
+      urgency: row.urgency,
+      caseStatus: row.case_status,
+      current_stage_id: row.current_stage_id,
+    }
+  }
 
-  const [caseResult, stageResult] = await Promise.all([
-    caseIds.length > 0
-      ? supabase
-          .from('patient_requests')
-          .select('id, treatment_type, assigned_department, urgency, status, current_stage_id')
-          .in('id', caseIds)
-      : Promise.resolve(null),
-    stageIds.length > 0
-      ? supabase.from('case_routing_stages').select('id, department').in('id', stageIds)
-      : Promise.resolve(null),
-  ])
-
-  caseMap = Object.fromEntries(
-    (caseResult?.data ?? []).map((c) => [
-      c.id,
-      {
-        treatment_type: c.treatment_type,
-        assigned_department: c.assigned_department,
-        urgency: c.urgency,
-        caseStatus: c.status,
-        current_stage_id: c.current_stage_id,
-      },
-    ])
-  )
-
-  stageDeptMap = Object.fromEntries(
-    (stageResult?.data ?? []).map((s) => [s.id, s.department as string])
-  )
-
-  const stageAwareRequests = (myRequests ?? []).map((request) => {
-    const currentStageId = caseMap[request.case_id]?.current_stage_id
-    const isHistoricalStage =
-      request.status === 'approved' &&
-      Boolean(request.stage_id) &&
-      Boolean(currentStageId) &&
-      request.stage_id !== currentStageId
-    const stage_dept = request.stage_id ? (stageDeptMap[request.stage_id] ?? null) : null
-
-    return isHistoricalStage
-      ? { ...request, status: 'revoked', stage_dept }
-      : { ...request, stage_dept }
-  })
-
-  return (
-    <RequestsClient
-      myRequests={stageAwareRequests}
-      caseMap={caseMap}
-    />
-  )
+  return <RequestsClient myRequests={myRequests} caseMap={caseMap} />
 }

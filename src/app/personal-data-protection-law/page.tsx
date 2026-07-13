@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import PublicDocumentHeader from '@/components/PublicDocumentHeader'
 import PublicFooter from '@/components/PublicFooter'
 import { useI18n } from '@/lib/i18n'
+import { getLegalDocument } from '@/lib/legal/legal-documents'
 
 const KVKK_LAW = 'https://www.kvkk.gov.tr/Icerik/6649/Personal-Data-Protection-Law'
 const EXPLICIT_CONSENT =
@@ -45,6 +46,7 @@ function LegalList({ items }: { items: string[] }) {
 export default function PersonalDataProtectionLawPage() {
   const { locale } = useI18n()
   const isTr = locale === 'tr'
+  const documentRevision = getLegalDocument('kvkk_clarification', locale)
 
   const title = isTr
     ? 'Kişisel Verilerin Korunması Kanunu / KVKK Aydınlatma Metni'
@@ -511,7 +513,7 @@ export default function PersonalDataProtectionLawPage() {
               </p>
               <p>En güncel sürüm bu sayfada yayımlanacaktır.</p>
               <p>
-                <strong>Son güncelleme: 27 Haziran 2026</strong>
+                <strong>Son güncelleme: {documentRevision.effectiveDate}</strong>
               </p>
             </>
           ),
@@ -925,7 +927,7 @@ export default function PersonalDataProtectionLawPage() {
               </p>
               <p>The most recent version will be published on this page.</p>
               <p>
-                <strong>Last updated: 27 June 2026</strong>
+                <strong>Last updated: {documentRevision.effectiveDate}</strong>
               </p>
             </>
           ),

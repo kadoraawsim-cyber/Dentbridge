@@ -1,7 +1,13 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import {
+  fetchStudentActiveCases,
+  fetchStudentPoolCases,
+} from '@/lib/cases/student-case-access'
 import { DashboardClient } from './dashboard-client'
+import type { ActiveCase, MyRequest, PoolCase, ProgressEntry } from '@/components/student/dashboard/types'
+import { assertQuerySucceeded } from '@/lib/data/data-load'
 
 export default async function StudentDashboardPage() {
   const cookieStore = await cookies()
@@ -15,7 +21,11 @@ export default async function StudentDashboardPage() {
     redirect('/student/login')
   }
 
-  const [studentProfileResult, poolCasesResult, urgentPoolCasesResult, myRequestsResult] =
+  // Pool and active-case reads go through allowlisted, current-stage-gated RPCs
+  // (no direct patient_requests access). The pool RPC returns every matched case
+  // ordered newest-first; the dashboard renders the 5 most recent and derives its
+  // counts from the same result.
+  const [studentProfileResult, poolCasesData, activeCasesData, myRequestsResult] =
     await Promise.all([
       supabase
         .from('student_profiles')
@@ -23,24 +33,9 @@ export default async function StudentDashboardPage() {
         .eq('id', user.id)
         .maybeSingle(),
 
-      // Pool cases — full_name and phone intentionally excluded.
-      // The dashboard only renders the 5 most recent pool cases; keep the
-      // total count for stats without sending every matched case over the wire.
-      supabase
-        .from('patient_requests')
-        .select(
-          'id, treatment_type, urgency, assigned_department, target_student_level, created_at',
-          { count: 'exact' }
-        )
-        .eq('status', 'matched')
-        .order('created_at', { ascending: false })
-        .limit(5),
+      fetchStudentPoolCases(supabase),
 
-      supabase
-        .from('patient_requests')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'matched')
-        .ilike('urgency', 'high'),
+      fetchStudentActiveCases(supabase),
 
       // All of this student's requests (for stats and pending count).
       supabase
@@ -51,96 +46,46 @@ export default async function StudentDashboardPage() {
     ])
 
   const { data: studentProfile } = studentProfileResult
-  const { data: poolCases, count: poolCaseCount } = poolCasesResult
-  const { count: urgentPoolCaseCount } = urgentPoolCasesResult
   const { data: myRequests } = myRequestsResult
+  assertQuerySucceeded(studentProfileResult.error, 'student.dashboard.profile')
+  assertQuerySucceeded(myRequestsResult.error, 'student.dashboard.requests')
 
-  const approvedCaseIds = (myRequests ?? [])
-    .filter((r) => r.status === 'approved')
-    .map((r) => r.case_id)
+  const poolCases: PoolCase[] = poolCasesData.slice(0, 5).map((row) => ({
+    id: row.id,
+    treatment_type: row.treatment_type,
+    urgency: row.urgency,
+    assigned_department: row.assigned_department,
+    target_student_level: row.target_student_level,
+    created_at: row.created_at,
+  }))
+  const poolCaseCount = poolCasesData.length
+  const urgentPoolCaseCount = poolCasesData.filter(
+    (row) => (row.urgency ?? '').toLowerCase() === 'high'
+  ).length
 
-  let activeCases: {
-    caseId: string
-    treatment_type: string
-    assigned_department: string | null
-    status: string
-    full_name: string
-    phone: string
-    progressEntries: {
-      id: string
-      case_id: string
-      student_id: string
-      student_name: string | null
-      status_at_time: string
-      appointment_date: string | null
-      appointment_time: string | null
-      note: string | null
-      what_was_done: string | null
-      next_step: string | null
-      next_appointment_date: string | null
-      next_appointment_time: string | null
-      needs_faculty_attention: boolean
-      created_at: string
-    }[]
-  }[] = []
+  // Active cases are exactly the caller's current-stage assignments (the RPC
+  // enforces this), so no historical-stage filtering is needed here.
+  let activeCases: ActiveCase[] = []
+  const activeCaseIds = activeCasesData.map((row) => row.id)
 
-  if (approvedCaseIds.length > 0) {
-    const [activeDataResult, progressDataResult] = await Promise.all([
-      supabase
-        .from('patient_requests')
-        .select('id, treatment_type, assigned_department, status, full_name, phone, current_stage_id')
-        .in('id', approvedCaseIds),
+  if (activeCaseIds.length > 0) {
+    const { data: progressData, error: progressError } = await supabase
+      .from('case_progress_entries')
+      .select(
+        'id, case_id, student_id, student_name, status_at_time, appointment_date, appointment_time, note, what_was_done, next_step, next_appointment_date, next_appointment_time, needs_faculty_attention, created_at'
+      )
+      .in('case_id', activeCaseIds)
+      .order('created_at', { ascending: false })
+    assertQuerySucceeded(progressError, 'student.dashboard.progress')
 
-      supabase
-        .from('case_progress_entries')
-        .select(
-          'id, case_id, student_id, student_name, status_at_time, appointment_date, appointment_time, note, what_was_done, next_step, next_appointment_date, next_appointment_time, needs_faculty_attention, created_at'
-        )
-        .in('case_id', approvedCaseIds)
-        .order('created_at', { ascending: false }),
-    ])
-
-    const { data: activeData } = activeDataResult
-    const { data: progressData } = progressDataResult
-
-    const progressEntriesByCase = new Map<
-      string,
-      {
-        id: string
-        case_id: string
-        student_id: string
-        student_name: string | null
-        status_at_time: string
-        appointment_date: string | null
-        appointment_time: string | null
-        note: string | null
-        what_was_done: string | null
-        next_step: string | null
-        next_appointment_date: string | null
-        next_appointment_time: string | null
-        needs_faculty_attention: boolean
-        created_at: string
-      }[]
-    >()
-
+    const progressEntriesByCase = new Map<string, ProgressEntry[]>()
     for (const entry of progressData ?? []) {
       const existing = progressEntriesByCase.get(entry.case_id) ?? []
       existing.push(entry)
       progressEntriesByCase.set(entry.case_id, existing)
     }
 
-    const approvedRequestsByCaseId = new Map(
-      (myRequests ?? [])
-        .filter((request) => request.status === 'approved')
-        .map((request) => [request.case_id, request])
-    )
-
-    activeCases = (activeData ?? [])
-      .filter((row) => {
-        const approvedRequest = approvedRequestsByCaseId.get(row.id)
-        return !approvedRequest?.stage_id || approvedRequest.stage_id === row.current_stage_id
-      })
-      .map((row) => ({
+    activeCases = activeCasesData.map((row) => ({
       caseId: row.id,
       treatment_type: row.treatment_type,
       assigned_department: row.assigned_department,
@@ -153,10 +98,12 @@ export default async function StudentDashboardPage() {
 
   return (
     <DashboardClient
-      poolCases={poolCases ?? []}
-      poolCaseCount={poolCaseCount ?? poolCases?.length ?? 0}
-      urgentPoolCaseCount={urgentPoolCaseCount ?? 0}
-      myRequests={myRequests ?? []}
+      poolCases={poolCases}
+      poolCaseCount={poolCaseCount}
+      urgentPoolCaseCount={urgentPoolCaseCount}
+      // status values are constrained by student_case_requests_status_check,
+      // so narrowing the generated `string` to the MyRequest union is sound.
+      myRequests={(myRequests ?? []) as MyRequest[]}
       activeCases={activeCases}
       studentEmail={user.email ?? ''}
       studentFullName={studentProfile?.full_name ?? ''}

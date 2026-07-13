@@ -1,97 +1,33 @@
 'use client'
 
-import React, { useEffect, useMemo, useRef, useState } from 'react'
-import Image from 'next/image'
-import Link from 'next/link'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { portalFetch } from '@/lib/api/portal-fetch'
 import { buildCaseTimeline } from '@/lib/case-timeline'
-import { ArrowLeft, Calendar, CheckCircle2, Clock, LogOut, Phone, ShieldCheck, XCircle } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
-import LanguageSwitcher from '@/components/LanguageSwitcher'
-
-type StudentCaseRequest = {
-  id: string
-  student_email: string
-  status: string
-  stage_id?: string | null
-  clinical_notes: string | null
-  reviewed_by: string | null
-  reviewed_at: string | null
-  created_at: string
-}
-
-type PatientRequest = {
-  id: string
-  full_name: string
-  age: number | null
-  gender: string | null
-  phone: string
-  preferred_language: string | null
-  treatment_type: string
-  complaint_text: string
-  urgency: string
-  preferred_days: string | null
-  pain_score: number | null
-  symptom_duration: string | null
-  contact_method: string | null
-  best_contact_time: string | null
-  medical_condition: string | null
-  consent: boolean
-  status: string
-  attachment_path: string | null
-  attachment_name: string | null
-  assigned_department: string | null
-  target_student_level: string | null
-  clinical_notes: string | null
-  reviewed_by: string | null
-  reviewed_at: string | null
-  routing_completed_at?: string | null
-  created_at: string | null
-}
-
-type CaseProgressEntry = {
-  id: string
-  case_id: string
-  stage_id?: string | null
-  department_at_time?: string | null
-  student_id: string
-  student_name: string | null
-  status_at_time: string
-  appointment_date: string | null
-  appointment_time: string | null
-  note: string | null
-  what_was_done: string | null
-  next_step: string | null
-  next_appointment_date: string | null
-  next_appointment_time: string | null
-  needs_faculty_attention: boolean
-  created_at: string
-}
-
-type CaseRoutingStage = {
-  id: string
-  case_id: string
-  sequence: number
-  department: string
-  target_student_level: string | null
-  status: string
-  faculty_notes: string | null
-  student_request_id: string | null
-  student_id: string | null
-  student_email: string | null
-  released_by: string | null
-  released_at: string | null
-  assigned_by: string | null
-  assigned_at: string | null
-  stage_submitted_by: string | null
-  stage_submitted_at: string | null
-  stage_reviewed_by: string | null
-  stage_reviewed_at: string | null
-  completed_at: string | null
-  cancelled_at: string | null
-  created_at: string
-  updated_at: string
-}
+import { AdminPortalHeader } from '@/components/admin/AdminPortalHeader'
+import { ActivityLogPanel } from '@/components/admin/case-detail/ActivityLogPanel'
+import { CaseHeroSection } from '@/components/admin/case-detail/CaseHeroSection'
+import { LifecyclePanel } from '@/components/admin/case-detail/LifecyclePanel'
+import { PatientSummarySection } from '@/components/admin/case-detail/PatientSummarySection'
+import { ReviewRecordCard } from '@/components/admin/case-detail/ReviewRecordCard'
+import { StudentRequestsPanel } from '@/components/admin/case-detail/StudentRequestsPanel'
+import { TreatmentJourneyPanel } from '@/components/admin/case-detail/TreatmentJourneyPanel'
+import { TriagePanel } from '@/components/admin/case-detail/TriagePanel'
+import {
+  buildInitialActivityLog,
+  keywordRoutingHint,
+  makeLogEntry,
+  mapDetailToUrgency,
+  mapUrgencyToDetail,
+} from '@/components/admin/case-detail/helpers'
+import type {
+  ActivityLogEntry,
+  CaseProgressEntry,
+  CaseRoutingStage,
+  PatientRequest,
+  StudentCaseRequest,
+} from '@/components/admin/case-detail/types'
 
 interface Props {
   initialRequest: PatientRequest
@@ -102,167 +38,13 @@ interface Props {
   studentOpenCaseCounts: Record<string, number>
 }
 
-// Used to determine which lifecycle steps have been reached when rendering
-// the status trail in the Lifecycle section.
-const STATUS_ORDER = [
-  'submitted',
-  'under_review',
-  'matched',
-  'student_approved',
-  'contacted',
-  'appointment_scheduled',
-  'in_treatment',
-  'faculty_review',
-  'completed',
-]
-
-const departmentOptions = [
-  'Endodontics',
-  'Oral & Maxillofacial Surgery',
-  'Orthodontics',
-  'Periodontology',
-  'Restorative Dentistry',
-  'Prosthodontics',
-  'Pedodontics',
-  'Oral Radiology',
-]
-
-const studentLevelOptions = [
-  'Year 4 Clinical Student',
-  'Year 5 Clinical Student',
-  'Specialist Dentist',
-]
-
-const PREVIEW_SIGNED_URL_TTL_MS = 3600 * 1000
+const PREVIEW_SIGNED_URL_TTL_MS = 120 * 1000
 const SIGNED_URL_FRESHNESS_BUFFER_MS = 30 * 1000
 
-function keywordRoutingHint(treatmentType: string, assignedDepartment: string | null) {
-  if (assignedDepartment) return assignedDepartment
-
-  const value = (treatmentType || '').toLowerCase()
-
-  if (value.includes('root canal')) return 'Endodontics'
-  if (value.includes('extraction')) return 'Oral & Maxillofacial Surgery'
-  if (value.includes('gum')) return 'Periodontology'
-  if (value.includes('orthodont')) return 'Orthodontics'
-  if (value.includes('prosthetic') || value.includes('crown')) return 'Prosthodontics'
-  if (value.includes('pediatric')) return 'Pedodontics'
-  if (value.includes('esthetic') || value.includes('filling') || value.includes('cleaning'))
-    return 'Restorative Dentistry'
-
-  return 'Oral Radiology'
-}
-
-function mapUrgencyToDetail(urgency: string) {
-  switch ((urgency || '').toLowerCase()) {
-    case 'high':
-      return 'High (Emergency / Severe Pain)'
-    case 'medium':
-      return 'Medium (Discomfort)'
-    case 'low':
-      return 'Low (Routine)'
-    default:
-      return 'Medium (Discomfort)'
-  }
-}
-
-function mapDetailToUrgency(detail: string) {
-  const d = (detail || '').toLowerCase()
-  if (d.startsWith('high')) return 'High'
-  if (d.startsWith('low')) return 'Low'
-  return 'Medium'
-}
-
-function getStatusBadgeClass(status: string) {
-  switch ((status || '').toLowerCase()) {
-    case 'submitted':
-      return 'bg-slate-100 text-slate-700 border border-slate-200'
-    case 'under_review':
-      return 'bg-amber-50 text-amber-700 border border-amber-200'
-    case 'matched':
-      return 'bg-violet-50 text-violet-700 border border-violet-200'
-    case 'student_approved':
-      return 'bg-blue-50 text-blue-700 border border-blue-200'
-    case 'contacted':
-      return 'bg-cyan-50 text-cyan-700 border border-cyan-200'
-    case 'appointment_scheduled':
-      return 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-    case 'in_treatment':
-      return 'bg-purple-50 text-purple-700 border border-purple-200'
-    case 'faculty_review':
-      return 'bg-amber-50 text-amber-700 border border-amber-200'
-    case 'completed':
-      return 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-    case 'rejected':
-      return 'bg-rose-50 text-rose-700 border border-rose-200'
-    case 'cancelled':
-      return 'bg-slate-100 text-slate-500 border border-slate-200'
-    default:
-      return 'bg-slate-100 text-slate-700 border border-slate-200'
-  }
-}
-
-type ActivityLogType =
-  | 'case_released'
-  | 'student_request_submitted'
-  | 'student_request_approved'
-  | 'student_request_rejected'
-  | 'student_request_revoked'
-  | 'rejection_undone'
-  | 'department_changed'
-  | 'clinical_notes_updated'
-  | 'case_returned_to_pool'
-  | 'case_cancelled'
-
-type ActivityLogEntry = {
-  id: string
-  type: ActivityLogType
-  timestamp: string
-  detail?: string | null
-}
-
-function makeLogEntry(type: ActivityLogType, timestamp: string, detail?: string | null): ActivityLogEntry {
-  return {
-    id: `${type}-${timestamp}-${Math.random().toString(36).slice(2, 8)}`,
-    type,
-    timestamp,
-    detail: detail ?? null,
-  }
-}
-
-function buildInitialActivityLog(
-  request: PatientRequest,
-  studentRequests: StudentCaseRequest[]
-): ActivityLogEntry[] {
-  const entries: ActivityLogEntry[] = []
-  const status = (request.status || '').toLowerCase()
-
-  if (request.reviewed_at && ['matched', 'student_approved', 'contacted', 'appointment_scheduled', 'in_treatment', 'completed'].includes(status)) {
-    entries.push(makeLogEntry('case_released', request.reviewed_at, request.assigned_department))
-  }
-
-  for (const studentRequest of studentRequests) {
-    if (studentRequest.created_at) {
-      entries.push(makeLogEntry('student_request_submitted', studentRequest.created_at, studentRequest.student_email))
-    }
-
-    if (studentRequest.reviewed_at) {
-      if (studentRequest.status === 'approved') {
-        entries.push(makeLogEntry('student_request_approved', studentRequest.reviewed_at, studentRequest.student_email))
-      }
-
-      if (studentRequest.status === 'rejected') {
-        entries.push(makeLogEntry('student_request_rejected', studentRequest.reviewed_at, studentRequest.student_email))
-      }
-
-      if (studentRequest.status === 'revoked') {
-        entries.push(makeLogEntry('student_request_revoked', studentRequest.reviewed_at, studentRequest.student_email))
-        entries.push(makeLogEntry('case_returned_to_pool', studentRequest.reviewed_at))
-      }
-    }
-  }
-
-  return entries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+type SignedFileUrlResponse = {
+  success: true
+  signedUrl: string
+  expiresAt: string
 }
 
 export function CaseDetailClient({
@@ -316,188 +98,13 @@ export function CaseDetailClient({
     return value.slice(0, 5)
   }
 
-  function tUrgency(v: string): string {
-    switch ((v || '').toLowerCase()) {
-      case 'high': return t('request.urgencyHigh')
-      case 'medium': return t('request.urgencyMedium')
-      case 'low': return t('request.urgencyLow')
-      default: return v
-    }
-  }
-
-  function tStatus(status: string): string {
-    switch ((status || '').toLowerCase()) {
-      case 'submitted':             return t('admin.db.statusSubmitted')
-      case 'under_review':          return t('admin.db.statusUnderReview')
-      case 'matched':               return t('admin.db.statusMatched')
-      case 'student_approved':      return t('admin.db.statusStudentApproved')
-      case 'contacted':             return t('admin.db.statusContacted')
-      case 'appointment_scheduled': return t('admin.db.statusApptScheduled')
-      case 'in_treatment':          return t('admin.db.statusInTreatment')
-      case 'faculty_review':        return t('admin.db.statusFacultyReview')
-      case 'completed':             return t('admin.db.statusCompleted')
-      case 'rejected':              return t('admin.db.statusRejected')
-      case 'cancelled':             return t('admin.db.statusCancelled')
-      default:                      return status
-    }
-  }
-
-  function tDepartment(dept: string): string {
-    switch ((dept || '').toLowerCase()) {
-      case 'endodontics':                  return t('admin.db.deptEndodontics')
-      case 'oral & maxillofacial surgery': return t('admin.db.deptSurgery')
-      case 'orthodontics':                 return t('admin.db.deptOrthodontics')
-      case 'periodontology':               return t('admin.db.deptPeriodontology')
-      case 'restorative dentistry':        return t('admin.db.deptRestorative')
-      case 'prosthodontics':               return t('admin.db.deptProsthodontics')
-      case 'pedodontics':                  return t('admin.db.deptPedodontics')
-      case 'oral radiology':               return t('admin.db.deptRadiology')
-      case 'general review':               return t('admin.db.deptGeneralReview')
-      default:                             return dept
-    }
-  }
-
-  function tStudentLevel(level: string): string {
-    switch ((level || '').toLowerCase()) {
-      case 'year 4 clinical student': return t('admin.db.levelYear4')
-      case 'year 5 clinical student': return t('admin.db.levelYear5')
-      case 'specialist dentist':      return t('admin.db.levelSpecialist')
-      default:                        return level
-    }
-  }
-
-  function tLanguage(lang: string | null): string {
-    switch ((lang || '').toLowerCase()) {
-      case 'turkish': return t('admin.db.langTurkish')
-      case 'english': return t('admin.db.langEnglish')
-      case 'arabic':  return t('admin.db.langArabic')
-      default:        return lang || '—'
-    }
-  }
-
-  function tDays(days: string | null): string {
-    switch ((days || '').toLowerCase()) {
-      case 'no preference':        return t('admin.db.daysNoPreference')
-      case 'weekday mornings':     return t('admin.db.daysWeekdayMornings')
-      case 'weekday afternoons':   return t('admin.db.daysWeekdayAfternoons')
-      case 'as soon as possible':  return t('admin.db.daysAsSoonAsPossible')
-      default:                     return days || '—'
-    }
-  }
-
-  function tGender(gender: string | null): string {
-    switch ((gender || '').toLowerCase()) {
-      case 'male':   return t('request.genderMale')
-      case 'female': return t('request.genderFemale')
-      default:       return gender || t('admin.detail.notProvided')
-    }
-  }
-
-  function tTreatmentType(type: string): string {
-    switch (type) {
-      case 'Initial Examination / Consultation': return t('admin.db.treatmentInitialExam')
-      case 'Dental Cleaning':                    return t('admin.db.treatmentCleaning')
-      case 'Fillings':                           return t('admin.db.treatmentFillings')
-      case 'Tooth Extraction':                   return t('admin.db.treatmentExtraction')
-      case 'Root Canal Treatment':               return t('admin.db.treatmentRootCanal')
-      case 'Gum Treatment':                      return t('admin.db.treatmentGum')
-      case 'Prosthetics / Crowns':               return t('admin.db.treatmentProsthetics')
-      case 'Orthodontics':                       return t('admin.db.treatmentOrthodontics')
-      case 'Pediatric Dentistry':                return t('admin.db.treatmentPediatric')
-      case 'Esthetic Dentistry':                 return t('admin.db.treatmentEsthetic')
-      case "I'm not sure":                       return t('request.treatments.notSure')
-      case 'Other':                              return t('admin.db.treatmentOther')
-      default:                                   return type || '—'
-    }
-  }
-
-  function tDuration(duration: string | null): string {
-    switch ((duration || '').toLowerCase()) {
-      case 'today':                           return t('request.durationToday')
-      case 'a few days':                      return t('request.durationFewDays')
-      case '1-2 weeks':                       return t('request.durationOneToTwoWeeks')
-      case 'more than a month':               return t('request.durationMoreThanMonth')
-      case 'routine / no specific start date':return t('request.durationRoutineNoSpecificStart')
-      default:                                return duration || t('admin.detail.notProvided')
-    }
-  }
-
-  function tMedicalCondition(condition: string | null): string {
-    if (!condition) return t('admin.detail.notProvided')
-    const lower = condition.toLowerCase()
-    if (lower === 'none')             return t('request.medicalNone')
-    if (lower === 'diabetes')         return t('request.medicalDiabetes')
-    if (lower === 'pregnancy')        return t('request.medicalPregnancy')
-    if (lower === 'blood thinner use')return t('request.medicalBloodThinner')
-    if (lower === 'allergy')          return t('request.medicalAllergy')
-    if (lower.startsWith('other:'))   return `${t('request.medicalOther')}: ${condition.slice(7).trim()}`
-    if (lower === 'other')            return t('request.medicalOther')
-    return condition
-  }
-
-  function tContactMethod(method: string | null): string {
-    switch ((method || '').toLowerCase()) {
-      case 'whatsapp':   return t('request.contactMethodWhatsapp')
-      case 'phone call': return t('request.contactMethodPhone')
-      case 'sms':        return t('request.contactMethodSms')
-      default:           return method || t('admin.detail.notProvided')
-    }
-  }
-
-  function tContactTime(time: string | null): string {
-    switch ((time || '').toLowerCase()) {
-      case 'morning':   return t('request.contactTimeMorning')
-      case 'afternoon': return t('request.contactTimeAfternoon')
-      case 'evening':   return t('request.contactTimeEvening')
-      case 'anytime':   return t('request.contactTimeAnytime')
-      default:          return time || t('admin.detail.notProvided')
-    }
-  }
-
-  function tStudentReqStatus(status: string): string {
-    switch ((status || '').toLowerCase()) {
-      case 'pending':  return t('admin.db.studentReqPending')
-      case 'approved': return t('admin.db.studentReqApproved')
-      case 'rejected': return t('admin.db.studentReqRejected')
-      case 'revoked':  return t('admin.db.studentReqRevoked')
-      default:         return status
-    }
-  }
-
-  function activityLabel(entry: ActivityLogEntry): string {
-    switch (entry.type) {
-      case 'case_released':
-        return t('admin.detail.historyCaseReleased')
-      case 'student_request_submitted':
-        return t('admin.detail.historyStudentSubmitted')
-      case 'student_request_approved':
-        return t('admin.detail.historyStudentApproved')
-      case 'student_request_rejected':
-        return t('admin.detail.historyStudentRejected')
-      case 'student_request_revoked':
-        return t('admin.detail.historyStudentRevoked')
-      case 'rejection_undone':
-        return t('admin.detail.historyRejectionUndone')
-      case 'department_changed':
-        return t('admin.detail.historyDepartmentChanged')
-      case 'clinical_notes_updated':
-        return t('admin.detail.historyClinicalNotesUpdated')
-      case 'case_returned_to_pool':
-        return t('admin.detail.historyReturnedToPool')
-      case 'case_cancelled':
-        return t('admin.detail.historyCaseCancelled')
-      default:
-        return entry.type
-    }
-  }
-
   const [request, setRequest] = useState<PatientRequest>(initialRequest)
   const [errorMessage, setErrorMessage] = useState('')
   const [saving, setSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState('')
   const [openingFile, setOpeningFile] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [previewLoading, setPreviewLoading] = useState(!!request.attachment_path)
+  const [previewLoading, setPreviewLoading] = useState(!!request.attachment_file_id)
   const previewUrlExpiresAtRef = useRef(0)
   const saveSuccessTimeoutRef = useRef<number | null>(null)
 
@@ -520,6 +127,7 @@ export function CaseDetailClient({
   const [studentActionReason, setStudentActionReason] = useState('')
   const [pendingCancel, setPendingCancel] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
+  const [nextStageReason, setNextStageReason] = useState('')
   const [triageReason, setTriageReason] = useState('')
   const [pendingReturnToPool, setPendingReturnToPool] = useState(false)
   const [returnToPoolReason, setReturnToPoolReason] = useState('')
@@ -538,7 +146,7 @@ export function CaseDetailClient({
   const [isEditingTriage, setIsEditingTriage] = useState(false)
 
   useEffect(() => {
-    if (!request.attachment_path) {
+    if (!request.attachment_file_id) {
       previewUrlExpiresAtRef.current = 0
       const resetFrameId = window.requestAnimationFrame(() => {
         setPreviewUrl(null)
@@ -556,15 +164,33 @@ export function CaseDetailClient({
         setPreviewLoading(true)
       }
     })
-    supabase.storage
-      .from('patient-uploads')
-      .createSignedUrl(request.attachment_path, 3600)
-      .then(({ data }) => {
+
+    portalFetch('admin', `/api/v1/files/${request.attachment_file_id}/signed-url`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ purpose: 'preview' }),
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          return null
+        }
+        return (await response.json()) as SignedFileUrlResponse
+      })
+      .then((data) => {
         if (!cancelled) {
           setPreviewUrl(data?.signedUrl ?? null)
-          previewUrlExpiresAtRef.current = data?.signedUrl
-            ? Date.now() + PREVIEW_SIGNED_URL_TTL_MS
-            : 0
+          previewUrlExpiresAtRef.current = data?.expiresAt
+            ? new Date(data.expiresAt).getTime()
+            : data?.signedUrl
+              ? Date.now() + PREVIEW_SIGNED_URL_TTL_MS
+              : 0
+          setPreviewLoading(false)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPreviewUrl(null)
+          previewUrlExpiresAtRef.current = 0
           setPreviewLoading(false)
         }
       })
@@ -572,7 +198,7 @@ export function CaseDetailClient({
       cancelled = true
       window.cancelAnimationFrame(loadingFrameId)
     }
-  }, [request.attachment_path])
+  }, [request.attachment_file_id])
 
   useEffect(() => {
     return () => {
@@ -632,37 +258,8 @@ export function CaseDetailClient({
   const departmentChanged = assignedDepartment !== originalDepartment
   const departmentChangeWarning = !isTriagePhase && departmentChanged && ['student_approved', 'contacted', 'appointment_scheduled', 'in_treatment'].includes(currentStatus)
 
-  function getJourneyTone(kind: 'system' | 'appointment' | 'progress' | 'closure') {
-    switch (kind) {
-      case 'appointment':
-        return {
-          rail: 'bg-indigo-100',
-          icon: 'border-indigo-200 bg-indigo-50 text-indigo-700',
-          badge: 'bg-indigo-50 text-indigo-700 border-indigo-100',
-        }
-      case 'progress':
-        return {
-          rail: 'bg-purple-100',
-          icon: 'border-purple-200 bg-purple-50 text-purple-700',
-          badge: 'bg-purple-50 text-purple-700 border-purple-100',
-        }
-      case 'closure':
-        return {
-          rail: 'bg-emerald-100',
-          icon: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-          badge: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-        }
-      default:
-        return {
-          rail: 'bg-slate-100',
-          icon: 'border-slate-200 bg-slate-50 text-slate-600',
-          badge: 'bg-slate-50 text-slate-600 border-slate-100',
-        }
-    }
-  }
-
   async function handleViewAttachment() {
-    if (!request.attachment_path) return
+    if (!request.attachment_file_id) return
 
     if (
       previewUrl &&
@@ -675,20 +272,33 @@ export function CaseDetailClient({
     setOpeningFile(true)
     setErrorMessage('')
 
-    const { data, error } = await supabase.storage
-      .from('patient-uploads')
-      .createSignedUrl(request.attachment_path, 60)
+    let data: SignedFileUrlResponse | null = null
+    try {
+      const response = await portalFetch(
+        'admin',
+        `/api/v1/files/${request.attachment_file_id}/signed-url`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ purpose: 'download' }),
+        }
+      )
+
+      if (response.ok) {
+        data = (await response.json()) as SignedFileUrlResponse
+      }
+    } catch {
+      data = null
+    }
 
     setOpeningFile(false)
 
-    if (error) {
-      setErrorMessage(error.message)
+    if (!data?.signedUrl) {
+      setErrorMessage('Unable to open this attachment right now.')
       return
     }
 
-    if (data?.signedUrl) {
-      window.open(data.signedUrl, '_blank')
-    }
+    window.open(data.signedUrl, '_blank')
   }
 
   function showSaved(message: string) {
@@ -719,7 +329,7 @@ export function CaseDetailClient({
     setRequestActionId(requestId)
     setErrorMessage('')
 
-    const res = await fetch(`/api/admin/cases/${request.id}`, {
+    const res = await portalFetch('admin', `/api/admin/cases/${request.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action, request_id: requestId, reason }),
@@ -822,7 +432,7 @@ export function CaseDetailClient({
       return
     }
 
-    const res = await fetch(`/api/admin/cases/${request.id}`, {
+    const res = await portalFetch('admin', `/api/admin/cases/${request.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -888,7 +498,7 @@ export function CaseDetailClient({
     setSaving(true)
     setErrorMessage('')
 
-    const res = await fetch(`/api/admin/cases/${request.id}`, {
+    const res = await portalFetch('admin', `/api/admin/cases/${request.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -976,7 +586,7 @@ export function CaseDetailClient({
     setLifecycleLoading(true)
     setErrorMessage('')
 
-    const res = await fetch(`/api/admin/cases/${request.id}`, {
+    const res = await portalFetch('admin', `/api/admin/cases/${request.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action, reason }),
@@ -1017,11 +627,16 @@ export function CaseDetailClient({
       setErrorMessage(t('admin.detail.nextStageNotAllowed'))
       return
     }
+    const trimmedReason = nextStageReason.trim()
+    if (trimmedReason.length < 3) {
+      setErrorMessage(t('admin.detail.reasonRequired'))
+      return
+    }
 
     setLifecycleLoading(true)
     setErrorMessage('')
 
-    const res = await fetch(`/api/admin/cases/${request.id}`, {
+    const res = await portalFetch('admin', `/api/admin/cases/${request.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1030,6 +645,7 @@ export function CaseDetailClient({
         urgency: mapDetailToUrgency(urgencyLevel),
         target_student_level: targetStudentLevel,
         clinical_notes: clinicalNotes,
+        reason: trimmedReason,
       }),
     })
 
@@ -1092,6 +708,7 @@ export function CaseDetailClient({
       makeLogEntry('case_released', data.reviewed_at, assignedDepartment),
       ...prev,
     ])
+    setNextStageReason('')
     showSaved(t('admin.detail.nextStageReleased'))
   }
 
@@ -1099,7 +716,7 @@ export function CaseDetailClient({
     setSaving(true)
     setErrorMessage('')
 
-    const res = await fetch(`/api/admin/cases/${request.id}`, {
+    const res = await portalFetch('admin', `/api/admin/cases/${request.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1144,7 +761,7 @@ export function CaseDetailClient({
     setErrorMessage('')
     setPendingAction(null)
 
-    const res = await fetch(`/api/admin/cases/${request.id}`, {
+    const res = await portalFetch('admin', `/api/admin/cases/${request.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1193,7 +810,7 @@ export function CaseDetailClient({
     setErrorMessage('')
     setPendingAction(null)
 
-    const res = await fetch(`/api/admin/cases/${request.id}`, {
+    const res = await portalFetch('admin', `/api/admin/cases/${request.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'reject' }),
@@ -1224,111 +841,18 @@ export function CaseDetailClient({
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center gap-3">
-            <Image
-              src="/dentbridge-icon.webp"
-              alt="DentBridge icon"
-              width={40}
-              height={40}
-              className="h-10 w-10 object-contain"
-            />
-            <div>
-              <p className="text-lg font-bold leading-none text-slate-900">DentBridge</p>
-              <p className="text-[11px] uppercase tracking-wide text-slate-500">
-                {t('admin.shared.clinicalPlatform')}
-              </p>
-            </div>
-          </Link>
+    <main className="min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-slate-50 text-slate-900">
+      <AdminPortalHeader adminEmail={adminEmail} onSignOut={handleSignOut} />
 
-          <nav className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
-            <Link href="/admin" className="hover:text-slate-900">
-              {t('admin.shared.navDashboard')}
-            </Link>
-            <Link href="/admin/requests" className="text-slate-900">
-              {t('admin.shared.navTriageReview')}
-            </Link>
-          </nav>
-
-          <div className="flex items-center gap-3">
-            <LanguageSwitcher />
-            {adminEmail && (
-              <div className="hidden items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 sm:flex">
-                <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-teal-500" />
-                <span className="max-w-[200px] truncate">{adminEmail}</span>
-              </div>
-            )}
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              {t('admin.shared.signOut')}
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <section className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <Link
-            href="/admin/requests"
-            className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-900"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {t('admin.detail.backToReviewList')}
-          </Link>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-4xl font-bold tracking-tight text-slate-900">
-              {t('admin.detail.caseReviewPrefix')} {request.full_name}
-            </h1>
-            <span
-              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${getStatusBadgeClass(
-                request.status
-              )}`}
-            >
-              {tStatus(request.status)}
-            </span>
-          </div>
-
-          <div className="mt-3 flex flex-wrap items-center gap-4">
-            <p className="inline-block rounded-md bg-slate-100 px-2 py-1 font-mono text-sm text-slate-700">
-              {t('admin.detail.refLabel')} {request.id.slice(0, 8)}
-            </p>
-            <span className="flex items-center gap-1.5 text-sm text-slate-500">
-              <Calendar className="h-4 w-4 text-slate-400" />
-              {formatReviewDate(request.created_at)}
-            </span>
-            <span className="flex items-center gap-1.5 text-sm font-medium text-amber-600">
-              <Clock className="h-4 w-4" />
-              {waitingDays(request.created_at)}
-            </span>
-          </div>
-
-          <div className="mt-5 flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white/80 p-3 shadow-sm">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600">
-              <span className="text-slate-400">{t('admin.detail.assignDeptLabel')}</span>
-              <span className="font-semibold text-slate-900">{tDepartment(assignedDepartment)}</span>
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-100 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">
-              <span className="text-amber-500/80">{t('admin.detail.urgencyLabel')}</span>
-              <span className="font-semibold">{tUrgency(mapDetailToUrgency(urgencyLevel))}</span>
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-100 bg-teal-50 px-3 py-1.5 text-xs font-medium text-teal-700">
-              <span className="font-semibold">{tStatus(request.status)}</span>
-            </span>
-            {targetStudentLevel && (
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-800">
-                <span className="text-blue-500/80">{t('admin.detail.studentLevelLabel')}</span>
-                <span className="font-semibold">{tStudentLevel(targetStudentLevel)}</span>
-              </span>
-            )}
-          </div>
-        </div>
+      <section className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+        <CaseHeroSection
+          request={request}
+          assignedDepartment={assignedDepartment}
+          urgencyLevel={urgencyLevel}
+          targetStudentLevel={targetStudentLevel}
+          formatReviewDate={formatReviewDate}
+          waitingDays={waitingDays}
+        />
 
         {errorMessage && (
           <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
@@ -1336,1058 +860,139 @@ export function CaseDetailClient({
           </div>
         )}
 
-        <div className="grid items-start gap-6 md:grid-cols-3">
-          <div className="space-y-6 md:col-span-2">
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="mb-6 border-b border-slate-100 pb-4 text-xl font-bold text-slate-900">
-                {t('admin.detail.patientProfileTitle')}
-              </h3>
+        <div className="grid min-w-0 items-start gap-6 md:grid-cols-3">
+          <div className="min-w-0 space-y-6 md:col-span-2">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+              <PatientSummarySection
+                request={request}
+                attachmentLabel={attachmentLabel}
+                previewUrl={previewUrl}
+                previewLoading={previewLoading}
+                openingFile={openingFile}
+                onViewAttachment={handleViewAttachment}
+              />
 
-              <div className="mb-8 grid grid-cols-2 gap-x-8 gap-y-5">
-                <div>
-                  <p className="mb-1 text-xs text-slate-500">{t('admin.detail.ageLabel')}</p>
-                  <p className="font-medium text-slate-900">{request.age ?? '—'}</p>
-                </div>
-
-                <div>
-                  <p className="mb-1 text-xs text-slate-500">{t('admin.detail.phoneLabel')}</p>
-                  <p className="flex items-center gap-1.5 font-medium text-slate-900">
-                    <Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                    {request.phone}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="mb-1 text-xs text-slate-500">{t('admin.detail.langLabel')}</p>
-                  <p className="font-medium text-slate-900">
-                    {tLanguage(request.preferred_language)}
-                  </p>
-                </div>
-
-                <div className="col-span-2">
-                  <p className="mb-1 text-xs text-slate-500">{t('admin.detail.availabilityLabel')}</p>
-                  <p className="font-medium text-slate-900">{tDays(request.preferred_days)}</p>
-                </div>
-
-                <div className="col-span-2">
-                  <p className="mb-1 text-xs text-slate-500">{t('admin.detail.complaintLabel')}</p>
-                  <p className="rounded-lg border border-slate-100 bg-slate-50 p-3 font-medium text-slate-900">
-                    {request.complaint_text}
-                  </p>
-                </div>
-              </div>
-
-              {/* Full Patient Submission */}
-              <div className="mb-8 border-t border-slate-100 pt-6">
-                <h3 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">
-                  {t('admin.detail.fullSubmissionTitle')}
-                </h3>
-                <div className="grid grid-cols-2 gap-x-8 gap-y-5">
-                  <div>
-                    <p className="mb-1 text-xs text-slate-500">{t('admin.detail.fullNameLabel')}</p>
-                    <p className="font-medium text-slate-900">{request.full_name}</p>
-                  </div>
-
-                  <div>
-                    <p className="mb-1 text-xs text-slate-500">{t('admin.detail.genderLabel')}</p>
-                    <p className="font-medium text-slate-900">{tGender(request.gender)}</p>
-                  </div>
-
-                  <div>
-                    <p className="mb-1 text-xs text-slate-500">{t('admin.detail.treatmentTypeLabel')}</p>
-                    <p className="font-medium text-slate-900">{tTreatmentType(request.treatment_type)}</p>
-                  </div>
-
-                  <div>
-                    <p className="mb-1 text-xs text-slate-500">{t('admin.detail.painScoreLabel')}</p>
-                    <p className="font-medium text-slate-900">
-                      {request.pain_score !== null && request.pain_score !== undefined
-                        ? String(request.pain_score)
-                        : t('admin.detail.notProvided')}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="mb-1 text-xs text-slate-500">{t('admin.detail.symptomDurationLabel')}</p>
-                    <p className="font-medium text-slate-900">{tDuration(request.symptom_duration)}</p>
-                  </div>
-
-                  <div>
-                    <p className="mb-1 text-xs text-slate-500">{t('admin.detail.medicalConditionLabel')}</p>
-                    <p className="font-medium text-slate-900">{tMedicalCondition(request.medical_condition)}</p>
-                  </div>
-
-                  <div>
-                    <p className="mb-1 text-xs text-slate-500">{t('admin.detail.contactMethodLabel')}</p>
-                    <p className={`font-medium ${request.contact_method ? 'text-slate-900' : 'text-slate-400'}`}>
-                      {tContactMethod(request.contact_method)}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="mb-1 text-xs text-slate-500">{t('admin.detail.bestContactTimeLabel')}</p>
-                    <p className={`font-medium ${request.best_contact_time ? 'text-slate-900' : 'text-slate-400'}`}>
-                      {tContactTime(request.best_contact_time)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mb-8 border-t border-slate-100 pt-6">
-                <h3 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">
-                  {t('admin.detail.uploadedImagesTitle')}
-                </h3>
-
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-                    {!request.attachment_path ? (
-                      <div className="flex aspect-video items-center justify-center">
-                        <p className="px-4 text-center text-xs text-slate-400">{t('admin.detail.noUploadedImage')}</p>
-                      </div>
-                    ) : previewLoading ? (
-                      <div className="flex aspect-video items-center justify-center">
-                        <span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-slate-600" />
-                      </div>
-                    ) : previewUrl ? (
-                      <>
-                        {/* eslint-disable-next-line @next/next/no-img-element -- Signed upload preview URLs are short-lived and may not match static Next image remote patterns. */}
-                        <img
-                          src={previewUrl}
-                          alt={attachmentLabel}
-                          className="aspect-video w-full object-contain"
-                        />
-                      </>
-                    ) : (
-                      <div className="flex aspect-video items-center justify-center">
-                        <p className="px-4 text-center text-xs text-slate-500">{attachmentLabel}</p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    {request.attachment_path ? (
-                      <p className="min-w-0 truncate text-xs text-slate-400">{attachmentLabel}</p>
-                    ) : (
-                      <p className="text-xs text-slate-400">{t('admin.detail.noUploadedImage')}</p>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={handleViewAttachment}
-                      disabled={!request.attachment_path || openingFile}
-                      className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {openingFile ? t('admin.detail.openingFile') : t('admin.detail.viewFullScreen')}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <section
-                aria-labelledby="faculty-triage-title"
-                className="rounded-2xl border border-blue-100 bg-blue-50/40 p-5 shadow-sm ring-1 ring-blue-100/70"
-              >
-                <div className="mb-5 flex flex-col gap-3 border-b border-blue-100 pb-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-900 text-white shadow-sm">
-                      <ShieldCheck className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <h3 id="faculty-triage-title" className="text-xl font-bold text-slate-950">
-                        {t('admin.detail.triageTitle')}
-                      </h3>
-                    </div>
-                  </div>
-                  <span
-                    className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide ${
-                      isTerminal
-                        ? 'border-slate-200 bg-white text-slate-500'
-                        : isTriagePhase
-                        ? 'border-blue-200 bg-white text-blue-900'
-                        : 'border-teal-200 bg-white text-teal-700'
-                    }`}
-                  >
-                    {tStatus(request.status)}
-                  </span>
-                </div>
-
-                {isTerminal && (
-                  <div className="mb-5 rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-500">
-                    {(request.status || '').toLowerCase() === 'matched'
-                      ? t('admin.detail.triageReleasedNote')
-                      : t('admin.detail.triageClosedNote')}
-                  </div>
-                )}
-
-                {!isTriagePhase && canEditTriage && !isEditingTriage && (
-                  <div className="mb-5 flex justify-end">
-                    <button
-                      type="button"
-                      onClick={() => setIsEditingTriage(true)}
-                      className="rounded-xl border border-blue-100 bg-white px-4 py-2 text-sm font-semibold text-blue-900 transition hover:bg-blue-50"
-                    >
-                      {t('admin.detail.editCase')}
-                    </button>
-                  </div>
-                )}
-
-                <div className="space-y-5">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <label className="text-sm font-semibold text-slate-700">
-                        {t('admin.detail.assignDeptLabel')}{' '}
-                        <span className="text-xs font-normal text-slate-400">
-                          {t('admin.detail.assignDeptHint')}
-                        </span>
-                      </label>
-                      <select
-                        value={assignedDepartment}
-                        onChange={(e) => setAssignedDepartment(e.target.value)}
-                        disabled={saving || (!isTriagePhase && !isEditingTriage)}
-                        className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-900/10 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
-                      >
-                        {departmentOptions.map((dept) => (
-                          <option key={dept} value={dept}>
-                            {tDepartment(dept)}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-700">
-                      {t('admin.detail.urgencyLabel')}
-                    </label>
-                    <select
-                      value={urgencyLevel}
-                      onChange={(e) => setUrgencyLevel(e.target.value)}
-                      disabled={saving || (!isTriagePhase && !isEditingTriage)}
-                      className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-900/10 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
-                    >
-                      <option value="High (Emergency / Severe Pain)">{t('admin.detail.urgencyHighOption')}</option>
-                      <option value="Medium (Discomfort)">{t('admin.detail.urgencyMediumOption')}</option>
-                      <option value="Low (Routine)">{t('admin.detail.urgencyLowOption')}</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-700">
-                    {t('admin.detail.studentLevelLabel')}
-                  </label>
-                  <select
-                    value={targetStudentLevel}
-                    onChange={(e) => setTargetStudentLevel(e.target.value)}
-                    disabled={saving || (!isTriagePhase && !isEditingTriage)}
-                    className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-900/10 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
-                  >
-                    {studentLevelOptions.map((opt) => (
-                      <option key={opt} value={opt}>
-                        {tStudentLevel(opt)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-700">
-                    {t('admin.detail.clinicalNotesLabel')}
-                  </label>
-                  <textarea
-                    value={clinicalNotes}
-                    onChange={(e) => setClinicalNotes(e.target.value)}
-                    disabled={saving || (!isTriagePhase && !isEditingTriage)}
-                    placeholder={t('admin.detail.clinicalNotesPlaceholder')}
-                    className="min-h-[110px] w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-900/10 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
-                  />
-                </div>
-
-                {!isTriagePhase && canEditTriage && departmentChanged && (
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                    {departmentChangeWarning
-                      ? t('admin.detail.deptChangeWarningAssigned')
-                      : t('admin.detail.deptChangeWarningGeneral')}
-                  </div>
-                )}
-
-                {departmentChanged && (
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-700">
-                      {t('admin.detail.reasonLabel')} *
-                    </label>
-                    <input
-                      type="text"
-                      value={triageReason}
-                      onChange={(e) => setTriageReason(e.target.value)}
-                      placeholder={t('admin.detail.reasonPlaceholder')}
-                      className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-900 focus:ring-2 focus:ring-blue-900/10"
-                    />
-                  </div>
-                )}
-              </div>
-
-                <div className="mt-6 rounded-xl border border-blue-100 bg-white/80 p-4">
-                  {saveSuccess && (
-                    <p className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-700">
-                      {saveSuccess}
-                    </p>
-                  )}
-
-                {isTriagePhase ? pendingAction === 'reject' ? (
-                  <div className="rounded-xl border border-red-200 bg-red-50 p-4">
-                    <p className="mb-3 text-sm font-semibold text-red-800">
-                      {t('admin.detail.rejectConfirmTitle')}
-                    </p>
-                    <p className="mb-4 text-sm text-red-700">
-                      {t('admin.detail.rejectConfirmDesc')}
-                    </p>
-                    <div className="flex flex-col gap-3 sm:flex-row">
-                      <button
-                        type="button"
-                        onClick={() => setPendingAction(null)}
-                        disabled={saving}
-                        className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
-                      >
-                        {t('admin.detail.cancel')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={confirmReject}
-                        disabled={saving}
-                        className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
-                      >
-                        {saving ? t('admin.detail.rejecting') : t('admin.detail.confirmReject')}
-                      </button>
-                    </div>
-                  </div>
-                ) : pendingAction === 'approve' ? (
-                  <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
-                    <p className="mb-3 text-sm font-semibold text-blue-900">
-                      {t('admin.detail.releaseConfirmTitle')}
-                    </p>
-                    <ul className="mb-4 space-y-1 text-sm text-blue-800">
-                      <li>
-                        {t('admin.detail.releaseDeptLabel')} <strong>{tDepartment(assignedDepartment)}</strong>
-                      </li>
-                      <li>
-                        {t('admin.detail.releaseUrgencyLabel')} <strong>{tUrgency(mapDetailToUrgency(urgencyLevel))}</strong>
-                      </li>
-                      <li>
-                        {t('admin.detail.releaseStudentLevelLabel')} <strong>{tStudentLevel(targetStudentLevel)}</strong>
-                      </li>
-                    </ul>
-                    <div className="flex flex-col gap-3 sm:flex-row">
-                      <button
-                        type="button"
-                        onClick={() => setPendingAction(null)}
-                        disabled={saving}
-                        className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
-                      >
-                        {t('admin.detail.cancel')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={confirmApprove}
-                        disabled={saving}
-                        className="rounded-xl bg-blue-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:opacity-60"
-                      >
-                        {saving ? t('admin.detail.releasing') : t('admin.detail.confirmRelease')}
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                    <button
-                      type="button"
-                      onClick={handleSaveDraft}
-                      disabled={saving}
-                      className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
-                    >
-                      {t('admin.detail.saveDraft')}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setPendingAction('reject')}
-                      disabled={saving}
-                      className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
-                    >
-                      {t('admin.detail.rejectOutOfScope')}
-                    </button>
-
-                    <div className="sm:ml-auto">
-                      <button
-                        type="button"
-                        onClick={() => setPendingAction('approve')}
-                        disabled={saving}
-                        className="w-full rounded-xl bg-blue-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:opacity-60 sm:w-auto"
-                      >
-                        {t('admin.detail.approveReleaseToPool')}
-                      </button>
-                    </div>
-                  </div>
-                ) : canEditTriage && isEditingTriage ? (
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        resetTriageForm()
-                        setIsEditingTriage(false)
-                        setPendingReturnToPool(false)
-                        setReturnToPoolReason('')
-                      }}
-                      disabled={saving}
-                      className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
-                    >
-                      {t('admin.detail.cancel')}
-                    </button>
-
-                    {canReturnToPool && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPendingReturnToPool(true)
-                          setReturnToPoolReason('')
-                          setErrorMessage('')
-                        }}
-                        disabled={saving}
-                        className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-800 transition hover:bg-amber-100 disabled:opacity-60"
-                      >
-                        {t('admin.detail.returnToPoolButton')}
-                      </button>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={handleUpdateTriage}
-                      disabled={saving}
-                      className="rounded-xl bg-blue-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:opacity-60"
-                    >
-                      {saving ? '…' : t('admin.detail.updateTriage')}
-                    </button>
-                  </div>
-                ) : null}
-
-                {canEditTriage && isEditingTriage && pendingReturnToPool && (
-                  <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
-                    <p className="mb-2 text-sm font-semibold text-amber-900">
-                      {t('admin.detail.returnToPoolConfirmTitle')}
-                    </p>
-                    <p className="mb-2 text-sm text-amber-800">
-                      {t('admin.detail.returnToPoolConfirmDesc')}
-                    </p>
-                    <p className="mb-3 text-sm text-amber-700">
-                      {t('admin.detail.returnToPoolWarning')}
-                    </p>
-                    <label className="mb-2 block text-sm font-semibold text-amber-900">
-                      {t('admin.detail.returnToPoolReasonLabel')} *
-                    </label>
-                    <input
-                      type="text"
-                      value={returnToPoolReason}
-                      onChange={(e) => setReturnToPoolReason(e.target.value)}
-                      placeholder={t('admin.detail.returnToPoolReasonPlaceholder')}
-                      className="h-11 w-full rounded-lg border border-amber-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-amber-500"
-                    />
-                    <div className="mt-4 flex gap-3">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPendingReturnToPool(false)
-                          setReturnToPoolReason('')
-                        }}
-                        disabled={saving}
-                        className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
-                      >
-                        {t('admin.detail.cancel')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleReturnToPool}
-                        disabled={saving || !returnToPoolReason.trim()}
-                        className="rounded-xl bg-amber-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-800 disabled:opacity-60"
-                      >
-                        {saving
-                          ? t('admin.detail.returningToPool')
-                          : t('admin.detail.confirmReturnToPool')}
-                      </button>
-                    </div>
-                  </div>
-                  )}
-                </div>
-              </section>
+              <TriagePanel
+                status={request.status}
+                isTerminal={isTerminal}
+                isTriagePhase={isTriagePhase}
+                canEditTriage={canEditTriage}
+                isEditingTriage={isEditingTriage}
+                canReturnToPool={canReturnToPool}
+                departmentChanged={departmentChanged}
+                departmentChangeWarning={departmentChangeWarning}
+                saving={saving}
+                saveSuccess={saveSuccess}
+                pendingAction={pendingAction}
+                pendingReturnToPool={pendingReturnToPool}
+                assignedDepartment={assignedDepartment}
+                urgencyLevel={urgencyLevel}
+                targetStudentLevel={targetStudentLevel}
+                clinicalNotes={clinicalNotes}
+                triageReason={triageReason}
+                returnToPoolReason={returnToPoolReason}
+                onAssignedDepartmentChange={setAssignedDepartment}
+                onUrgencyLevelChange={setUrgencyLevel}
+                onTargetStudentLevelChange={setTargetStudentLevel}
+                onClinicalNotesChange={setClinicalNotes}
+                onTriageReasonChange={setTriageReason}
+                onReturnToPoolReasonChange={setReturnToPoolReason}
+                onPendingActionChange={setPendingAction}
+                onStartEditTriage={() => setIsEditingTriage(true)}
+                onCancelEditTriage={() => {
+                  resetTriageForm()
+                  setIsEditingTriage(false)
+                  setPendingReturnToPool(false)
+                  setReturnToPoolReason('')
+                }}
+                onStartReturnToPool={() => {
+                  setPendingReturnToPool(true)
+                  setReturnToPoolReason('')
+                  setErrorMessage('')
+                }}
+                onCancelReturnToPool={() => {
+                  setPendingReturnToPool(false)
+                  setReturnToPoolReason('')
+                }}
+                onSaveDraft={handleSaveDraft}
+                onConfirmApprove={confirmApprove}
+                onConfirmReject={confirmReject}
+                onUpdateTriage={handleUpdateTriage}
+                onReturnToPool={handleReturnToPool}
+              />
             </div>
           </div>
 
-          <div className="space-y-6">
-            {/* Faculty Review Record */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="mb-4 flex items-center gap-2">
-                <Clock className="h-4 w-4 shrink-0 text-slate-400" />
-                <h3 className="text-sm font-bold text-slate-900">{t('admin.detail.reviewRecordTitle')}</h3>
-              </div>
+          <div className="min-w-0 space-y-6">
+            <ReviewRecordCard
+              reviewedBy={request.reviewed_by}
+              reviewedAt={request.reviewed_at}
+              formatReviewDate={formatReviewDate}
+            />
 
-              {request.reviewed_by || request.reviewed_at ? (
-                <div className="space-y-3 text-sm">
-                  <div>
-                    <p className="text-xs text-slate-500">{t('admin.detail.reviewedByLabel')}</p>
-                    <p className="break-all font-medium text-slate-900">
-                      {request.reviewed_by ?? '—'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">{t('admin.detail.lastReviewedLabel')}</p>
-                    <p className="font-medium text-slate-900">
-                      {formatReviewDate(request.reviewed_at)}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-slate-400">
-                  {t('admin.detail.noReviewYet')}
-                </p>
-              )}
-            </div>
+            <TreatmentJourneyPanel
+              items={treatmentJourney}
+              formatReviewDate={formatReviewDate}
+              formatDateOnly={formatDateOnly}
+              formatTimeOnly={formatTimeOnly}
+            />
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <h3 className="text-sm font-bold text-slate-900">
-                  {t('admin.detail.treatmentJourneyTitle')}
-                </h3>
-                {treatmentJourney.length > 0 && (
-                  <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-semibold text-slate-500">
-                    {treatmentJourney.length}
-                  </span>
-                )}
-              </div>
-
-              {treatmentJourney.length === 0 ? (
-                <p className="text-sm text-slate-400">{t('admin.detail.treatmentJourneyEmpty')}</p>
-              ) : (
-                <div className="max-h-[520px] space-y-2.5 overflow-y-auto pr-1">
-                  {treatmentJourney.map((item, index) => {
-                    const tone = getJourneyTone(item.kind)
-                    const detailText =
-                      (item.titleKey === 'admin.detail.journeyFacultyReviewed' ||
-                        item.kind === 'closure') &&
-                      item.detail
-                        ? tStatus(item.detail)
-                        : item.detail
-                    const kindLabel =
-                      item.kind === 'appointment'
-                        ? t('admin.detail.journeyKindAppointment')
-                        : item.kind === 'progress'
-                        ? t('admin.detail.journeyKindProgress')
-                        : item.kind === 'closure'
-                        ? t('admin.detail.journeyKindClosure')
-                        : t('admin.detail.journeyKindSystem')
-
-                    return (
-                      <div key={item.id} className="relative flex gap-2.5">
-                        {index < treatmentJourney.length - 1 && (
-                          <div
-                            className={`absolute left-[13px] top-7 h-[calc(100%+0.35rem)] w-px ${tone.rail}`}
-                            aria-hidden="true"
-                          />
-                        )}
-                        <div
-                          className={`relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border ${tone.icon}`}
-                        >
-                          {item.kind === 'appointment' ? (
-                            <Calendar className="h-3.5 w-3.5" />
-                          ) : item.kind === 'progress' ? (
-                            <Clock className="h-3.5 w-3.5" />
-                          ) : item.kind === 'closure' &&
-                            ['rejected', 'cancelled'].includes((item.detail || '').toLowerCase()) ? (
-                            <XCircle className="h-3.5 w-3.5" />
-                          ) : item.kind === 'closure' ? (
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                          ) : (
-                            <ShieldCheck className="h-3.5 w-3.5" />
-                          )}
-                        </div>
-
-                        <div className="min-w-0 flex-1 rounded-lg border border-slate-100 bg-slate-50/80 px-3 py-2">
-                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                            <p className="min-w-0 flex-1 text-sm font-medium leading-snug text-slate-900">
-                              {t(item.titleKey)}
-                            </p>
-                            <span
-                              className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${tone.badge}`}
-                            >
-                              {kindLabel}
-                            </span>
-                          </div>
-                          <p className="mt-0.5 text-xs text-slate-400">
-                            {item.appointmentDate
-                              ? `${formatDateOnly(item.appointmentDate)}${
-                                  item.appointmentTime ? ` · ${formatTimeOnly(item.appointmentTime)}` : ''
-                                }`
-                              : formatReviewDate(item.occurredAt)}
-                          </p>
-
-                          {detailText && (
-                            <p className="mt-1 break-words text-xs leading-snug text-slate-600">{detailText}</p>
-                          )}
-                          {item.actor && (
-                            <p className="mt-1 text-xs text-slate-400">
-                              {t('admin.detail.journeyActorLabel')} {item.actor}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-
-            <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <h3 className="text-sm font-semibold text-slate-700">
-                  {t('admin.detail.historyTitle')}
-                </h3>
-                {sortedActivityLog.length > 0 && (
-                  <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-400">
-                    {sortedActivityLog.length}
-                  </span>
-                )}
-              </div>
-
-              {sortedActivityLog.length === 0 ? (
-                <p className="text-sm text-slate-400">{t('admin.detail.historyEmpty')}</p>
-              ) : (
-                <div className="space-y-2">
-                  {sortedActivityLog.map((entry) => {
-                    const detailText =
-                      entry.type === 'case_released' || entry.type === 'department_changed'
-                        ? entry.detail
-                          ? tDepartment(entry.detail)
-                          : null
-                        : entry.detail
-
-                    return (
-                      <div key={entry.id} className="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2">
-                        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                          <p className="text-xs font-semibold text-slate-700">
-                            {activityLabel(entry)}
-                          </p>
-                          <p className="text-[11px] text-slate-400">
-                            {formatReviewDate(entry.timestamp)}
-                          </p>
-                        </div>
-                        {detailText && (
-                          <p className="mt-1 break-words text-xs leading-snug text-slate-500">{detailText}</p>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-
+            <ActivityLogPanel
+              entries={sortedActivityLog}
+              formatReviewDate={formatReviewDate}
+            />
           </div>
         </div>
 
         {/* Lifecycle actions — visible once the case is in the post-pool phase */}
         {(isLifecyclePhase || isClosed) && (
-          <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="mb-5 text-lg font-bold text-slate-900">{t('admin.detail.lifecycleTitle')}</h3>
-
-            {/* Status trail */}
-            <div className="mb-6 grid grid-cols-2 gap-x-8 gap-y-4 text-sm sm:grid-cols-4">
-              {[
-                { key: 'matched',               label: t('admin.detail.stepReleasedToPool') },
-                { key: 'student_approved',       label: t('admin.detail.stepStudentAssigned') },
-                { key: 'contacted',              label: t('admin.detail.stepPatientContacted') },
-                { key: 'appointment_scheduled',  label: t('admin.detail.stepApptScheduled') },
-                { key: 'in_treatment',           label: t('admin.detail.stepInTreatment') },
-                { key: 'faculty_review',         label: t('admin.detail.stepFacultyReview') },
-                { key: 'completed',              label: t('admin.detail.stepCompleted') },
-                { key: 'cancelled',              label: t('admin.detail.stepCancelled') },
-              ].map((step) => {
-                const reached =
-                  STATUS_ORDER.indexOf(currentStatus) >= STATUS_ORDER.indexOf(step.key) ||
-                  (currentStatus === 'cancelled' && step.key === 'cancelled') ||
-                  (currentStatus === 'completed' && step.key === 'completed')
-                return (
-                  <div key={step.key} className="flex items-center gap-2">
-                    {currentStatus === step.key ? (
-                      <div className="h-2 w-2 shrink-0 rounded-full border-2 border-teal-500 bg-white" />
-                    ) : reached ? (
-                      <div className="h-2 w-2 shrink-0 rounded-full bg-teal-500" />
-                    ) : (
-                      <div className="h-2 w-2 shrink-0 rounded-full bg-slate-200" />
-                    )}
-                    <span
-                      className={`text-xs font-medium ${
-                        currentStatus === step.key
-                          ? 'text-teal-700'
-                          : reached
-                          ? 'text-slate-600'
-                          : 'text-slate-400'
-                      }`}
-                    >
-                      {step.label}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-
-            {/* Action buttons */}
-            {isLifecyclePhase && (
-              <>
-                <div className="flex flex-wrap gap-3 border-t border-slate-100 pt-5">
-                {currentStatus === 'student_approved' && (
-                  <button
-                    type="button"
-                    onClick={() => handleLifecycleAction('mark_contacted')}
-                    disabled={lifecycleLoading}
-                    className="rounded-xl bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:opacity-60"
-                  >
-                    {lifecycleLoading ? '…' : t('admin.detail.markContacted')}
-                  </button>
-                )}
-                {currentStatus === 'contacted' && (
-                  <button
-                    type="button"
-                    onClick={() => handleLifecycleAction('mark_appointment_scheduled')}
-                    disabled={lifecycleLoading}
-                    className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60"
-                  >
-                    {lifecycleLoading ? '…' : t('admin.detail.markApptScheduled')}
-                  </button>
-                )}
-                {currentStatus === 'appointment_scheduled' && (
-                  <button
-                    type="button"
-                    onClick={() => handleLifecycleAction('mark_in_treatment')}
-                    disabled={lifecycleLoading}
-                    className="rounded-xl bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-purple-700 disabled:opacity-60"
-                  >
-                    {lifecycleLoading ? '…' : t('admin.detail.markInTreatment')}
-                  </button>
-                )}
-                {currentStatus === 'in_treatment' && (
-                  <button
-                    type="button"
-                    onClick={() => handleLifecycleAction('mark_completed')}
-                    disabled={lifecycleLoading}
-                    className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
-                  >
-                    {lifecycleLoading ? '…' : t('admin.detail.markCompleted')}
-                  </button>
-                )}
-                {currentStatus === 'faculty_review' && (
-                  <div className="w-full rounded-xl border border-amber-200 bg-amber-50 p-4">
-                    <p className="text-sm font-semibold text-amber-900">
-                      {t('admin.detail.stageReviewActionsTitle')}
-                    </p>
-                    <p className="mt-1 text-sm text-amber-800">
-                      {t('admin.detail.stageReviewActionsDesc')}
-                    </p>
-                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                      <div className="rounded-xl border border-amber-200 bg-white p-4">
-                        <p className="text-sm font-semibold text-slate-900">
-                          {t('admin.detail.releaseNextStageTitle')}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          {t('admin.detail.releaseNextStageDesc')}
-                        </p>
-                        <div className="mt-3 space-y-3">
-                          <select
-                            value={assignedDepartment}
-                            onChange={(event) => setAssignedDepartment(event.target.value)}
-                            disabled={lifecycleLoading}
-                            className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-blue-900"
-                          >
-                            {departmentOptions.map((dept) => (
-                              <option key={dept} value={dept}>
-                                {tDepartment(dept)}
-                              </option>
-                            ))}
-                          </select>
-                          <select
-                            value={targetStudentLevel}
-                            onChange={(event) => setTargetStudentLevel(event.target.value)}
-                            disabled={lifecycleLoading}
-                            className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-blue-900"
-                          >
-                            {studentLevelOptions.map((opt) => (
-                              <option key={opt} value={opt}>
-                                {tStudentLevel(opt)}
-                              </option>
-                            ))}
-                          </select>
-                          <button
-                            type="button"
-                            onClick={handleReleaseNextStage}
-                            disabled={lifecycleLoading}
-                            className="w-full rounded-xl bg-blue-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:opacity-60"
-                          >
-                            {lifecycleLoading ? '…' : t('admin.detail.releaseNextStageButton')}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="rounded-xl border border-emerald-200 bg-white p-4">
-                        <p className="text-sm font-semibold text-slate-900">
-                          {t('admin.detail.markFullCompletedTitle')}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          {t('admin.detail.markFullCompletedDesc')}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => handleLifecycleAction('mark_completed')}
-                          disabled={lifecycleLoading}
-                          className="mt-3 w-full rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
-                        >
-                          {lifecycleLoading ? '…' : t('admin.detail.markFullCompletedButton')}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <div className="ml-auto">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPendingCancel(true)
-                      setCancelReason('')
-                    }}
-                    disabled={lifecycleLoading}
-                    className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-60"
-                  >
-                    {t('admin.detail.markCancelled')}
-                  </button>
-                </div>
-                </div>
-
-                {pendingCancel && (
-                <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4">
-                  <p className="mb-2 text-sm font-semibold text-red-800">
-                    {t('admin.detail.cancelCaseConfirmTitle')}
-                  </p>
-                  <p className="mb-3 text-sm text-red-700">
-                    {t('admin.detail.cancelCaseWarning')}
-                  </p>
-                  <label className="mb-2 block text-sm font-semibold text-red-800">
-                    {t('admin.detail.reasonLabel')} *
-                  </label>
-                  <input
-                    type="text"
-                    value={cancelReason}
-                    onChange={(e) => setCancelReason(e.target.value)}
-                    placeholder={t('admin.detail.reasonPlaceholder')}
-                    className="h-11 w-full rounded-lg border border-red-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-red-500"
-                  />
-                  <div className="mt-4 flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPendingCancel(false)
-                        setCancelReason('')
-                      }}
-                      disabled={lifecycleLoading}
-                      className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
-                    >
-                      {t('admin.detail.cancel')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleLifecycleAction('mark_cancelled', cancelReason.trim())}
-                      disabled={lifecycleLoading || !cancelReason.trim()}
-                      className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
-                    >
-                      {lifecycleLoading ? t('admin.detail.cancelling') : t('admin.detail.confirmCancelCase')}
-                    </button>
-                  </div>
-                </div>
-              )}
-              </>
-            )}
-
-            {isClosed && (
-              <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-                {currentStatus === 'completed' ? (
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
-                ) : (
-                  <XCircle className="h-4 w-4 shrink-0 text-slate-400" />
-                )}
-                {currentStatus === 'completed'
-                  ? t('admin.detail.closedCompleted')
-                  : currentStatus === 'cancelled'
-                  ? t('admin.detail.closedCancelledMsg')
-                  : t('admin.detail.closedGenericMsg')}
-              </div>
-            )}
-          </div>
+          <LifecyclePanel
+            currentStatus={currentStatus}
+            isLifecyclePhase={isLifecyclePhase}
+            isClosed={isClosed}
+            lifecycleLoading={lifecycleLoading}
+            pendingCancel={pendingCancel}
+            cancelReason={cancelReason}
+            nextStageReason={nextStageReason}
+            assignedDepartment={assignedDepartment}
+            targetStudentLevel={targetStudentLevel}
+            onAssignedDepartmentChange={setAssignedDepartment}
+            onTargetStudentLevelChange={setTargetStudentLevel}
+            onCancelReasonChange={setCancelReason}
+            onNextStageReasonChange={setNextStageReason}
+            onStartCancel={() => {
+              setPendingCancel(true)
+              setCancelReason('')
+            }}
+            onDismissCancel={() => {
+              setPendingCancel(false)
+              setCancelReason('')
+            }}
+            onLifecycleAction={handleLifecycleAction}
+            onReleaseNextStage={handleReleaseNextStage}
+          />
         )}
 
         {/* Student Requests — visible when case is in pool or requests exist */}
         {(isLifecyclePhase || isClosed || studentRequests.length > 0) && (
-          <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-slate-900">{t('admin.detail.studentRequestsTitle')}</h3>
-              {studentRequests.length > 0 && (
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                  {studentRequests.length}{' '}
-                  {studentRequests.length === 1
-                    ? t('admin.detail.studentRequestCountSuffix')
-                    : t('admin.detail.studentRequestsCountSuffix')}
-                </span>
-              )}
-            </div>
-
-            {studentRequests.length === 0 ? (
-              <p className="text-sm text-slate-400">
-                {t('admin.detail.noStudentRequests')}
-              </p>
-            ) : (
-              <div className="divide-y divide-slate-100">
-                {studentRequests.map((req) => (
-                  <div
-                    key={req.id}
-                    className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-slate-900">
-                        {req.student_email}
-                      </p>
-                      <p className="mt-0.5 text-xs text-slate-400">
-                        {t('admin.detail.requestedAtLabel')} {formatReviewDate(req.created_at)}
-                      </p>
-                      {req.status === 'pending' && (
-                        <p className="mt-0.5 text-xs text-slate-500">
-                          {t('admin.detail.studentActiveCasesLabel')} {studentOpenCaseCounts[req.student_email] ?? 0}
-                        </p>
-                      )}
-                      {req.reviewed_by && (
-                        <p className="mt-0.5 text-xs text-slate-400">
-                          {t('admin.detail.reviewedByAtLabel')} {req.reviewed_by} · {formatReviewDate(req.reviewed_at)}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
-                      <div className="flex items-center gap-3">
-                        <span
-                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-                            req.status === 'approved'
-                              ? 'border border-emerald-200 bg-emerald-50 text-emerald-700'
-                              : req.status === 'rejected'
-                                ? 'border border-red-200 bg-red-50 text-red-700'
-                                : req.status === 'revoked'
-                                  ? 'border border-slate-200 bg-slate-100 text-slate-700'
-                                : 'border border-amber-200 bg-amber-50 text-amber-700'
-                          }`}
-                        >
-                          {tStudentReqStatus(req.status).toUpperCase()}
-                        </span>
-
-                        {req.status === 'pending' && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleStudentRequestAction(req.id, 'approve_student_request')
-                              }
-                              disabled={requestActionId === req.id}
-                              className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
-                            >
-                              {requestActionId === req.id ? '…' : t('admin.detail.approveBtn')}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setPendingStudentAction({ requestId: req.id, kind: 'reject' })
-                                setStudentActionReason('')
-                              }}
-                              disabled={requestActionId === req.id}
-                              className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-60"
-                            >
-                              {t('admin.detail.rejectBtn')}
-                            </button>
-                          </>
-                        )}
-
-                        {req.status === 'rejected' && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setPendingStudentAction({ requestId: req.id, kind: 'undo' })
-                              setStudentActionReason('')
-                            }}
-                            disabled={requestActionId === req.id}
-                            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
-                          >
-                            {requestActionId === req.id ? '…' : t('admin.detail.undoRejection')}
-                          </button>
-                        )}
-                      </div>
-
-                      {pendingStudentAction?.requestId === req.id && (
-                        <div className="w-full max-w-md rounded-xl border border-slate-200 bg-slate-50 p-3">
-                          <p className="text-xs font-semibold text-slate-700">
-                            {pendingStudentAction.kind === 'reject'
-                              ? t('admin.detail.confirmStudentReject')
-                              : t('admin.detail.confirmUndoRejection')}
-                          </p>
-                          <p className="mt-1 text-xs text-slate-500">
-                            {t('admin.detail.reasonLabel')} *
-                          </p>
-                          <input
-                            type="text"
-                            value={studentActionReason}
-                            onChange={(e) => setStudentActionReason(e.target.value)}
-                            placeholder={t('admin.detail.reasonPlaceholder')}
-                            className="mt-2 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-slate-900"
-                          />
-                          <div className="mt-3 flex gap-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setPendingStudentAction(null)
-                                setStudentActionReason('')
-                              }}
-                              disabled={requestActionId === req.id}
-                              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
-                            >
-                              {t('admin.detail.cancel')}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleStudentRequestAction(
-                                  req.id,
-                                  pendingStudentAction.kind === 'reject'
-                                    ? 'reject_student_request'
-                                    : 'undo_reject_student_request',
-                                  studentActionReason.trim()
-                                )
-                              }
-                              disabled={requestActionId === req.id || !studentActionReason.trim()}
-                              className={`rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition disabled:opacity-60 ${
-                                pendingStudentAction.kind === 'reject'
-                                  ? 'bg-red-600 hover:bg-red-700'
-                                  : 'bg-slate-900 hover:bg-slate-800'
-                              }`}
-                            >
-                              {pendingStudentAction.kind === 'reject'
-                                ? t('admin.detail.confirmStudentReject')
-                                : t('admin.detail.confirmUndoRejection')}
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <StudentRequestsPanel
+            studentRequests={studentRequests}
+            studentOpenCaseCounts={studentOpenCaseCounts}
+            requestActionId={requestActionId}
+            pendingStudentAction={pendingStudentAction}
+            studentActionReason={studentActionReason}
+            formatReviewDate={formatReviewDate}
+            onStudentActionReasonChange={setStudentActionReason}
+            onStartStudentAction={(requestId, kind) => {
+              setPendingStudentAction({ requestId, kind })
+              setStudentActionReason('')
+            }}
+            onCancelStudentAction={() => {
+              setPendingStudentAction(null)
+              setStudentActionReason('')
+            }}
+            onStudentRequestAction={handleStudentRequestAction}
+          />
         )}
       </section>
     </main>

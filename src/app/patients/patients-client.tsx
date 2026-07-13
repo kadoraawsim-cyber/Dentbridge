@@ -3,7 +3,6 @@
 import React, { useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { supabase } from '@/lib/supabase'
 import { useI18n } from '@/lib/i18n'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import PublicPatientChatButton from '@/components/PublicPatientChatButton'
@@ -93,28 +92,6 @@ export default function PatientsPageClient() {
       ignoreNextDepartmentClickRef.current = false
     }, 400)
   }
-
-  // Clear any staff session when landing on the public home page.
-  // Patients are always anonymous so signOut() is a no-op for them.
-  useEffect(() => {
-    let cancelled = false
-
-    async function clearActiveSession() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
-      if (!cancelled && session) {
-        await supabase.auth.signOut()
-      }
-    }
-
-    void clearActiveSession()
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   useEffect(() => {
     const root = document.documentElement

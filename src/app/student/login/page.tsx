@@ -10,9 +10,36 @@ import { useI18n } from '@/lib/i18n'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import { canAccessFacultyPortal } from '@/lib/roles'
 
+// Copy for the role-mismatch screen lives inline (not in the shared i18n
+// dictionaries) so this fix stays confined to the two login pages.
+const roleMismatchCopy = {
+  en: {
+    heading: 'Role mismatch',
+    signedInAs: 'You are currently signed in as:',
+    roleLabel: 'Faculty / Administrator',
+    selected: 'You selected:',
+    portalLabel: 'Student Portal',
+    instruction: 'To continue, either:',
+    returnLabel: 'Return to Faculty Portal',
+    switchLabel: 'Sign out and switch account',
+    signingOut: 'Signing out…',
+  },
+  tr: {
+    heading: 'Rol uyuşmazlığı',
+    signedInAs: 'Şu anda oturum açtığınız rol:',
+    roleLabel: 'Fakülte / Yönetici',
+    selected: 'Seçtiğiniz portal:',
+    portalLabel: 'Öğrenci Portalı',
+    instruction: 'Devam etmek için:',
+    returnLabel: 'Fakülte Portalına Dön',
+    switchLabel: 'Oturumu kapat ve hesap değiştir',
+    signingOut: 'Oturum kapatılıyor…',
+  },
+} as const
+
 export default function StudentLoginPage() {
   const router = useRouter()
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -20,6 +47,8 @@ export default function StudentLoginPage() {
   const [loading, setLoading] = useState(false)
   const [checking, setChecking] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
+  const [roleMismatch, setRoleMismatch] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
 
   // If already authenticated, redirect to the correct portal immediately.
   // getUser() validates the JWT server-side — more reliable than getSession()
@@ -29,7 +58,10 @@ export default function StudentLoginPage() {
       if (user) {
         const role = user.app_metadata?.role
         if (canAccessFacultyPortal(role)) {
-          router.replace('/admin')
+          // Signed in as faculty/admin but opened the student portal: show the
+          // role-mismatch screen instead of silently redirecting.
+          setRoleMismatch(true)
+          setChecking(false)
         } else if (role === 'student') {
           router.replace('/student/dashboard')
         } else {
@@ -76,10 +108,57 @@ export default function StudentLoginPage() {
     }
   }
 
+  async function handleSignOutAndSwitch() {
+    setSigningOut(true)
+    await supabase.auth.signOut()
+    window.location.replace('/student/login')
+  }
+
   if (checking) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-50">
         <p className="text-sm text-slate-500">{t('student.login.checkingSession')}</p>
+      </main>
+    )
+  }
+
+  if (roleMismatch) {
+    const copy = roleMismatchCopy[locale]
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
+        <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+          <h1 className="text-xl font-semibold text-slate-900">{copy.heading}</h1>
+          <div className="mt-5 space-y-3 text-sm text-slate-600">
+            <p>
+              {copy.signedInAs}{' '}
+              <span className="font-semibold text-slate-900">{copy.roleLabel}</span>
+            </p>
+            <p>
+              {copy.selected}{' '}
+              <span className="font-semibold text-slate-900">{copy.portalLabel}</span>
+            </p>
+            <p>{copy.instruction}</p>
+          </div>
+          <div className="mt-6 space-y-3">
+            <Link
+              href="/admin"
+              className="flex w-full items-center justify-center rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+            >
+              {copy.returnLabel}
+            </Link>
+            <button
+              type="button"
+              onClick={handleSignOutAndSwitch}
+              disabled={signingOut}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {signingOut && (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-600" />
+              )}
+              {signingOut ? copy.signingOut : copy.switchLabel}
+            </button>
+          </div>
+        </div>
       </main>
     )
   }

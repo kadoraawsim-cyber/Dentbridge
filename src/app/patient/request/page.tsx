@@ -1,250 +1,212 @@
 'use client'
 
-import React, { useEffect, useMemo, useRef, useState } from 'react'
-import Image from 'next/image'
-import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
-import { ArrowLeft, CheckCircle2, Info, UploadCloud } from 'lucide-react'
+import React, { useMemo, useRef, useState } from 'react'
 import { useI18n } from '@/lib/i18n'
-import LanguageSwitcher from '@/components/LanguageSwitcher'
-import PublicPatientChatButton from '@/components/PublicPatientChatButton'
-
-// ── Option arrays — values are the English strings stored to the database.
-// Display labels are resolved through t() at render time.
-const TREATMENT_OPTIONS = [
-  { value: 'Initial Examination / Consultation', tKey: 'request.treatments.initialExam' },
-  { value: 'Dental Cleaning',                    tKey: 'request.treatments.cleaning' },
-  { value: 'Fillings',                           tKey: 'request.treatments.fillings' },
-  { value: 'Tooth Extraction',                   tKey: 'request.treatments.extraction' },
-  { value: 'Root Canal Treatment',               tKey: 'request.treatments.rootCanal' },
-  { value: 'Gum Treatment',                      tKey: 'request.treatments.gum' },
-  { value: 'Prosthetics / Crowns',               tKey: 'request.treatments.prosthetics' },
-  { value: 'Orthodontics',                       tKey: 'request.treatments.orthodontics' },
-  { value: 'Pediatric Dentistry',                tKey: 'request.treatments.pediatric' },
-  { value: 'Esthetic Dentistry',                 tKey: 'request.treatments.esthetic' },
-  { value: "I'm not sure",                       tKey: 'request.treatments.notSure' },
-  { value: 'Other',                              tKey: 'request.treatments.other' },
-] as const
-
-const GENDER_OPTIONS = [
-  { value: 'Male', tKey: 'request.genderMale' },
-  { value: 'Female', tKey: 'request.genderFemale' },
-] as const
-
-const LANGUAGE_OPTIONS = [
-  { value: 'Turkish', tKey: 'request.langTurkish' },
-  { value: 'English', tKey: 'request.langEnglish' },
-  { value: 'Arabic',  tKey: 'request.langArabic' },
-] as const
-
-const PREFERRED_UNIVERSITY_OPTIONS = [
-  {
-    value: 'İstinye Dental Hospital',
-    tKey: 'request.preferredUniversityIstinyeDentalHospital',
-  },
-] as const
-
-const PHONE_COUNTRY_CODE_OPTIONS = [
-  '+90',
-  '+1',
-  '+20',
-  '+31',
-  '+33',
-  '+44',
-  '+49',
-  '+91',
-  '+92',
-  '+93',
-  '+94',
-  '+98',
-  '+212',
-  '+213',
-  '+216',
-  '+218',
-  '+374',
-  '+961',
-  '+962',
-  '+963',
-  '+964',
-  '+965',
-  '+966',
-  '+967',
-  '+968',
-  '+970',
-  '+971',
-  '+972',
-  '+973',
-  '+974',
-  '+994',
-  '+995',
-] as const
-
-const DAY_OPTIONS = [
-  { value: 'No Preference',       tKey: 'request.dayNoPreference' },
-  { value: 'Weekday Mornings',    tKey: 'request.dayWeekdayMornings' },
-  { value: 'Weekday Afternoons',  tKey: 'request.dayWeekdayAfternoons' },
-  { value: 'As Soon As Possible', tKey: 'request.dayAsSoonAsPossible' },
-] as const
-
-
-const DURATION_OPTIONS = [
-  { value: 'Today', tKey: 'request.durationToday' },
-  { value: 'A few days', tKey: 'request.durationFewDays' },
-  { value: '1-2 weeks', tKey: 'request.durationOneToTwoWeeks' },
-  { value: 'More than a month', tKey: 'request.durationMoreThanMonth' },
-  { value: 'Routine / No specific start date', tKey: 'request.durationRoutineNoSpecificStart' },
-] as const
-
-function getUrgencyFromPainScore(painScore: string) {
-  const score = Number(painScore)
-
-  if (score >= 7) {
-    return 'High'
-  }
-
-  if (score >= 4) {
-    return 'Medium'
-  }
-
-  return 'Low'
-}
-
-const CONTACT_METHOD_OPTIONS = [
-  { value: 'WhatsApp', tKey: 'request.contactMethodWhatsapp' },
-  { value: 'Phone Call', tKey: 'request.contactMethodPhone' },
-  { value: 'SMS', tKey: 'request.contactMethodSms' },
-] as const
-
-const CONTACT_TIME_OPTIONS = [
-  { value: 'Morning', tKey: 'request.contactTimeMorning' },
-  { value: 'Afternoon', tKey: 'request.contactTimeAfternoon' },
-  { value: 'Evening', tKey: 'request.contactTimeEvening' },
-  { value: 'Anytime', tKey: 'request.contactTimeAnytime' },
-] as const
-
-const MEDICAL_CONDITION_OPTIONS = [
-  { value: 'None', tKey: 'request.medicalNone' },
-  { value: 'Diabetes', tKey: 'request.medicalDiabetes' },
-  { value: 'Pregnancy', tKey: 'request.medicalPregnancy' },
-  { value: 'Blood thinner use', tKey: 'request.medicalBloodThinner' },
-  { value: 'Allergy', tKey: 'request.medicalAllergy' },
-  { value: 'Other', tKey: 'request.medicalOther' },
-] as const
-
-const CONSENT_VERSION = '2026-04-18-v1'
-const PATIENT_REQUEST_DRAFT_KEY = 'patient_request_draft'
-const PATIENT_REQUEST_STEP_KEY = 'patient_request_step'
-
-type PatientRequestDraft = {
-  fullName: string
-  phoneCountryCode: string
-  phone: string
-  age: string
-  gender: string
-  preferredLanguage: string
-  preferredUniversity: string
-  treatmentType: string
-  complaintText: string
-  preferredDays: string
-  painScore: string
-  symptomDuration: string
-  contactMethod: string
-  bestContactTime: string
-  medicalCondition: string
-  medicalConditionDetails: string
-  hasTouchedMedicalCondition: boolean
-  kvkkAcknowledgement: boolean
-  explicitConsent: boolean
-}
-
-function parsePatientRequestDraft(value: string | null): PatientRequestDraft | null {
-  if (!value) {
-    return null
-  }
-
-  try {
-    const parsed = JSON.parse(value) as (Partial<PatientRequestDraft> & { consent?: unknown }) | null
-
-    if (!parsed || typeof parsed !== 'object') {
-      return null
-    }
-
-    return {
-      fullName: typeof parsed.fullName === 'string' ? parsed.fullName : '',
-      phoneCountryCode:
-        typeof parsed.phoneCountryCode === 'string' ? parsed.phoneCountryCode : '+90',
-      phone: typeof parsed.phone === 'string' ? parsed.phone : '',
-      age: typeof parsed.age === 'string' ? parsed.age : '',
-      gender: typeof parsed.gender === 'string' ? parsed.gender : '',
-      preferredLanguage: typeof parsed.preferredLanguage === 'string' ? parsed.preferredLanguage : '',
-      preferredUniversity:
-        typeof parsed.preferredUniversity === 'string' ? parsed.preferredUniversity : '',
-      treatmentType: typeof parsed.treatmentType === 'string' ? parsed.treatmentType : '',
-      complaintText: typeof parsed.complaintText === 'string' ? parsed.complaintText : '',
-      preferredDays: typeof parsed.preferredDays === 'string' ? parsed.preferredDays : '',
-      painScore: typeof parsed.painScore === 'string' ? parsed.painScore : '',
-      symptomDuration: typeof parsed.symptomDuration === 'string' ? parsed.symptomDuration : '',
-      contactMethod: typeof parsed.contactMethod === 'string' ? parsed.contactMethod : '',
-      bestContactTime: typeof parsed.bestContactTime === 'string' ? parsed.bestContactTime : '',
-      medicalCondition: typeof parsed.medicalCondition === 'string' ? parsed.medicalCondition : '',
-      medicalConditionDetails:
-        typeof parsed.medicalConditionDetails === 'string' ? parsed.medicalConditionDetails : '',
-      hasTouchedMedicalCondition:
-        typeof parsed.hasTouchedMedicalCondition === 'boolean'
-          ? parsed.hasTouchedMedicalCondition
-          : typeof parsed.medicalCondition === 'string' && parsed.medicalCondition !== 'None',
-      kvkkAcknowledgement:
-        typeof parsed.kvkkAcknowledgement === 'boolean' ? parsed.kvkkAcknowledgement : false,
-      explicitConsent:
-        typeof parsed.explicitConsent === 'boolean'
-          ? parsed.explicitConsent
-          : typeof parsed.consent === 'boolean'
-            ? parsed.consent
-            : false,
-    }
-  } catch {
-    return null
-  }
-}
-
-function parseSavedStepIndex(value: string | null) {
-  if (!value) {
-    return null
-  }
-
-  const parsed = Number(value)
-
-  if (!Number.isInteger(parsed) || parsed < 0) {
-    return null
-  }
-
-  return parsed
-}
+import { HARD_MAX_UPLOAD_BYTES } from '@/lib/files/file.constants'
+import { runPatientSubmission } from '@/lib/patient-request/submission-flow'
+import type { PreparedPatientAttachment } from '@/lib/patient-request/submission-flow'
+import {
+  PatientRequestFooter,
+  PatientRequestHeader,
+  PatientRequestHero,
+  PatientRequestSuccess,
+} from '@/components/patient/request/PatientRequestLayout'
+import {
+  ClinicalDetailsSection,
+  ConsentSection,
+  PatientInfoSection,
+  PatientRequestError,
+  PatientRequestFormActions,
+  PatientRequestProgressRail,
+  SupportSection,
+} from '@/components/patient/request/PatientRequestFormSections'
 
 function normalizePhoneNumber(value: string) {
   return value.replace(/[\s().-]/g, '')
 }
 
-const ALLOWED_ATTACHMENT_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'pdf'])
+const HEIC_EXTENSIONS = new Set(['heic', 'heif'])
+const UNSUPPORTED_CLINICAL_EXTENSIONS = new Set([
+  'pdf',
+  'svg',
+  'dcm',
+  'dicom',
+  'tif',
+  'tiff',
+  'bmp',
+  'gif',
+  'zip',
+  'rar',
+  '7z',
+])
 
-function createSafeStorageSlug(value: string) {
-  const slug = value
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/ı/g, 'i')
-    .replace(/[^a-z0-9._-]+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '')
+// Public UI mirror only; the server-side PATIENT_UPLOAD_POLICY is authoritative.
+const PATIENT_UPLOADS_ENABLED = process.env.NEXT_PUBLIC_PATIENT_UPLOADS_ENABLED === 'true'
 
-  return slug || 'patient'
+function getFileExtension(fileName: string): string {
+  return fileName.split('.').pop()?.toLowerCase() ?? ''
 }
 
-function getAllowedAttachmentExtension(fileName: string) {
-  const extension = fileName.split('.').pop()?.toLowerCase() ?? ''
+function getJpegOrPngDeclaration(file: File): { mime: 'image/jpeg' | 'image/png'; extension: 'jpg' | 'png' } | null {
+  const extension = getFileExtension(file.name)
+  if (
+    file.type === 'image/jpeg' ||
+    file.type === 'image/jpg' ||
+    file.type === 'image/pjpeg' ||
+    extension === 'jpg' ||
+    extension === 'jpeg'
+  ) {
+    return { mime: 'image/jpeg', extension: 'jpg' }
+  }
+  if (file.type === 'image/png' || extension === 'png') {
+    return { mime: 'image/png', extension: 'png' }
+  }
+  return null
+}
 
-  return ALLOWED_ATTACHMENT_EXTENSIONS.has(extension) ? extension : null
+function ensureDeclaredImageFile(file: File, declaration: { mime: string; extension: string }): File {
+  const extension = getFileExtension(file.name)
+  const extensionMatches =
+    declaration.extension === 'jpg'
+      ? extension === 'jpg' || extension === 'jpeg'
+      : extension === declaration.extension
+  if (file.type === declaration.mime && extensionMatches) {
+    return file
+  }
+
+  const baseName = file.name.replace(/\.[^/.]+$/, '').trim() || 'patient-image'
+  return new File([file], `${baseName}.${declaration.extension}`, {
+    type: declaration.mime,
+    lastModified: file.lastModified,
+  })
+}
+
+function isHeicCandidate(file: File): boolean {
+  const extension = getFileExtension(file.name)
+  return file.type === 'image/heic' || file.type === 'image/heif' || HEIC_EXTENSIONS.has(extension)
+}
+
+function isUnsupportedClinicalFile(file: File): boolean {
+  const extension = getFileExtension(file.name)
+  return (
+    UNSUPPORTED_CLINICAL_EXTENSIONS.has(extension) ||
+    file.type === 'application/pdf' ||
+    file.type === 'image/svg+xml' ||
+    file.type === 'image/gif' ||
+    file.type === 'image/tiff' ||
+    file.type === 'image/bmp' ||
+    file.type === 'application/dicom' ||
+    file.type === 'application/zip'
+  )
+}
+
+async function imageLoads(src: string): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const image = new window.Image()
+    image.onload = () => resolve()
+    image.onerror = () => reject(new Error('preview_failed'))
+    image.src = src
+  })
+}
+
+async function browserNormalizeHeicToJpeg(file: File): Promise<File> {
+  const bitmap = await window.createImageBitmap(file)
+  try {
+    const canvas = document.createElement('canvas')
+    canvas.width = bitmap.width
+    canvas.height = bitmap.height
+    const context = canvas.getContext('2d')
+    if (!context) {
+      throw new Error('canvas_unavailable')
+    }
+    context.drawImage(bitmap, 0, 0)
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, 'image/jpeg', 0.92)
+    })
+    if (!blob || blob.size <= 0) {
+      throw new Error('canvas_conversion_failed')
+    }
+    return new File([blob], 'patient-image.jpg', { type: 'image/jpeg' })
+  } finally {
+    bitmap.close()
+  }
+}
+
+async function normalizeForUpload(file: File): Promise<File> {
+  const declaration = getJpegOrPngDeclaration(file)
+  if (declaration) {
+    return ensureDeclaredImageFile(file, declaration)
+  }
+  if (isHeicCandidate(file)) {
+    try {
+      return await browserNormalizeHeicToJpeg(file)
+    } catch {
+      throw new Error('image_unreadable')
+    }
+  }
+  throw new Error(isUnsupportedClinicalFile(file) ? 'unsupported_format' : 'unsupported_format')
+}
+
+interface ConfirmedUploadResponse {
+  success: true
+  fileId: string
+  status: string
+  previewUrl?: string
+  previewExpiresAt?: string
+  mimeType?: string
+}
+
+interface PreparedUploadResponse {
+  success: true
+  fileId: string
+  uploadUrl: string
+  ticket: string
+}
+
+function isPreparedUploadResponse(value: unknown): value is PreparedUploadResponse {
+  const prepared = value as Partial<PreparedUploadResponse>
+  return (
+    Boolean(value) &&
+    typeof value === 'object' &&
+    prepared.success === true &&
+    typeof prepared.fileId === 'string' &&
+    typeof prepared.uploadUrl === 'string' &&
+    typeof prepared.ticket === 'string'
+  )
+}
+
+async function uploadToSignedUploadUrl(uploadUrl: string, file: File): Promise<void> {
+  const formData = new FormData()
+  formData.append('cacheControl', '3600')
+  formData.append('', file)
+  const response = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: { 'x-upsert': 'false' },
+    body: formData,
+  })
+  if (!response.ok) {
+    throw new Error('upload_failed')
+  }
+}
+
+function isConfirmedUploadResponse(value: unknown): value is ConfirmedUploadResponse {
+  const confirmed = value as Partial<ConfirmedUploadResponse>
+  return (
+    Boolean(value) &&
+    typeof value === 'object' &&
+    confirmed.success === true &&
+    typeof confirmed.fileId === 'string' &&
+    typeof confirmed.status === 'string'
+  )
+}
+
+async function parseErrorCode(response: Response): Promise<string | null> {
+  try {
+    const body = (await response.json()) as { code?: unknown }
+    return typeof body.code === 'string' ? body.code : null
+  } catch {
+    return null
+  }
 }
 
 export default function PatientRequestPage() {
@@ -258,7 +220,6 @@ export default function PatientRequestPage() {
           ageInvalid: 'Lutfen 1 ile 120 arasinda gecerli bir yas girin.',
           phoneRequired: 'Lutfen telefon numaranizi girin.',
           phoneInvalid: 'Lutfen gecerli bir telefon numarasi girin.',
-          fileTypeInvalid: 'Lutfen JPG, PNG veya PDF dosyasi yukleyin.',
         }
       : {
           fullNameRequired: 'Please enter your full name.',
@@ -267,7 +228,6 @@ export default function PatientRequestPage() {
           ageInvalid: 'Please enter a valid age between 1 and 120.',
           phoneRequired: 'Please enter your phone number.',
           phoneInvalid: 'Please enter a valid phone number.',
-          fileTypeInvalid: 'Please upload a JPG, PNG, or PDF file.',
         }
 
   const [fullName, setFullName] = useState('')
@@ -291,65 +251,18 @@ export default function PatientRequestPage() {
   const [kvkkAcknowledgement, setKvkkAcknowledgement] = useState(false)
   const [explicitConsent, setExplicitConsent] = useState(false)
   const [attachment, setAttachment] = useState<File | null>(null)
+  const [attachmentStatus, setAttachmentStatus] = useState<'idle' | 'preparing' | 'ready' | 'failed'>('idle')
+  const [attachmentPreviewUrl, setAttachmentPreviewUrl] = useState<string | null>(null)
+  const [attachmentErrorMessage, setAttachmentErrorMessage] = useState('')
+  const [preparedAttachment, setPreparedAttachment] = useState<PreparedPatientAttachment | null>(null)
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submittedId, setSubmittedId] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
-  const [hasRestoredDraft, setHasRestoredDraft] = useState(false)
-  const [restoredStepIndex, setRestoredStepIndex] = useState<number | null>(null)
   const stepSectionRefs = useRef<Array<HTMLElement | null>>([])
-
-  const formProgressSteps = useMemo(
-    () => [
-      {
-        key: 'patient',
-        label: t('request.sectionPatient'),
-        completed:
-          Boolean(fullName.trim()) &&
-          Boolean(phone.trim()) &&
-          Boolean(preferredUniversity) &&
-          Boolean(age) &&
-          Boolean(gender),
-      },
-      {
-        key: 'clinical',
-        label: t('request.sectionClinical'),
-        completed:
-          Boolean(treatmentType) &&
-          Boolean(complaintText.trim()) &&
-          Boolean(painScore) &&
-          Boolean(symptomDuration) &&
-          Boolean(medicalCondition) &&
-          (medicalCondition !== 'Other' || Boolean(medicalConditionDetails.trim())),
-      },
-      {
-        key: 'support',
-        label: t('request.sectionSupport'),
-        completed: true,
-      },
-      {
-        key: 'consent',
-        label: t('request.sectionConsent'),
-        completed: kvkkAcknowledgement && explicitConsent,
-      },
-    ],
-    [
-      age,
-      complaintText,
-      explicitConsent,
-      fullName,
-      gender,
-      kvkkAcknowledgement,
-      medicalCondition,
-      medicalConditionDetails,
-      painScore,
-      phone,
-      preferredUniversity,
-      symptomDuration,
-      t,
-      treatmentType,
-    ]
-  )
+  const submissionGuard = useRef(false)
+  const submissionId = useRef('')
+  const attachmentRunId = useRef(0)
 
   const requiredFieldChecks = useMemo(
     () => [
@@ -388,179 +301,7 @@ export default function PatientRequestPage() {
   const progressPercent = Math.round(
     (completedRequiredFields / requiredFieldChecks.length) * 100
   )
-  const currentStepIndex = useMemo(() => {
-    const firstIncomplete = formProgressSteps.findIndex((step) => !step.completed)
-    return firstIncomplete === -1 ? formProgressSteps.length - 1 : firstIncomplete
-  }, [formProgressSteps])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
-    }
-
-    let restoreFrameId: number | null = null
-    const savedDraft = parsePatientRequestDraft(
-      window.sessionStorage.getItem(PATIENT_REQUEST_DRAFT_KEY)
-    )
-    const savedStepIndex = parseSavedStepIndex(
-      window.sessionStorage.getItem(PATIENT_REQUEST_STEP_KEY)
-    )
-
-    if (savedDraft) {
-      restoreFrameId = window.requestAnimationFrame(() => {
-        setFullName(savedDraft.fullName)
-        setPhoneCountryCode(savedDraft.phoneCountryCode)
-        setPhone(savedDraft.phone)
-        setAge(savedDraft.age)
-        setGender(savedDraft.gender)
-        setPreferredLanguage(savedDraft.preferredLanguage)
-        setPreferredUniversity(savedDraft.preferredUniversity)
-        setTreatmentType(savedDraft.treatmentType)
-        setComplaintText(savedDraft.complaintText)
-        setPreferredDays(savedDraft.preferredDays)
-        setPainScore(savedDraft.painScore)
-        setSymptomDuration(savedDraft.symptomDuration)
-        setContactMethod(savedDraft.contactMethod)
-        setBestContactTime(savedDraft.bestContactTime)
-        setMedicalCondition(savedDraft.medicalCondition)
-        setMedicalConditionDetails(savedDraft.medicalConditionDetails)
-        setHasTouchedMedicalCondition(savedDraft.hasTouchedMedicalCondition)
-        setKvkkAcknowledgement(savedDraft.kvkkAcknowledgement)
-        setExplicitConsent(savedDraft.explicitConsent)
-
-        if (savedStepIndex !== null) {
-          setRestoredStepIndex(savedStepIndex)
-        }
-
-        setHasRestoredDraft(true)
-      })
-    } else if (window.sessionStorage.getItem(PATIENT_REQUEST_DRAFT_KEY)) {
-      window.sessionStorage.removeItem(PATIENT_REQUEST_DRAFT_KEY)
-    }
-
-    if ((!savedDraft || savedStepIndex === null) && window.sessionStorage.getItem(PATIENT_REQUEST_STEP_KEY)) {
-      window.sessionStorage.removeItem(PATIENT_REQUEST_STEP_KEY)
-    }
-
-    if (!savedDraft) {
-      restoreFrameId = window.requestAnimationFrame(() => {
-        setHasRestoredDraft(true)
-      })
-    }
-
-    return () => {
-      if (restoreFrameId !== null) {
-        window.cancelAnimationFrame(restoreFrameId)
-      }
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!hasRestoredDraft || submittedId || typeof window === 'undefined') {
-      return
-    }
-
-    const draft: PatientRequestDraft = {
-      fullName,
-      phoneCountryCode,
-      phone,
-      age,
-      gender,
-      preferredLanguage,
-      preferredUniversity,
-      treatmentType,
-      complaintText,
-      preferredDays,
-      painScore,
-      symptomDuration,
-      contactMethod,
-      bestContactTime,
-      medicalCondition,
-      medicalConditionDetails,
-      hasTouchedMedicalCondition,
-      kvkkAcknowledgement,
-      explicitConsent,
-    }
-
-    try {
-      window.sessionStorage.setItem(PATIENT_REQUEST_DRAFT_KEY, JSON.stringify(draft))
-    } catch {
-      // Ignore storage quota or browser storage errors and keep the live form usable.
-    }
-  }, [
-    age,
-    bestContactTime,
-    complaintText,
-    explicitConsent,
-    contactMethod,
-    fullName,
-    gender,
-    hasRestoredDraft,
-    hasTouchedMedicalCondition,
-    kvkkAcknowledgement,
-    medicalCondition,
-    medicalConditionDetails,
-    painScore,
-    phoneCountryCode,
-    phone,
-    preferredDays,
-    preferredLanguage,
-    preferredUniversity,
-    submittedId,
-    symptomDuration,
-    treatmentType,
-  ])
-
-  useEffect(() => {
-    if (!hasRestoredDraft || submittedId || typeof window === 'undefined') {
-      return
-    }
-
-    try {
-      window.sessionStorage.setItem(PATIENT_REQUEST_STEP_KEY, String(currentStepIndex))
-    } catch {
-      // Ignore storage errors and keep progress derived from live form state.
-    }
-  }, [currentStepIndex, hasRestoredDraft, submittedId])
-
-  useEffect(() => {
-    if (restoredStepIndex === null || typeof window === 'undefined') {
-      return
-    }
-
-    const targetIndex = Math.max(0, Math.min(restoredStepIndex, stepSectionRefs.current.length - 1))
-    const targetSection = stepSectionRefs.current[targetIndex]
-
-    if (!targetSection) {
-      const resetFrameId = window.requestAnimationFrame(() => {
-        setRestoredStepIndex(null)
-      })
-      return () => {
-        window.cancelAnimationFrame(resetFrameId)
-      }
-    }
-
-    const animationFrameId = window.requestAnimationFrame(() => {
-      targetSection.scrollIntoView({ block: 'start' })
-      setRestoredStepIndex(null)
-    })
-
-    return () => {
-      window.cancelAnimationFrame(animationFrameId)
-    }
-  }, [restoredStepIndex])
-
-  function clearPersistedDraft() {
-    if (typeof window === 'undefined') {
-      return
-    }
-
-    window.sessionStorage.removeItem(PATIENT_REQUEST_DRAFT_KEY)
-    window.sessionStorage.removeItem(PATIENT_REQUEST_STEP_KEY)
-  }
-
   function resetPatientRequestForm() {
-    clearPersistedDraft()
     setSubmittedId(null)
     setErrorMessage('')
     setFullName('')
@@ -583,11 +324,157 @@ export default function PatientRequestPage() {
     setKvkkAcknowledgement(false)
     setExplicitConsent(false)
     setAttachment(null)
-    setRestoredStepIndex(null)
+    setAttachmentStatus('idle')
+    setAttachmentPreviewUrl(null)
+    setAttachmentErrorMessage('')
+    setPreparedAttachment(null)
+  }
+
+  function getUploadErrorMessage(code: string | null): string {
+    if (code === 'image_too_large') return t('request.errorImageTooLarge')
+    if (code === 'image_unreadable') return t('request.errorImageUnreadable')
+    if (code === 'unsupported_image') return t('request.errorUnsupportedImageType')
+    if (code === 'rate_limited') return t('request.errorTooManyAttempts')
+    if (code === 'service_unavailable') return t('request.errorServiceUnavailable')
+    return t('request.errorImageProcessing')
+  }
+
+  // Upload tickets are opaque "<expiryEpochSeconds>.<signature>" values (see
+  // src/lib/files/ticket.ts). The expiry prefix is the only part the client
+  // may read; it lets us tell an expired attachment apart from other
+  // validation failures, since the API reports both as 'invalid_request'.
+  function isExpiredUploadTicket(ticket: string): boolean {
+    const separatorIndex = ticket.indexOf('.')
+    if (separatorIndex <= 0) return false
+    const expirySeconds = Number(ticket.slice(0, separatorIndex))
+    return (
+      Number.isInteger(expirySeconds) &&
+      expirySeconds > 0 &&
+      expirySeconds * 1000 <= Date.now()
+    )
+  }
+
+  function getSubmissionErrorMessage(errorCode: string | null): string {
+    if (errorCode === 'rate_limited') return t('request.errorRateLimited')
+    if (errorCode === 'service_unavailable') return t('request.errorServiceUnavailable')
+    if (errorCode === 'conflict') return t('request.errorConflict')
+    if (errorCode === 'unsupported_image') return t('request.errorUnsupportedImageType')
+    if (errorCode === 'image_too_large') return t('request.errorImageTooLarge')
+    if (errorCode === 'image_unreadable') return t('request.errorImageUnreadable')
+    if (errorCode === 'image_processing_failed') return t('request.errorImageProcessing')
+    if (errorCode === 'invalid_request') {
+      if (preparedAttachment && isExpiredUploadTicket(preparedAttachment.fileTicket)) {
+        return t('request.errorAttachmentExpired')
+      }
+      return t('request.errorInvalidRequest')
+    }
+    return t('request.errorGeneric')
+  }
+
+  async function handleAttachmentChange(file: File | null) {
+    const runId = attachmentRunId.current + 1
+    attachmentRunId.current = runId
+    setAttachment(file)
+    setPreparedAttachment(null)
+    setAttachmentPreviewUrl(null)
+    setAttachmentErrorMessage('')
+
+    if (!file) {
+      setAttachmentStatus('idle')
+      return
+    }
+
+    if (!PATIENT_UPLOADS_ENABLED) {
+      setAttachmentStatus('idle')
+      return
+    }
+
+    if (file.size > HARD_MAX_UPLOAD_BYTES) {
+      setAttachmentStatus('failed')
+      setAttachmentErrorMessage(t('request.errorImageTooLarge'))
+      return
+    }
+
+    setAttachmentStatus('preparing')
+
+    try {
+      const uploadFile = await normalizeForUpload(file)
+      if (attachmentRunId.current !== runId) return
+
+      if (uploadFile.size > HARD_MAX_UPLOAD_BYTES) {
+        throw new Error('image_too_large')
+      }
+
+      const prepareResponse = await fetch('/api/v1/files/prepare-upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: uploadFile.name,
+          mimeType: uploadFile.type,
+          sizeBytes: uploadFile.size,
+          locale,
+        }),
+      })
+      if (!prepareResponse.ok) {
+        throw new Error((await parseErrorCode(prepareResponse)) ?? 'prepare_failed')
+      }
+
+      const preparedValue = await prepareResponse.json()
+      if (!isPreparedUploadResponse(preparedValue)) {
+        throw new Error('prepare_failed')
+      }
+
+      await uploadToSignedUploadUrl(preparedValue.uploadUrl, uploadFile)
+
+      const confirmResponse = await fetch(`/api/v1/files/${preparedValue.fileId}/confirm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ticket: preparedValue.ticket,
+          locale,
+        }),
+      })
+      if (!confirmResponse.ok) {
+        throw new Error((await parseErrorCode(confirmResponse)) ?? 'confirm_failed')
+      }
+
+      const confirmedValue = await confirmResponse.json()
+      if (!isConfirmedUploadResponse(confirmedValue) || !confirmedValue.previewUrl) {
+        throw new Error('preview_failed')
+      }
+
+      await imageLoads(confirmedValue.previewUrl)
+      if (attachmentRunId.current !== runId) return
+
+      setPreparedAttachment({
+        fileId: preparedValue.fileId,
+        fileTicket: preparedValue.ticket,
+      })
+      setAttachmentPreviewUrl(confirmedValue.previewUrl)
+      setAttachmentStatus('ready')
+    } catch (error) {
+      if (attachmentRunId.current !== runId) return
+      const code = error instanceof Error ? error.message : null
+      setPreparedAttachment(null)
+      setAttachmentPreviewUrl(null)
+      setAttachmentStatus('failed')
+      setAttachmentErrorMessage(
+        code === 'image_too_large'
+          ? t('request.errorImageTooLarge')
+          : code === 'unsupported_format'
+            ? t('request.errorUnsupportedClinicalFile')
+            : code === 'image_unreadable'
+              ? t('request.errorImageUnreadable')
+              : getUploadErrorMessage(code)
+      )
+    }
   }
 
   async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
+    if (submissionGuard.current) {
+      return
+    }
     setSubmittedId(null)
     setErrorMessage('')
 
@@ -597,7 +484,6 @@ export default function PatientRequestPage() {
     const hasOnlyAllowedNameCharacters =
       trimmedFullName.replace(/[\p{L}\s'.-]/gu, '') === ''
     const normalizedPhone = normalizePhoneNumber(phone.trim()).replace(/^\+/, '')
-    const combinedPhone = `${phoneCountryCode}${normalizedPhone}`
     const parsedAge = Number(age)
 
     if (!trimmedFullName) {
@@ -666,176 +552,75 @@ export default function PatientRequestPage() {
       return
     }
 
-    if (attachment && attachment.size > 10 * 1024 * 1024) {
-      setErrorMessage(t('request.errorFileSize'))
+    const effectiveAttachment = PATIENT_UPLOADS_ENABLED ? attachment : null
+
+    if (effectiveAttachment && attachmentStatus !== 'ready') {
+      setErrorMessage(attachmentErrorMessage || t('request.uploadPreparing'))
       return
     }
 
-    setIsSubmitting(true)
-    const urgency = getUrgencyFromPainScore(painScore)
-    const medicalConditionValue =
-      medicalCondition === 'Other'
-        ? `Other: ${medicalConditionDetails.trim()}`
-        : medicalCondition
-
-    let attachmentPath: string | null = null
-
-    if (attachment) {
-      const fileExt = getAllowedAttachmentExtension(attachment.name)
-
-      if (!fileExt) {
-        setIsSubmitting(false)
-        setErrorMessage(validationText.fileTypeInvalid)
-        return
-      }
-
-      const safeName = createSafeStorageSlug(fullName)
-      const fileName = `${safeName}-${Date.now()}.${fileExt}`
-      const filePath = fileName
-      const { error: uploadError } = await supabase.storage
-        .from('patient-uploads')
-        .upload(filePath, attachment)
-
-      if (uploadError) {
-        setIsSubmitting(false)
-        setErrorMessage(uploadError.message)
-        return
-      }
-
-      attachmentPath = filePath
+    if (!submissionId.current) {
+      submissionId.current = window.crypto.randomUUID()
     }
 
-    const { error } = await supabase
-      .from('patient_requests')
-      .insert([
-        {
-          full_name: fullName,
-          age: Number.isFinite(parsedAge) && parsedAge >= 0 ? parsedAge : null,
-          gender,
-          phone: combinedPhone,
-          preferred_language: preferredLanguage || null,
-          preferred_university: preferredUniversity || null,
-          treatment_type: treatmentType,
-          complaint_text: complaintText,
-          urgency,
-          preferred_days: preferredDays || null,
-          pain_score: painScore ? Number(painScore) : null,
-          symptom_duration: symptomDuration,
-          contact_method: contactMethod || null,
-          best_contact_time: bestContactTime || null,
-          medical_condition: medicalConditionValue,
-          consent: kvkkAcknowledgement && explicitConsent,
-          consent_accepted_at: new Date().toISOString(),
-          consent_version: CONSENT_VERSION,
-          attachment_path: attachmentPath,
-          attachment_name: attachment ? attachment.name : null,
-          status: 'submitted',
-        }
-      ])
-
-    setIsSubmitting(false)
-
-    if (error) {
-      setErrorMessage(error.message)
-      return
-    }
-
-    clearPersistedDraft()
-    setSubmittedId('submitted')
-    resetPatientRequestForm()
-    setSubmittedId('submitted')
+    await runPatientSubmission({
+      attachment: effectiveAttachment,
+      dependencies: {
+        fetcher: (input, init) => fetch(input, init),
+        upload: async ({ attachment: file, uploadUrl }) => {
+          try {
+            await uploadToSignedUploadUrl(uploadUrl, file as File)
+            return { error: null }
+          } catch (error) {
+            return { error }
+          }
+        },
+      },
+      guard: submissionGuard,
+      locale,
+      onFailure: (errorCode) => {
+        setErrorMessage(getSubmissionErrorMessage(errorCode))
+      },
+      onSubmitting: setIsSubmitting,
+      onSuccess: () => {
+        resetPatientRequestForm()
+        submissionId.current = ''
+        setSubmittedId('submitted')
+      },
+      preparedAttachment,
+      requestPayload: {
+        submissionId: submissionId.current,
+        fullName: trimmedFullName,
+        age,
+        gender,
+        phoneCountryCode,
+        phone,
+        preferredLanguage,
+        preferredUniversity,
+        treatmentType,
+        complaintText,
+        preferredDays,
+        painScore,
+        symptomDuration,
+        contactMethod,
+        bestContactTime,
+        medicalCondition,
+        medicalConditionDetails,
+        kvkkAcknowledgement,
+        explicitConsent,
+      },
+    })
   }
 
   return (
     <main className="min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-slate-50 text-slate-900">
-      <header className="dentbridge-safe-header border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <Image
-              src="/dentbridge-icon.webp"
-              alt="DentBridge icon"
-              width={40}
-              height={40}
-              className="h-8 w-8 sm:h-10 sm:w-10 shrink-0 object-contain"
-            />
-            <div className="min-w-0">
-              <p className="truncate text-base sm:text-lg font-bold leading-none text-slate-900">DentBridge</p>
-              <p className="hidden sm:block truncate text-[10px] sm:text-[11px] uppercase tracking-wide text-slate-500">
-                {t('patientNav.tagline')}
-              </p>
-            </div>
-          </Link>
-
-          <nav className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
-            <Link href="/patient/status" className="hover:text-slate-900">
-              {t('patientNav.myPortal')}
-            </Link>
-            <Link
-              href="/patient/request"
-              onClick={(e) => {
-                e.preventDefault()
-                resetPatientRequestForm()
-              }}
-              className="text-slate-900"
-            >
-              {t('patientNav.newRequest')}
-            </Link>
-          </nav>
-
-          <div className="flex shrink-0 items-center gap-2">
-            <PublicPatientChatButton />
-            <LanguageSwitcher />
-          </div>
-        </div>
-      </header>
+      <PatientRequestHeader onNewRequest={resetPatientRequestForm} />
 
       <section className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
-        <Link
-          href="/"
-          className="mb-4 sm:mb-6 inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {t('patientNav.backToHome')}
-        </Link>
-
-        <div className="mb-6 sm:mb-8">
-          <div className="relative max-w-3xl">
-            <h1 className="text-2xl sm:text-4xl font-bold tracking-tight text-slate-900">
-              {t('request.pageTitle')}
-            </h1>
-            <p className="mt-2 sm:mt-3 text-sm sm:text-base text-slate-600">
-              {t('request.pageDescription')}
-            </p>
-          </div>
-        </div>
+        <PatientRequestHero />
 
         {submittedId && (
-          <div className="overflow-hidden rounded-2xl sm:rounded-3xl border border-emerald-200 bg-white shadow-sm">
-            <div className="px-5 py-8 sm:px-10 sm:py-12 text-center">
-              <div className="mx-auto mb-4 sm:mb-5 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-emerald-50">
-                <CheckCircle2 className="h-7 w-7 sm:h-8 sm:w-8 text-emerald-600" />
-              </div>
-              <h2 className="text-xl sm:text-2xl font-bold text-slate-900">{t('request.success.title')}</h2>
-              <p className="mx-auto mt-2 sm:mt-3 max-w-sm text-sm sm:text-base text-slate-600">
-                {t('request.success.description')}
-              </p>
-              <div className="mt-6 sm:mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-                <Link
-                  href="/patient/status"
-                  className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-teal-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-700"
-                >
-                  {t('request.success.checkStatus')}
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => setSubmittedId(null)}
-                  className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                >
-                  {t('request.success.submitAnother')}
-                </button>
-              </div>
-            </div>
-          </div>
+          <PatientRequestSuccess onSubmitAnother={() => setSubmittedId(null)} />
         )}
 
         {!submittedId && (
@@ -843,599 +628,95 @@ export default function PatientRequestPage() {
             onSubmit={handleSubmit}
             className="relative w-full overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200 bg-white shadow-sm"
           >
-            <div className="pointer-events-none absolute inset-y-0 left-2 z-10 w-12 sm:left-3 sm:w-14">
-              <div
-                className="absolute left-1/2 top-4 min-w-[3rem] -translate-x-1/2 rounded-full border border-emerald-200 bg-white px-2.5 py-1 text-center text-[11px] font-semibold text-emerald-700 shadow-sm ring-4 ring-white sm:min-w-[3.25rem] sm:text-xs"
-              >
-                {progressPercent}%
-              </div>
-              <div className="absolute bottom-6 left-1/2 top-10 w-px -translate-x-1/2 rounded-full bg-slate-200" />
-              <div
-                className="absolute left-1/2 top-10 w-px -translate-x-1/2 rounded-full bg-emerald-500 transition-all duration-500 ease-out"
-                style={{ height: `calc((100% - 4rem) * ${progressPercent / 100})` }}
-              />
-              <div
-                className="absolute left-1/2 h-3.5 w-3.5 -translate-x-1/2 rounded-full border-2 border-white bg-emerald-500 shadow-[0_0_0_2px_rgba(16,185,129,0.15)] transition-all duration-500 ease-out"
-                style={{ top: `calc(2.5rem + (100% - 4rem - 0.875rem) * ${progressPercent / 100})` }}
-              />
-            </div>
+            <PatientRequestProgressRail progressPercent={progressPercent} />
 
             <div className="space-y-6 py-4 pl-12 pr-4 sm:space-y-8 sm:px-8 sm:py-8 sm:pl-16">
-              {/* Patient Information Section */}
-              <section ref={(node) => { stepSectionRefs.current[0] = node }}>
-                <div className="mb-4 sm:mb-5 flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-teal-500 shrink-0" />
-                  <h2 className="text-lg sm:text-2xl font-semibold text-slate-900 truncate">
-                    {t('request.sectionPatient')}
-                  </h2>
-                </div>
+              <PatientInfoSection
+                sectionRef={(node) => {
+                  stepSectionRefs.current[0] = node
+                }}
+                fullName={fullName}
+                phoneCountryCode={phoneCountryCode}
+                phone={phone}
+                preferredUniversity={preferredUniversity}
+                age={age}
+                gender={gender}
+                onFullNameChange={setFullName}
+                onPhoneCountryCodeChange={setPhoneCountryCode}
+                onPhoneChange={setPhone}
+                onPreferredUniversityChange={setPreferredUniversity}
+                onAgeChange={setAge}
+                onGenderChange={setGender}
+              />
 
-                <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
-                  <div>
-                    <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                      {t('request.fullName')} *
-                    </label>
-                    <input
-                      type="text"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder={t('request.fullNamePlaceholder')}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
-                    />
-                  </div>
+              <ClinicalDetailsSection
+                sectionRef={(node) => {
+                  stepSectionRefs.current[1] = node
+                }}
+                treatmentType={treatmentType}
+                complaintText={complaintText}
+                painScore={painScore}
+                symptomDuration={symptomDuration}
+                medicalCondition={medicalCondition}
+                medicalConditionDetails={medicalConditionDetails}
+                onTreatmentTypeChange={setTreatmentType}
+                onComplaintTextChange={setComplaintText}
+                onPainScoreChange={setPainScore}
+                onSymptomDurationChange={setSymptomDuration}
+                onMedicalConditionChange={(value) => {
+                  setHasTouchedMedicalCondition(true)
+                  setMedicalCondition(value)
 
-                  <div>
-                    <div className="grid gap-3 grid-cols-[7rem_minmax(0,1fr)]">
-                      <div>
-                        <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                          {t('request.phoneCountryCode')} *
-                        </label>
-                        <select
-                          value={phoneCountryCode}
-                          onChange={(e) => setPhoneCountryCode(e.target.value)}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
-                        >
-                          {PHONE_COUNTRY_CODE_OPTIONS.map((code) => (
-                            <option key={code} value={code}>
-                              {code}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                  if (value !== 'Other') {
+                    setMedicalConditionDetails('')
+                  }
+                }}
+                onMedicalConditionDetailsChange={setMedicalConditionDetails}
+              />
 
-                      <div>
-                        <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                          {t('request.phone')} *
-                        </label>
-                        <input
-                          type="text"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
-                          placeholder={t('request.phoneNumberPlaceholder')}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
-                        />
-                      </div>
-                    </div>
-                  </div>
+              <SupportSection
+                sectionRef={(node) => {
+                  stepSectionRefs.current[2] = node
+                }}
+                attachment={attachment}
+                attachmentEnabled={PATIENT_UPLOADS_ENABLED}
+                contactMethod={contactMethod}
+                preferredLanguage={preferredLanguage}
+                bestContactTime={bestContactTime}
+                preferredDays={preferredDays}
+                attachmentStatus={attachmentStatus}
+                attachmentPreviewUrl={attachmentPreviewUrl}
+                attachmentErrorMessage={attachmentErrorMessage}
+                onAttachmentChange={handleAttachmentChange}
+                onAttachmentRemove={() => void handleAttachmentChange(null)}
+                onAttachmentRetry={() => {
+                  if (attachment) void handleAttachmentChange(attachment)
+                }}
+                onContactMethodChange={setContactMethod}
+                onPreferredLanguageChange={setPreferredLanguage}
+                onBestContactTimeChange={setBestContactTime}
+                onPreferredDaysChange={setPreferredDays}
+              />
 
-                  <div>
-                    <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                      {t('request.preferredUniversity')} *
-                    </label>
-                    <select
-                      value={preferredUniversity}
-                      onChange={(e) => setPreferredUniversity(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
-                    >
-                      <option value="">{t('request.selectPlaceholder')}</option>
-                      {PREFERRED_UNIVERSITY_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {t(option.tKey)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+              <ConsentSection
+                sectionRef={(node) => {
+                  stepSectionRefs.current[3] = node
+                }}
+                kvkkAcknowledgement={kvkkAcknowledgement}
+                explicitConsent={explicitConsent}
+                onKvkkAcknowledgementChange={setKvkkAcknowledgement}
+                onExplicitConsentChange={setExplicitConsent}
+              />
 
-                  <div>
-                    <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                      {t('request.age')} *
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      inputMode="numeric"
-                      value={age}
-                      onChange={(e) => setAge(e.target.value)}
-                      placeholder={t('request.agePlaceholder')}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                      {t('request.gender')} *
-                    </label>
-                    <select
-                      value={gender}
-                      onChange={(e) => setGender(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
-                    >
-                      <option value="">{t('request.selectPlaceholder')}</option>
-                      {GENDER_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {t(opt.tKey)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </section>
-
-              {/* Clinical Details Section */}
-              <section ref={(node) => { stepSectionRefs.current[1] = node }}>
-                <div className="mb-4 sm:mb-5 flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-teal-500 shrink-0" />
-                  <h2 className="text-lg sm:text-2xl font-semibold text-slate-900 truncate">
-                    {t('request.sectionClinical')}
-                  </h2>
-                </div>
-
-                <div className="mb-5 sm:mb-6">
-                  <label className="mb-2 sm:mb-3 block text-sm font-medium text-slate-700">
-                    {t('request.treatmentCategory')} *
-                  </label>
-                  <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3">
-                    {TREATMENT_OPTIONS.map((opt) => {
-                      const isSelected = treatmentType === opt.value
-                      return (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onClick={() => setTreatmentType(opt.value)}
-                          className={`rounded-xl border px-3 py-2.5 sm:px-4 sm:py-3 text-left text-xs sm:text-sm font-medium transition ${
-                            isSelected
-                              ? 'border-teal-600 bg-teal-50 text-teal-900'
-                              : 'border-slate-300 text-slate-700 hover:border-slate-500'
-                          }`}
-                        >
-                          {t(opt.tKey)}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                <div className="mb-5 sm:mb-6">
-                  <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                    {t('request.mainComplaint')} *
-                  </label>
-                  <textarea
-                    value={complaintText}
-                    onChange={(e) => setComplaintText(e.target.value)}
-                    placeholder={t('request.mainComplaintPlaceholder')}
-                    rows={4}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
-                  />
-                </div>
-
-                <div className="space-y-5">
-                  <div>
-                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                      {locale === 'tr' ? 'Belirti / Klinik' : 'Symptom / Clinical'}
-                    </p>
-                    <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
-                      <div>
-                        <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                          {t('request.painScoreLabel')} *
-                        </label>
-                        <select
-                          value={painScore}
-                          onChange={(e) => setPainScore(e.target.value)}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-slate-900 sm:px-4 sm:py-3"
-                        >
-                          <option value="">{t('request.painScorePlaceholder')}</option>
-                          {Array.from({ length: 11 }, (_, i) => (
-                            <option key={i} value={String(i)}>
-                              {i}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                          {t('request.durationLabel')} *
-                        </label>
-                        <select
-                          value={symptomDuration}
-                          onChange={(e) => setSymptomDuration(e.target.value)}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-slate-900 sm:px-4 sm:py-3"
-                        >
-                          <option value="">{t('request.durationPlaceholder')}</option>
-                          {DURATION_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {t(opt.tKey)}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 grid gap-4 sm:gap-5 md:grid-cols-2">
-                      <div>
-                        <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                          {t('request.medicalConditionLabel')} *
-                        </label>
-                        <select
-                          value={medicalCondition}
-                          onChange={(e) => {
-                            const value = e.target.value
-                            setHasTouchedMedicalCondition(true)
-                            setMedicalCondition(value)
-
-                            if (value !== 'Other') {
-                              setMedicalConditionDetails('')
-                            }
-                          }}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-slate-900 sm:px-4 sm:py-3"
-                        >
-                          <option value="">{t('request.selectPlaceholder')}</option>
-                          {MEDICAL_CONDITION_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {t(opt.tKey)}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    {medicalCondition === 'Other' && (
-                      <div className="mt-4">
-                        <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                          {t('request.medicalConditionDetailsLabel')} *
-                        </label>
-                        <input
-                          type="text"
-                          value={medicalConditionDetails}
-                          onChange={(e) => setMedicalConditionDetails(e.target.value)}
-                          placeholder={t('request.medicalConditionDetailsPlaceholder')}
-                          className="w-full rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </section>
-
-              {/* Optional Support Section */}
-              <section ref={(node) => { stepSectionRefs.current[2] = node }}>
-                <div className="mb-4 sm:mb-5 flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-teal-500 shrink-0" />
-                  <h2 className="text-lg sm:text-2xl font-semibold text-slate-900 truncate">
-                    {t('request.sectionSupport')}
-                  </h2>
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700">
-                    {t('request.supportingImages')}{' '}
-                    <span className="font-normal text-slate-400">{t('request.optional')}</span>
-                  </label>
-                </div>
-
-                <div className="rounded-xl sm:rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 sm:px-6 sm:py-8">
-                  <div className="mb-4 rounded-xl border border-teal-100 bg-teal-50 px-3 py-2.5 text-sm font-medium leading-relaxed text-teal-900 sm:px-4">
-                    {t('request.uploadHelpText')}
-                  </div>
-
-                  <label className="block cursor-pointer">
-                    <div className="text-center">
-                      <UploadCloud className="mx-auto mb-2 sm:mb-3 h-6 w-6 sm:h-8 sm:w-8 text-slate-400" />
-                      <p className="text-sm sm:text-base font-medium text-slate-700">{t('request.uploadTitle')}</p>
-                      <p className="mt-1 text-xs sm:text-sm text-slate-500">{t('request.uploadSubtitle')}</p>
-                    </div>
-
-                    <input
-                      type="file"
-                      accept=".jpg,.jpeg,.png,.pdf"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0] || null
-                        setAttachment(file)
-                      }}
-                    />
-                  </label>
-
-                  {attachment && (
-                    <div className="mt-4 rounded-xl border border-slate-200 bg-white px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-700">
-                      {t('request.uploadSelectedLabel')}{' '}
-                      <span className="font-medium truncate block sm:inline mt-1 sm:mt-0">{attachment.name}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-5 grid gap-4 sm:mt-6 sm:gap-5 md:grid-cols-2">
-                  <div>
-                    <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                      {t('request.contactMethodLabel')}{' '}
-                      <span className="font-normal text-slate-400">{t('request.optional')}</span>
-                    </label>
-                    <select
-                      value={contactMethod}
-                      onChange={(e) => setContactMethod(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-slate-900 sm:px-4 sm:py-3"
-                    >
-                      <option value="">{t('request.selectPlaceholder')}</option>
-                      {CONTACT_METHOD_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {t(opt.tKey)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                      {t('request.preferredLanguage')}{' '}
-                      <span className="font-normal text-slate-400">{t('request.optional')}</span>
-                    </label>
-                    <select
-                      value={preferredLanguage}
-                      onChange={(e) => setPreferredLanguage(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
-                    >
-                      <option value="">{t('request.selectPlaceholder')}</option>
-                      {LANGUAGE_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {t(opt.tKey)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                      {t('request.bestContactTimeLabel')}{' '}
-                      <span className="font-normal text-slate-400">{t('request.optional')}</span>
-                    </label>
-                    <select
-                      value={bestContactTime}
-                      onChange={(e) => setBestContactTime(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-slate-900 sm:px-4 sm:py-3"
-                    >
-                      <option value="">{t('request.selectPlaceholder')}</option>
-                      {CONTACT_TIME_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {t(opt.tKey)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="mb-1.5 sm:mb-2 block text-sm font-medium text-slate-700">
-                      {t('request.availability')}{' '}
-                      <span className="font-normal text-slate-400">{t('request.optional')}</span>
-                    </label>
-                    <select
-                      value={preferredDays}
-                      onChange={(e) => setPreferredDays(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-slate-900 sm:px-4 sm:py-3"
-                    >
-                      <option value="">{t('request.selectPlaceholder')}</option>
-                      {DAY_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {t(opt.tKey)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </section>
-
-              {/* Consent Section */}
-              <section ref={(node) => { stepSectionRefs.current[3] = node }}>
-                <div className="mb-4 sm:mb-5 flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-teal-500 shrink-0" />
-                  <h2 className="text-lg sm:text-2xl font-semibold text-slate-900 truncate">
-                    {t('request.sectionConsent')}
-                  </h2>
-                </div>
-
-                <div className="rounded-xl sm:rounded-2xl border border-blue-100 bg-blue-50 px-3 py-3 sm:px-4 sm:py-4 text-xs sm:text-sm text-blue-900">
-                  <div className="flex items-start gap-2.5 sm:gap-3">
-                    <Info className="mt-0.5 h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
-                    <p>{t('request.consentInfo')}</p>
-                  </div>
-                </div>
-
-                <div className="mt-4 space-y-3">
-                  <label className="flex items-start gap-2.5 sm:gap-3">
-                    <input
-                      type="checkbox"
-                      required
-                      checked={kvkkAcknowledgement}
-                      onChange={(e) => setKvkkAcknowledgement(e.target.checked)}
-                      className="mt-0.5 sm:mt-1 h-4 w-4 shrink-0 rounded border-slate-300"
-                    />
-                    <span className="text-xs sm:text-sm text-slate-700 leading-relaxed">
-                      {t('request.kvkkAcknowledgementBeforeLink')}
-                      <Link
-                        href="/personal-data-protection-law"
-                        className="font-semibold text-teal-700 underline-offset-2 hover:underline"
-                      >
-                        {t('request.kvkkAcknowledgementLink')}
-                      </Link>
-                      {t('request.kvkkAcknowledgementAfterLink')} *
-                    </span>
-                  </label>
-
-                  <label className="flex items-start gap-2.5 sm:gap-3">
-                    <input
-                      type="checkbox"
-                      required
-                      checked={explicitConsent}
-                      onChange={(e) => setExplicitConsent(e.target.checked)}
-                      className="mt-0.5 sm:mt-1 h-4 w-4 shrink-0 rounded border-slate-300"
-                    />
-                    <span className="text-xs sm:text-sm text-slate-700 leading-relaxed">
-                      {t('request.explicitConsentLabel')} *
-                    </span>
-                  </label>
-                </div>
-
-                <p className="mt-3 text-[11px] sm:text-xs text-slate-500">
-                  {t('request.consentLegalLinksIntro')}
-                  <Link href="/privacy" className="font-semibold text-teal-700 underline-offset-2 hover:underline">
-                    {t('request.consentLegalLinksPrivacy')}
-                  </Link>
-                  {t('request.consentLegalLinksBetween')}
-                  <Link
-                    href="/personal-data-protection-law"
-                    className="font-semibold text-teal-700 underline-offset-2 hover:underline"
-                  >
-                    {t('request.consentLegalLinksKvkk')}
-                  </Link>
-                  {t('request.consentLegalLinksEnding')}
-                </p>
-              </section>
-
-              {errorMessage && (
-                <div className="rounded-xl sm:rounded-2xl border border-red-200 bg-red-50 px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-red-700">
-                  {errorMessage}
-                </div>
-              )}
+              <PatientRequestError message={errorMessage} />
             </div>
 
-            <div className="flex flex-col gap-2.5 border-t border-slate-200 bg-slate-50 py-4 pl-12 pr-4 sm:gap-3 sm:flex-row sm:justify-end sm:px-8 sm:py-5 sm:pl-16">
-              <Link
-                href="/"
-                className="inline-flex w-full sm:w-auto items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 sm:py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-400"
-              >
-                {t('request.cancel')}
-              </Link>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="inline-flex w-full sm:w-auto items-center justify-center rounded-xl bg-teal-600 px-5 py-3 sm:py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {isSubmitting ? t('request.submitting') : t('request.submit')}
-              </button>
-            </div>
+            <PatientRequestFormActions isSubmitting={isSubmitting} />
           </form>
         )}
       </section>
 
-      <footer className="bg-slate-950 py-8 sm:py-14 text-slate-300">
-        <div className="mx-auto grid max-w-7xl gap-6 sm:gap-10 px-4 sm:px-6 md:grid-cols-2 lg:grid-cols-3 lg:px-8">
-          <div>
-            <div className="mb-4 flex items-center gap-3">
-              <Image
-                src="/dentbridge-icon.webp"
-                alt="DentBridge icon"
-                width={40}
-                height={40}
-                className="h-8 w-8 sm:h-10 sm:w-10 shrink-0 object-contain"
-              />
-              <div>
-                <p className="font-bold text-white text-sm sm:text-base">DentBridge</p>
-                <p className="text-[10px] sm:text-xs text-slate-400">{t('footer.tagline')}</p>
-              </div>
-            </div>
-            <p className="text-xs sm:text-sm leading-relaxed text-slate-400">
-              {t('footer.description')}
-            </p>
-          </div>
-
-          <div>
-            <h3 className="mb-3 sm:mb-4 text-sm sm:text-base font-semibold text-white">{t('footer.patientServices')}</h3>
-            <ul className="space-y-2 text-xs sm:text-sm text-slate-400">
-              <li>
-                <Link
-                  href="/patient/request"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    resetPatientRequestForm()
-                  }}
-                  className="hover:text-white"
-                >
-                  {t('footer.requestTreatment')}
-                </Link>
-              </li>
-              <li>
-                <Link href="/patient/status" className="hover:text-white">
-                  {t('footer.checkStatus')}
-                </Link>
-              </li>
-              <li>
-                <Link href="/about" className="hover:text-white">
-                  {t('footer.aboutDentBridge')}
-                </Link>
-              </li>
-              <li>
-                <Link href="/privacy" className="hover:text-white">
-                  {t('footer.privacyPolicy')}
-                </Link>
-              </li>
-              <li>
-                <Link href="/terms" className="hover:text-white">
-                  {t('footer.termsOfUse')}
-                </Link>
-              </li>
-              <li>
-                <Link href="/personal-data-protection-law" className="hover:text-white">
-                  {t('footer.personalDataProtection')}
-                </Link>
-              </li>
-              <li>
-                <Link href="/faq" className="hover:text-white">
-                  {t('footer.faq')}
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="mb-3 sm:mb-4 text-sm sm:text-base font-semibold text-white">{t('footer.contact')}</h3>
-            <ul className="space-y-2 text-xs sm:text-sm text-slate-400">
-              <li>
-                Istanbul, Türkiye
-              </li>
-              <li>
-                <a href="mailto:contact@dentbridgetr.com" className="hover:text-white">
-                  {t('footer.email')}
-                </a>
-              </li>
-              <li>
-                <a href="mailto:support@dentbridgetr.com" className="hover:text-white">
-                  {t('footer.patientSupportEmail')}
-                </a>
-              </li>
-              <li>
-                <a href="mailto:privacy@dentbridgetr.com" className="hover:text-white">
-                  {t('footer.privacyEmail')}
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://wa.me/905411072665"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hover:text-white"
-                >
-                  {t('footer.whatsappSupport')}
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="mx-auto mt-6 max-w-7xl border-t border-slate-800 px-4 pt-4 text-[10px] leading-relaxed text-slate-500 sm:mt-10 sm:px-6 sm:pt-6 sm:text-xs lg:px-8">
-          <p>{t('footer.copyright')}</p>
-          <p className="mt-2 max-w-5xl">{t('footer.legalNotice')}</p>
-        </div>
-      </footer>
+      <PatientRequestFooter onNewRequest={resetPatientRequestForm} />
     </main>
   )
 }

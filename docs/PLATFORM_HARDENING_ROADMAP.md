@@ -64,6 +64,20 @@ phases.
 9. Security + API + audit come before large refactoring.
 10. The goal is platform-grade quality, not more features.
 
+## Module Path Convention
+
+The implemented codebase organizes shared server/service code under `src/lib/**`
+(for example `src/lib/audit/audit.service.ts`, `src/lib/cases/*.service.ts`,
+`src/lib/files/files.service.ts`, `src/lib/planner/student-planner.service.ts`),
+not `src/modules/**`.
+
+Some phase sections below (notably Phase 4, 7, 8, 9, and 15) were written
+referencing `src/modules/**` paths. Those paths are illustrative only. Follow the
+existing `src/lib/**` convention when implementing later phases — for example, the
+Phase 7 case lifecycle belongs at `src/lib/cases/case-lifecycle.ts`, not
+`src/modules/cases/case-lifecycle.ts`. Do not create a parallel `src/modules`
+tree.
+
 ## Correct Phase Order
 
 Phase 0 - Preparation & Safety
@@ -716,6 +730,16 @@ Example:
 
 ## Phase 7 - Case Lifecycle State Machine
 
+### Implementation Status
+
+DONE. Implemented at `src/lib/cases/case-lifecycle.ts` (pure state machine) plus
+the shared `src/lib/cases/case-stage-context.ts` helper. The admin/student case
+services consult the module instead of local status/action maps and duplicated
+stage-authorization logic. No new statuses, schema, RLS, API shapes, UI,
+generated types, or test framework were introduced. See
+[CASE_LIFECYCLE.md](./CASE_LIFECYCLE.md). Formal transition tests are deferred to
+Phase 10.
+
 ### Goal
 
 Centralize all case statuses in one place.
@@ -726,7 +750,7 @@ Centralize all case statuses in one place.
 
 ### Tasks
 
-1. Create `src/modules/cases/case-lifecycle.ts`.
+1. Create `src/lib/cases/case-lifecycle.ts`.
 2. Define statuses:
 
 - submitted
@@ -943,6 +967,19 @@ Extract:
 
 ## Phase 9 - Type Safety
 
+### Implementation Status
+
+DONE. `src/lib/database.types.ts` is generated from the local schema and all
+three Supabase clients (`supabase.ts`, `supabase-server.ts`,
+`supabase-admin.ts`) are typed with `Database`. Shared service types live in
+`src/lib/api/service-types.ts`; duplicated type aliases (`SupabaseAdminClient`,
+`ServiceResponse`, `StudentActor`/`FacultyActor`, `LifecycleAction`, `Locale`)
+were centralized; every API route handler has an explicit
+`Promise<NextResponse>` return type; lifecycle precondition guards are type
+predicates narrowing nullable statuses to `CaseStatus`. The codebase has zero
+`any` and zero `@ts-ignore`. Conventions are documented in
+[TYPES.md](./TYPES.md). Runtime behavior is unchanged.
+
 ### Goal
 
 Make the code typed and serious with Supabase.
@@ -984,6 +1021,16 @@ Make the code typed and serious with Supabase.
 - Less schema drift.
 
 ## Phase 10 - Tests + CI
+
+### Implementation Status
+
+DONE. Vitest is configured for focused Node tests with a no-op `server-only`
+alias for server-only modules. Scripts exist for `test`, `test:watch`,
+`test:coverage`, and `typecheck`. The first test suite protects the Phase 7
+case lifecycle state machine, patient upload security primitives, OTP
+primitives, public API error mapping, patient request route validation, and
+student progress lifecycle/error guards. GitHub Actions CI runs install,
+typecheck, lint, test, and build. See [TESTING.md](./TESTING.md).
 
 ### Goal
 
@@ -1051,6 +1098,17 @@ Minimum test coverage must exist before Phase 8 large refactoring.
 - PR does not pass if build/typecheck/tests fail.
 
 ## Phase 11 - Monitoring + Logging
+
+### Implementation Status
+
+DONE. Phase 11 added `src/lib/observability/logger.ts`,
+`request-context.ts`, and `error-monitor.ts`; instrumented the critical patient,
+file, admin case, student case, and planner API routes with structured
+PHI-free operational request logs; added `GET /api/health`; documented the
+logging policy in [OBSERVABILITY.md](./OBSERVABILITY.md); and added focused
+tests for redaction, request context, error-monitor no-op behavior, and health
+response shape. Sentry/external monitoring, uptime provider setup, database
+health probing, retention policy, and dashboards are intentionally deferred.
 
 ### Goal
 

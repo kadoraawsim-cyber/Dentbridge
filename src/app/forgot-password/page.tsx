@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import { useI18n, type Locale } from '@/lib/i18n'
 
-type MessageKey = 'emailRequired' | 'notFound' | 'generic' | null
+type MessageKey = 'emailRequired' | null
 
 const copy: Record<
   Locale,
@@ -20,9 +20,7 @@ const copy: Record<
     studentLogin: string
     facultyLogin: string
     emailRequired: string
-    notFound: string
     success: string
-    generic: string
   }
 > = {
   en: {
@@ -35,10 +33,7 @@ const copy: Record<
     studentLogin: 'Back to student login',
     facultyLogin: 'Back to faculty login',
     emailRequired: 'Please enter your email address.',
-    notFound:
-      'No DentBridge account was found for this email. Please check the email address and try again.',
-    success: 'A password reset link has been sent to this email.',
-    generic: 'Something went wrong. Please try again.',
+    success: 'If an account exists for this email, a password reset link will be sent.',
   },
   tr: {
     backHome: 'Ana sayfaya dön',
@@ -51,10 +46,7 @@ const copy: Record<
     studentLogin: 'Öğrenci girişine dön',
     facultyLogin: 'Akademik girişe dön',
     emailRequired: 'Lütfen e-posta adresinizi girin.',
-    notFound:
-      'Bu e-posta adresiyle kayıtlı bir DentBridge hesabı bulunamadı. Lütfen e-posta adresini kontrol edip tekrar deneyin.',
-    success: 'Şifre sıfırlama bağlantısı bu e-posta adresine gönderildi.',
-    generic: 'Bir hata oluştu. Lütfen tekrar deneyin.',
+    success: 'Bu e-posta için bir hesap varsa, şifre sıfırlama bağlantısı gönderilecektir.',
   },
 }
 
@@ -79,23 +71,6 @@ export default function ForgotPasswordPage() {
   const [success, setSuccess] = useState(false)
   const [errorKey, setErrorKey] = useState<MessageKey>(null)
 
-  async function emailExistsInDentBridge(normalizedEmail: string) {
-    const response = await fetch('/api/auth/check-email', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email: normalizedEmail }),
-    })
-
-    if (!response.ok) {
-      throw new Error('email_check_failed')
-    }
-
-    const result = (await response.json()) as { exists?: boolean }
-    return result.exists === true
-  }
-
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setErrorKey(null)
@@ -109,33 +84,16 @@ export default function ForgotPasswordPage() {
 
     setLoading(true)
 
-    let accountExists = false
     try {
-      accountExists = await emailExistsInDentBridge(normalizedEmail)
+      await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+        redirectTo: getResetRedirectUrl(),
+      })
     } catch {
+      // Always show the same result so the form cannot be used to enumerate accounts.
+    } finally {
       setLoading(false)
-      setErrorKey('generic')
-      return
+      setSuccess(true)
     }
-
-    if (!accountExists) {
-      setLoading(false)
-      setErrorKey('notFound')
-      return
-    }
-
-    const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
-      redirectTo: getResetRedirectUrl(),
-    })
-
-    setLoading(false)
-
-    if (error) {
-      setErrorKey('generic')
-      return
-    }
-
-    setSuccess(true)
   }
 
   return (

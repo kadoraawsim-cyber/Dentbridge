@@ -1,25 +1,34 @@
 import { createServerClient } from '@supabase/ssr'
 import type { ReadonlyRequestCookies } from 'next/dist/server/web/spec-extension/adapters/request-cookies'
 
+import type { Database } from '@/lib/database.types'
+import { getPublicEnvironment } from '@/lib/env/public'
+
 /**
  * Server-side Supabase client for use in Route Handlers and Server Components.
  * Reads and writes auth cookies via the provided cookie store.
  */
 export function createSupabaseServerClient(cookieStore: ReadonlyRequestCookies) {
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  const environment = getPublicEnvironment()
+  return createServerClient<Database>(
+    environment.NEXT_PUBLIC_SUPABASE_URL,
+    environment.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
         getAll() {
           return cookieStore.getAll()
         },
         setAll(cookiesToSet) {
+          // `cookies()` is typed read-only, but in Route Handlers the runtime
+          // store is mutable and exposes `set`. Model that narrowly instead of
+          // erasing the type with `any`; Server Components still throw and are
+          // caught below.
+          const mutableCookieStore = cookieStore as ReadonlyRequestCookies & {
+            set?: (name: string, value: string, options?: unknown) => void
+          }
           cookiesToSet.forEach(({ name, value, options }) => {
             try {
-              // cookieStore.set is available in Route Handlers but not Server Components
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              ;(cookieStore as any).set(name, value, options)
+              mutableCookieStore.set?.(name, value, options)
             } catch {
               // In Server Components the cookie store is read-only; ignore writes.
             }

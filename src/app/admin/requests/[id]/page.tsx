@@ -3,6 +3,7 @@ import { redirect, notFound } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { CaseDetailClient } from './detail-client'
 import { canAccessFacultyPortal } from '@/lib/roles'
+import { createSupabaseAdminClient } from '@/lib/supabase-admin'
 
 export default async function AdminRequestDetailPage({
   params,
@@ -30,6 +31,23 @@ export default async function AdminRequestDetailPage({
     .single()
 
   if (error || !data) notFound()
+
+  const admin = createSupabaseAdminClient()
+  const { data: fileRow } = await admin
+    .from('patient_files')
+    .select('id')
+    .eq('patient_request_id', id)
+    .eq('status', 'sanitized_unscanned')
+    .eq('security_state', 'sanitized_unscanned')
+    .eq('derivative_state', 'ready')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle<{ id: string }>()
+
+  const requestWithFile = {
+    ...data,
+    attachment_file_id: fileRow?.id ?? null,
+  }
 
   const [studentRequestsResult, progressEntriesResult, routingStagesResult] = await Promise.all([
     // Fetch all student requests for this case so faculty can review and act on them.
@@ -99,7 +117,7 @@ export default async function AdminRequestDetailPage({
 
   return (
     <CaseDetailClient
-      initialRequest={data}
+      initialRequest={requestWithFile}
       adminEmail={user.email ?? ''}
       initialStudentRequests={studentRequests ?? []}
       initialProgressEntries={progressEntries ?? []}

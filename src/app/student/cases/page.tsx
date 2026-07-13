@@ -1,7 +1,12 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import {
+  fetchStudentActiveCases,
+  fetchStudentPoolCases,
+} from '@/lib/cases/student-case-access'
 import { CasesClient } from './cases-client'
+import { assertQuerySucceeded } from '@/lib/data/data-load'
 
 export type PoolCase = {
   id: string
@@ -17,7 +22,8 @@ export type PoolCase = {
   medical_condition: string | null
   clinical_notes: string | null
   created_at: string | null
-  attachment_path: string | null
+  // Raw storage path is never sent to the browser; only presence is exposed.
+  has_attachment: boolean
 }
 
 export type RequestInfo = {
@@ -42,25 +48,20 @@ export default async function StudentCasesPage() {
     redirect('/student/login')
   }
 
-  // Fetch pool cases — full_name and phone intentionally excluded.
-  // Students must not see patient identity until their request is approved.
-  const [casesResult, myRequestsResult] = await Promise.all([
-    supabase
-      .from('patient_requests')
-      .select(
-        'id, age, treatment_type, complaint_text, urgency, assigned_department, target_student_level, pain_score, preferred_days, symptom_duration, medical_condition, clinical_notes, created_at, attachment_path'
-      )
-      .eq('status', 'matched')
-      .order('created_at', { ascending: false }),
-
-    // Fetch this student's own requests across all cases.
+  // Pool cases come from an allowlisted RPC that projects only non-identifying
+  // fields (no full_name/phone/attachment path). Contact/clinical detail for the
+  // student's own current-stage cases comes from a separate current-stage-gated
+  // RPC. My-requests are the caller's own rows (own-row RLS still applies).
+  const [poolCases, activeCases, myRequestsResult] = await Promise.all([
+    fetchStudentPoolCases(supabase),
+    fetchStudentActiveCases(supabase),
     supabase
       .from('student_case_requests')
       .select('id, case_id, status, created_at')
       .eq('student_id', user.id),
   ])
 
-  const { data: casesData } = casesResult
+  assertQuerySucceeded(myRequestsResult.error, 'student.cases.requests')
   const { data: myRequestsData } = myRequestsResult
 
   // Build a map of case_id → { requestId, status } for O(1) lookups in the client.
@@ -72,31 +73,19 @@ export default async function StudentCasesPage() {
     }
   }
 
-  // For approved cases, fetch contact details (full_name + phone).
-  // This fetch runs server-side — these values are never directly exposed to
-  // the browser via the Supabase client. They are passed as pre-rendered props.
-  const approvedCaseIds = Object.entries(requestsByCaseId)
-    .filter(([, r]) => r.status === 'approved')
-    .map(([caseId]) => caseId)
-
+  // Contact details are limited to the student's current-stage active cases.
+  // A student who has been handed off (previous stage) receives no row here.
   const contactDetails: Record<string, ContactInfo> = {}
-  if (approvedCaseIds.length > 0) {
-    const { data: contactData } = await supabase
-      .from('patient_requests')
-      .select('id, full_name, phone')
-      .in('id', approvedCaseIds)
-
-    for (const c of contactData ?? []) {
-      contactDetails[c.id] = {
-        full_name: (c as { id: string; full_name: string; phone: string }).full_name,
-        phone: (c as { id: string; full_name: string; phone: string }).phone,
-      }
+  for (const activeCase of activeCases) {
+    contactDetails[activeCase.id] = {
+      full_name: activeCase.full_name,
+      phone: activeCase.phone,
     }
   }
 
   return (
     <CasesClient
-      initialCases={(casesData ?? []) as PoolCase[]}
+      initialCases={poolCases as PoolCase[]}
       requestsByCaseId={requestsByCaseId}
       contactDetails={contactDetails}
     />

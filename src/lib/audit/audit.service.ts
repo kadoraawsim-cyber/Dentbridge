@@ -1,0 +1,823 @@
+import 'server-only'
+
+import { randomUUID } from 'node:crypto'
+
+import { createSupabaseAdminClient, type SupabaseAdminClient } from '@/lib/supabase-admin'
+import { captureException } from '@/lib/observability/error-monitor'
+
+export const AUDIT_ACTIONS = {
+  PATIENT_REQUEST_CREATED: 'patient_request_created',
+  PATIENT_STATUS_OTP_REQUESTED: 'patient_status_otp_requested',
+  PATIENT_STATUS_LOOKUP: 'patient_status_lookup',
+  PROFILE_COMPLETED: 'profile_completed',
+  INVITATION_SENT: 'invitation_sent',
+  STUDENT_CASE_REQUESTED: 'student_case_requested',
+  STUDENT_PROGRESS_ADDED: 'student_progress_added',
+  STUDENT_CASE_STATUS_CHANGED: 'student_case_status_changed',
+  ADMIN_CASE_STATUS_CHANGED: 'admin_case_status_changed',
+  STUDENT_CASE_APPROVED: 'student_case_approved',
+  STUDENT_CASE_REJECTED: 'student_case_rejected',
+  CASE_RETURNED_TO_POOL: 'case_returned_to_pool',
+  FILE_UPLOAD_PREPARED: 'file_upload_prepared',
+  FILE_CONFIRMED: 'file_confirmed',
+  FILE_REJECTED: 'file_rejected',
+  FILE_SIGNED_URL_CREATED: 'file_signed_url_created',
+} as const
+
+export const AUDIT_CATEGORIES = {
+  AUTH: 'auth',
+  CONSENT: 'consent',
+  PRIVACY: 'privacy',
+  SECURITY: 'security',
+  WORKFLOW: 'workflow',
+} as const
+
+export const AUDIT_SEVERITIES = {
+  INFO: 'info',
+  NOTICE: 'notice',
+  WARNING: 'warning',
+  ERROR: 'error',
+} as const
+
+export const AUDIT_ACTOR_TYPES = {
+  ANONYMOUS: 'anonymous',
+  PATIENT: 'patient',
+  STUDENT: 'student',
+  FACULTY: 'faculty',
+  ADMIN: 'admin',
+  SYSTEM: 'system',
+  SERVICE: 'service',
+} as const
+
+const AUDIT_EVENT_VERSION = 1
+const AUDIT_METADATA_SCHEMA = 'audit.v1'
+const DEFAULT_SOURCE_SERVICE = 'dentbridge-web'
+const DEFAULT_API_VERSION = 'v1'
+const MAX_METADATA_KEYS = 25
+const MAX_METADATA_BYTES = 4096
+const MAX_METADATA_STRING_LENGTH = 256
+
+const SENSITIVE_METADATA_KEYS = new Set([
+  'authorization',
+  'attachment_name',
+  'attachment_path',
+  'checksum',
+  'checksum_sha256',
+  'code',
+  'filename',
+  'object_path',
+  'original_filename',
+  'code_hash',
+  'complaint_text',
+  'full_name',
+  'medical_condition',
+  'otp',
+  'password',
+  'phone',
+  'phone_number',
+  'raw_phone',
+  'secret',
+  'token',
+])
+
+const SENSITIVE_METADATA_FRAGMENTS = ['otp', 'hash', 'secret', 'token', 'password']
+
+type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS]
+type AuditCategory = (typeof AUDIT_CATEGORIES)[keyof typeof AUDIT_CATEGORIES]
+type AuditSeverity = (typeof AUDIT_SEVERITIES)[keyof typeof AUDIT_SEVERITIES]
+type AuditActorType = (typeof AUDIT_ACTOR_TYPES)[keyof typeof AUDIT_ACTOR_TYPES]
+type AuditMetadataValue = string | number | boolean | null
+type AuditMetadata = Record<string, AuditMetadataValue>
+type AuditMetadataInput = Record<string, unknown>
+
+interface AuditEventDefinition {
+  category: AuditCategory
+  severity: AuditSeverity
+  entityType: string
+}
+
+const AUDIT_EVENT_DEFINITIONS: Record<AuditAction, AuditEventDefinition> = {
+  [AUDIT_ACTIONS.PATIENT_REQUEST_CREATED]: {
+    category: AUDIT_CATEGORIES.WORKFLOW,
+    severity: AUDIT_SEVERITIES.INFO,
+    entityType: 'patient_request',
+  },
+  [AUDIT_ACTIONS.PATIENT_STATUS_OTP_REQUESTED]: {
+    category: AUDIT_CATEGORIES.SECURITY,
+    severity: AUDIT_SEVERITIES.INFO,
+    entityType: 'patient_status',
+  },
+  [AUDIT_ACTIONS.PATIENT_STATUS_LOOKUP]: {
+    category: AUDIT_CATEGORIES.PRIVACY,
+    severity: AUDIT_SEVERITIES.NOTICE,
+    entityType: 'patient_status',
+  },
+  [AUDIT_ACTIONS.PROFILE_COMPLETED]: {
+    category: AUDIT_CATEGORIES.AUTH,
+    severity: AUDIT_SEVERITIES.NOTICE,
+    entityType: 'user_profile',
+  },
+  [AUDIT_ACTIONS.INVITATION_SENT]: {
+    category: AUDIT_CATEGORIES.AUTH,
+    severity: AUDIT_SEVERITIES.NOTICE,
+    entityType: 'auth_user',
+  },
+  [AUDIT_ACTIONS.STUDENT_CASE_REQUESTED]: {
+    category: AUDIT_CATEGORIES.WORKFLOW,
+    severity: AUDIT_SEVERITIES.NOTICE,
+    entityType: 'student_case_request',
+  },
+  [AUDIT_ACTIONS.STUDENT_PROGRESS_ADDED]: {
+    category: AUDIT_CATEGORIES.WORKFLOW,
+    severity: AUDIT_SEVERITIES.NOTICE,
+    entityType: 'case_progress_entry',
+  },
+  [AUDIT_ACTIONS.STUDENT_CASE_STATUS_CHANGED]: {
+    category: AUDIT_CATEGORIES.WORKFLOW,
+    severity: AUDIT_SEVERITIES.NOTICE,
+    entityType: 'patient_request',
+  },
+  [AUDIT_ACTIONS.ADMIN_CASE_STATUS_CHANGED]: {
+    category: AUDIT_CATEGORIES.WORKFLOW,
+    severity: AUDIT_SEVERITIES.NOTICE,
+    entityType: 'patient_request',
+  },
+  [AUDIT_ACTIONS.STUDENT_CASE_APPROVED]: {
+    category: AUDIT_CATEGORIES.WORKFLOW,
+    severity: AUDIT_SEVERITIES.NOTICE,
+    entityType: 'student_case_request',
+  },
+  [AUDIT_ACTIONS.STUDENT_CASE_REJECTED]: {
+    category: AUDIT_CATEGORIES.WORKFLOW,
+    severity: AUDIT_SEVERITIES.NOTICE,
+    entityType: 'student_case_request',
+  },
+  [AUDIT_ACTIONS.CASE_RETURNED_TO_POOL]: {
+    category: AUDIT_CATEGORIES.WORKFLOW,
+    severity: AUDIT_SEVERITIES.NOTICE,
+    entityType: 'patient_request',
+  },
+  [AUDIT_ACTIONS.FILE_UPLOAD_PREPARED]: {
+    category: AUDIT_CATEGORIES.SECURITY,
+    severity: AUDIT_SEVERITIES.INFO,
+    entityType: 'patient_file',
+  },
+  [AUDIT_ACTIONS.FILE_CONFIRMED]: {
+    category: AUDIT_CATEGORIES.SECURITY,
+    severity: AUDIT_SEVERITIES.INFO,
+    entityType: 'patient_file',
+  },
+  [AUDIT_ACTIONS.FILE_REJECTED]: {
+    category: AUDIT_CATEGORIES.SECURITY,
+    severity: AUDIT_SEVERITIES.WARNING,
+    entityType: 'patient_file',
+  },
+  [AUDIT_ACTIONS.FILE_SIGNED_URL_CREATED]: {
+    category: AUDIT_CATEGORIES.PRIVACY,
+    severity: AUDIT_SEVERITIES.NOTICE,
+    entityType: 'patient_file',
+  },
+}
+
+export interface AuditRequestContext {
+  ipAddress: string | null
+  userAgent: string | null
+  requestId: string
+  correlationId: string
+  sourceService: string
+  apiVersion: string
+}
+
+interface AuditLogInput {
+  actorUserId?: string | null
+  actorEmail?: string | null
+  actorRole?: string | null
+  actorType?: AuditActorType
+  action: AuditAction
+  category?: AuditCategory
+  severity?: AuditSeverity
+  success?: boolean
+  entityType?: string
+  entityId?: string | null
+  metadata?: AuditMetadataInput
+  ipAddress?: string | null
+  userAgent?: string | null
+  requestId?: string | null
+  correlationId?: string | null
+  sourceService?: string | null
+  apiVersion?: string | null
+  metadataSchema?: string | null
+  eventVersion?: number
+  context?: AuditRequestContext
+  supabase?: SupabaseAdminClient
+}
+
+interface PatientStatusOtpAuditInput {
+  phoneLast4: string | null
+  locale: string
+  otpIssued: boolean
+  smsDelivered?: boolean | null
+  provider?: string | null
+  context: AuditRequestContext
+  supabase?: SupabaseAdminClient
+}
+
+interface PatientStatusLookupAuditInput {
+  phoneLast4: string | null
+  locale: string
+  success: boolean
+  result: 'verified' | 'verification_failed' | 'status_not_found'
+  context: AuditRequestContext
+  supabase?: SupabaseAdminClient
+}
+
+interface ProfileCompletedAuditInput {
+  actorUserId: string
+  actorEmail?: string | null
+  actorRole: 'student' | 'faculty'
+  context: AuditRequestContext
+  supabase?: SupabaseAdminClient
+}
+
+interface InvitationSentAuditInput {
+  invitedUserId: string
+  invitedRole: 'student' | 'faculty'
+  actorEmail?: string | null
+  actorRole?: string | null
+  context: AuditRequestContext
+  supabase?: SupabaseAdminClient
+}
+
+interface StudentCaseRequestedAuditInput {
+  requestId: string
+  caseId: string
+  stageId?: string | null
+  actorUserId: string
+  actorEmail?: string | null
+  context: AuditRequestContext
+  supabase?: SupabaseAdminClient
+}
+
+interface StudentProgressAddedAuditInput {
+  progressEntryId: string
+  caseId: string
+  stageId?: string | null
+  statusAtTime: string
+  actorUserId: string
+  actorEmail?: string | null
+  context: AuditRequestContext
+  supabase?: SupabaseAdminClient
+}
+
+interface StudentCaseStatusChangedAuditInput {
+  caseId: string
+  stageId?: string | null
+  action: string
+  fromStatus?: string | null
+  toStatus: string
+  actorUserId: string
+  actorEmail?: string | null
+  context: AuditRequestContext
+  supabase?: SupabaseAdminClient
+}
+
+interface AdminCaseStatusChangedAuditInput {
+  caseId: string
+  stageId?: string | null
+  action: string
+  fromStatus?: string | null
+  toStatus?: string | null
+  actorUserId: string
+  actorEmail?: string | null
+  actorRole: 'admin' | 'faculty'
+  context: AuditRequestContext
+  supabase?: SupabaseAdminClient
+}
+
+interface StudentCaseDecisionAuditInput {
+  requestId: string
+  caseId: string
+  stageId?: string | null
+  actorUserId: string
+  actorEmail?: string | null
+  actorRole: 'admin' | 'faculty'
+  context: AuditRequestContext
+  supabase?: SupabaseAdminClient
+}
+
+interface CaseReturnedToPoolAuditInput {
+  caseId: string
+  requestId?: string | null
+  actorUserId: string
+  actorEmail?: string | null
+  actorRole: 'admin' | 'faculty'
+  context: AuditRequestContext
+  supabase?: SupabaseAdminClient
+}
+
+function sanitizeText(value: string | null | undefined, maxLength: number): string | null {
+  const trimmed = value?.trim()
+  if (!trimmed) {
+    return null
+  }
+  return trimmed.slice(0, maxLength)
+}
+
+function getHeaderValue(request: Request, header: string, maxLength: number): string | null {
+  return sanitizeText(request.headers.get(header), maxLength)
+}
+
+function getClientIpFromHeaders(request: Request): string | null {
+  const forwardedFor = request.headers.get('x-forwarded-for')
+  if (forwardedFor) {
+    return sanitizeText(forwardedFor.split(',')[0], 128)
+  }
+  return getHeaderValue(request, 'x-real-ip', 128)
+}
+
+function isSensitiveMetadataKey(key: string): boolean {
+  const normalized = key.toLowerCase()
+  if (SENSITIVE_METADATA_KEYS.has(normalized)) {
+    return true
+  }
+  return SENSITIVE_METADATA_FRAGMENTS.some((fragment) => normalized.includes(fragment))
+}
+
+function normalizeMetadataValue(value: unknown): AuditMetadataValue | undefined {
+  if (value == null) {
+    return null
+  }
+  if (typeof value === 'string') {
+    return value.slice(0, MAX_METADATA_STRING_LENGTH)
+  }
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : undefined
+  }
+  if (typeof value === 'boolean') {
+    return value
+  }
+  return undefined
+}
+
+function metadataByteLength(metadata: AuditMetadata): number {
+  return new TextEncoder().encode(JSON.stringify(metadata)).length
+}
+
+function normalizeMetadata(input: AuditMetadataInput = {}): AuditMetadata {
+  const normalized: AuditMetadata = {}
+  let acceptedKeys = 0
+  let droppedKeys = 0
+
+  for (const [key, rawValue] of Object.entries(input)) {
+    if (acceptedKeys >= MAX_METADATA_KEYS || isSensitiveMetadataKey(key)) {
+      droppedKeys += 1
+      continue
+    }
+
+    const value = normalizeMetadataValue(rawValue)
+    if (value === undefined) {
+      droppedKeys += 1
+      continue
+    }
+
+    const candidate = { ...normalized, [key]: value }
+    if (metadataByteLength(candidate) > MAX_METADATA_BYTES) {
+      droppedKeys += 1
+      continue
+    }
+
+    normalized[key] = value
+    acceptedKeys += 1
+  }
+
+  if (droppedKeys > 0) {
+    normalized.metadata_truncated = true
+  }
+
+  return normalized
+}
+
+export function createAuditRequestContext(
+  request: Request,
+  options?: { ipAddress?: string | null; sourceService?: string; apiVersion?: string }
+): AuditRequestContext {
+  const requestId = getHeaderValue(request, 'x-request-id', 128) ?? randomUUID()
+  const correlationId = getHeaderValue(request, 'x-correlation-id', 128) ?? requestId
+
+  return {
+    ipAddress: options?.ipAddress ?? getClientIpFromHeaders(request),
+    userAgent: getHeaderValue(request, 'user-agent', 512),
+    requestId,
+    correlationId,
+    sourceService: sanitizeText(options?.sourceService ?? DEFAULT_SOURCE_SERVICE, 80) ?? DEFAULT_SOURCE_SERVICE,
+    apiVersion: sanitizeText(options?.apiVersion ?? DEFAULT_API_VERSION, 40) ?? DEFAULT_API_VERSION,
+  }
+}
+
+export function getPhoneLast4(phone: string | null | undefined): string | null {
+  const digits = phone?.replace(/\D/g, '') ?? ''
+  return digits.length >= 4 ? digits.slice(-4) : null
+}
+
+export async function createAuditLog(input: AuditLogInput): Promise<boolean> {
+  const definition = AUDIT_EVENT_DEFINITIONS[input.action]
+  const context = input.context
+
+  try {
+    const supabase = input.supabase ?? createSupabaseAdminClient()
+    const { error } = await supabase.from('audit_logs').insert({
+      actor_user_id: input.actorUserId ?? null,
+      actor_email: sanitizeText(input.actorEmail, 320),
+      actor_role: sanitizeText(input.actorRole, 80),
+      actor_type: input.actorType ?? AUDIT_ACTOR_TYPES.ANONYMOUS,
+      action: input.action,
+      category: input.category ?? definition.category,
+      severity: input.severity ?? definition.severity,
+      success: input.success ?? true,
+      entity_type: sanitizeText(input.entityType ?? definition.entityType, 120) ?? definition.entityType,
+      entity_id: input.entityId ?? null,
+      metadata_json: normalizeMetadata(input.metadata),
+      ip_address: sanitizeText(input.ipAddress ?? context?.ipAddress, 128),
+      user_agent: sanitizeText(input.userAgent ?? context?.userAgent, 512),
+      request_id: sanitizeText(input.requestId ?? context?.requestId, 128),
+      correlation_id: sanitizeText(input.correlationId ?? context?.correlationId, 128),
+      source_service:
+        sanitizeText(input.sourceService ?? context?.sourceService ?? DEFAULT_SOURCE_SERVICE, 80) ??
+        DEFAULT_SOURCE_SERVICE,
+      api_version: sanitizeText(input.apiVersion ?? context?.apiVersion ?? DEFAULT_API_VERSION, 40),
+      metadata_schema:
+        sanitizeText(input.metadataSchema ?? AUDIT_METADATA_SCHEMA, 80) ?? AUDIT_METADATA_SCHEMA,
+      event_version: input.eventVersion ?? AUDIT_EVENT_VERSION,
+    })
+
+    if (error) {
+      console.error('[audit] Failed to create audit log', {
+        action: input.action,
+        entityType: input.entityType ?? definition.entityType,
+        error: error.message,
+      })
+      void captureException(new Error('Mandatory audit write failed.'), {
+        actorType: input.actorType ?? AUDIT_ACTOR_TYPES.ANONYMOUS,
+        route: 'audit.create',
+        metadata: { action: input.action, entity_type: input.entityType ?? definition.entityType },
+      })
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('[audit] Unexpected audit log failure', {
+      action: input.action,
+      entityType: input.entityType ?? definition.entityType,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    })
+    void captureException(new Error('Mandatory audit write failed unexpectedly.'), {
+      actorType: input.actorType ?? AUDIT_ACTOR_TYPES.ANONYMOUS,
+      route: 'audit.create',
+      metadata: { action: input.action, entity_type: input.entityType ?? definition.entityType },
+    })
+    return false
+  }
+}
+
+// The patient_request_created audit event is written inside the atomic intake
+// RPC (submit_patient_request_atomic) so it commits with the request itself;
+// AUDIT_ACTIONS.PATIENT_REQUEST_CREATED stays registered for that DB-side row.
+
+export async function auditPatientStatusOtpRequested(
+  input: PatientStatusOtpAuditInput
+): Promise<boolean> {
+  return createAuditLog({
+    action: AUDIT_ACTIONS.PATIENT_STATUS_OTP_REQUESTED,
+    actorType: AUDIT_ACTOR_TYPES.ANONYMOUS,
+    success: true,
+    metadata: {
+      phone_last4: input.phoneLast4,
+      locale: input.locale,
+      challenge_issued: input.otpIssued,
+      sms_delivered: input.smsDelivered ?? null,
+      provider: input.provider ?? null,
+    },
+    context: input.context,
+    supabase: input.supabase,
+  })
+}
+
+export async function auditPatientStatusLookup(
+  input: PatientStatusLookupAuditInput
+): Promise<boolean> {
+  return createAuditLog({
+    action: AUDIT_ACTIONS.PATIENT_STATUS_LOOKUP,
+    actorType: AUDIT_ACTOR_TYPES.ANONYMOUS,
+    success: input.success,
+    severity: input.success ? AUDIT_SEVERITIES.NOTICE : AUDIT_SEVERITIES.WARNING,
+    metadata: {
+      phone_last4: input.phoneLast4,
+      locale: input.locale,
+      result: input.result,
+    },
+    context: input.context,
+    supabase: input.supabase,
+  })
+}
+
+export async function auditProfileCompleted(input: ProfileCompletedAuditInput): Promise<boolean> {
+  return createAuditLog({
+    action: AUDIT_ACTIONS.PROFILE_COMPLETED,
+    actorUserId: input.actorUserId,
+    actorEmail: input.actorEmail,
+    actorRole: input.actorRole,
+    actorType:
+      input.actorRole === 'student' ? AUDIT_ACTOR_TYPES.STUDENT : AUDIT_ACTOR_TYPES.FACULTY,
+    entityId: input.actorUserId,
+    metadata: {
+      profile_role: input.actorRole,
+    },
+    context: input.context,
+    supabase: input.supabase,
+  })
+}
+
+export async function auditInvitationSent(input: InvitationSentAuditInput): Promise<boolean> {
+  const actorRole =
+    input.actorRole === 'admin' || input.actorRole === 'faculty' ? input.actorRole : 'admin'
+
+  return createAuditLog({
+    action: AUDIT_ACTIONS.INVITATION_SENT,
+    actorEmail: input.actorEmail,
+    actorRole,
+    actorType: actorRole === 'faculty' ? AUDIT_ACTOR_TYPES.FACULTY : AUDIT_ACTOR_TYPES.ADMIN,
+    entityId: input.invitedUserId,
+    metadata: {
+      invited_role: input.invitedRole,
+    },
+    context: input.context,
+    supabase: input.supabase,
+  })
+}
+
+export async function auditStudentCaseRequested(
+  input: StudentCaseRequestedAuditInput
+): Promise<boolean> {
+  return createAuditLog({
+    action: AUDIT_ACTIONS.STUDENT_CASE_REQUESTED,
+    actorUserId: input.actorUserId,
+    actorEmail: input.actorEmail,
+    actorRole: 'student',
+    actorType: AUDIT_ACTOR_TYPES.STUDENT,
+    entityId: input.requestId,
+    metadata: {
+      case_id: input.caseId,
+      stage_id: input.stageId ?? null,
+    },
+    context: input.context,
+    supabase: input.supabase,
+  })
+}
+
+export async function auditStudentProgressAdded(
+  input: StudentProgressAddedAuditInput
+): Promise<boolean> {
+  return createAuditLog({
+    action: AUDIT_ACTIONS.STUDENT_PROGRESS_ADDED,
+    actorUserId: input.actorUserId,
+    actorEmail: input.actorEmail,
+    actorRole: 'student',
+    actorType: AUDIT_ACTOR_TYPES.STUDENT,
+    entityId: input.progressEntryId,
+    metadata: {
+      case_id: input.caseId,
+      stage_id: input.stageId ?? null,
+      status_at_time: input.statusAtTime,
+    },
+    context: input.context,
+    supabase: input.supabase,
+  })
+}
+
+export async function auditStudentCaseStatusChanged(
+  input: StudentCaseStatusChangedAuditInput
+): Promise<boolean> {
+  return createAuditLog({
+    action: AUDIT_ACTIONS.STUDENT_CASE_STATUS_CHANGED,
+    actorUserId: input.actorUserId,
+    actorEmail: input.actorEmail,
+    actorRole: 'student',
+    actorType: AUDIT_ACTOR_TYPES.STUDENT,
+    entityId: input.caseId,
+    metadata: {
+      action: input.action,
+      from_status: input.fromStatus ?? null,
+      to_status: input.toStatus,
+      stage_id: input.stageId ?? null,
+    },
+    context: input.context,
+    supabase: input.supabase,
+  })
+}
+
+export async function auditAdminCaseStatusChanged(
+  input: AdminCaseStatusChangedAuditInput
+): Promise<boolean> {
+  return createAuditLog({
+    action: AUDIT_ACTIONS.ADMIN_CASE_STATUS_CHANGED,
+    actorUserId: input.actorUserId,
+    actorEmail: input.actorEmail,
+    actorRole: input.actorRole,
+    actorType:
+      input.actorRole === 'admin' ? AUDIT_ACTOR_TYPES.ADMIN : AUDIT_ACTOR_TYPES.FACULTY,
+    entityId: input.caseId,
+    metadata: {
+      action: input.action,
+      from_status: input.fromStatus ?? null,
+      to_status: input.toStatus ?? null,
+      stage_id: input.stageId ?? null,
+    },
+    context: input.context,
+    supabase: input.supabase,
+  })
+}
+
+export async function auditStudentCaseApproved(
+  input: StudentCaseDecisionAuditInput
+): Promise<boolean> {
+  return createAuditLog({
+    action: AUDIT_ACTIONS.STUDENT_CASE_APPROVED,
+    actorUserId: input.actorUserId,
+    actorEmail: input.actorEmail,
+    actorRole: input.actorRole,
+    actorType:
+      input.actorRole === 'admin' ? AUDIT_ACTOR_TYPES.ADMIN : AUDIT_ACTOR_TYPES.FACULTY,
+    entityId: input.requestId,
+    metadata: {
+      case_id: input.caseId,
+      stage_id: input.stageId ?? null,
+      decision: 'approved',
+    },
+    context: input.context,
+    supabase: input.supabase,
+  })
+}
+
+export async function auditStudentCaseRejected(
+  input: StudentCaseDecisionAuditInput
+): Promise<boolean> {
+  return createAuditLog({
+    action: AUDIT_ACTIONS.STUDENT_CASE_REJECTED,
+    actorUserId: input.actorUserId,
+    actorEmail: input.actorEmail,
+    actorRole: input.actorRole,
+    actorType:
+      input.actorRole === 'admin' ? AUDIT_ACTOR_TYPES.ADMIN : AUDIT_ACTOR_TYPES.FACULTY,
+    entityId: input.requestId,
+    metadata: {
+      case_id: input.caseId,
+      stage_id: input.stageId ?? null,
+      decision: 'rejected',
+    },
+    context: input.context,
+    supabase: input.supabase,
+  })
+}
+
+export async function auditCaseReturnedToPool(input: CaseReturnedToPoolAuditInput): Promise<boolean> {
+  return createAuditLog({
+    action: AUDIT_ACTIONS.CASE_RETURNED_TO_POOL,
+    actorUserId: input.actorUserId,
+    actorEmail: input.actorEmail,
+    actorRole: input.actorRole,
+    actorType:
+      input.actorRole === 'admin' ? AUDIT_ACTOR_TYPES.ADMIN : AUDIT_ACTOR_TYPES.FACULTY,
+    entityId: input.caseId,
+    metadata: {
+      request_id: input.requestId ?? null,
+    },
+    context: input.context,
+    supabase: input.supabase,
+  })
+}
+
+interface FileUploadPreparedAuditInput {
+  fileId: string
+  declaredMime: string
+  extension: string
+  declaredSizeBytes: number | null
+  locale: string
+  context: AuditRequestContext
+  supabase?: SupabaseAdminClient
+}
+
+interface FileConfirmedAuditInput {
+  fileId: string
+  patientRequestId?: string | null
+  detectedMime: string | null
+  sizeBytes: number | null
+  locale: string
+  context: AuditRequestContext
+  supabase?: SupabaseAdminClient
+}
+
+interface FileRejectedAuditInput {
+  fileId: string
+  reason: string
+  locale: string
+  context: AuditRequestContext
+  supabase?: SupabaseAdminClient
+}
+
+interface FileSignedUrlCreatedAuditInput {
+  fileId: string
+  patientRequestId: string | null
+  purpose: 'preview' | 'download'
+  expirySeconds: number
+  actorUserId: string
+  actorEmail?: string | null
+  actorRole: string
+  context: AuditRequestContext
+  supabase?: SupabaseAdminClient
+}
+
+export async function auditFileUploadPrepared(
+  input: FileUploadPreparedAuditInput
+): Promise<boolean> {
+  return createAuditLog({
+    action: AUDIT_ACTIONS.FILE_UPLOAD_PREPARED,
+    actorType: AUDIT_ACTOR_TYPES.ANONYMOUS,
+    entityId: input.fileId,
+    metadata: {
+      file_id: input.fileId,
+      declared_mime: input.declaredMime,
+      extension: input.extension,
+      declared_size_bytes: input.declaredSizeBytes,
+      locale: input.locale,
+    },
+    context: input.context,
+    supabase: input.supabase,
+  })
+}
+
+export async function auditFileConfirmed(
+  input: FileConfirmedAuditInput
+): Promise<boolean> {
+  return createAuditLog({
+    action: AUDIT_ACTIONS.FILE_CONFIRMED,
+    actorType: AUDIT_ACTOR_TYPES.ANONYMOUS,
+    entityId: input.fileId,
+    metadata: {
+      file_id: input.fileId,
+      patient_request_id: input.patientRequestId ?? null,
+      detected_mime: input.detectedMime,
+      size_bytes: input.sizeBytes,
+      result: 'confirmed',
+      locale: input.locale,
+    },
+    context: input.context,
+    supabase: input.supabase,
+  })
+}
+
+export async function auditFileRejected(
+  input: FileRejectedAuditInput
+): Promise<boolean> {
+  return createAuditLog({
+    action: AUDIT_ACTIONS.FILE_REJECTED,
+    actorType: AUDIT_ACTOR_TYPES.ANONYMOUS,
+    success: false,
+    entityId: input.fileId,
+    metadata: {
+      file_id: input.fileId,
+      reason: input.reason,
+      result: 'rejected',
+      locale: input.locale,
+    },
+    context: input.context,
+    supabase: input.supabase,
+  })
+}
+
+export async function auditFileSignedUrlCreated(
+  input: FileSignedUrlCreatedAuditInput
+): Promise<boolean> {
+  return createAuditLog({
+    action: AUDIT_ACTIONS.FILE_SIGNED_URL_CREATED,
+    actorUserId: input.actorUserId,
+    actorEmail: input.actorEmail,
+    actorRole: input.actorRole,
+    actorType:
+      input.actorRole === 'student'
+        ? AUDIT_ACTOR_TYPES.STUDENT
+        : input.actorRole === 'admin'
+          ? AUDIT_ACTOR_TYPES.ADMIN
+          : AUDIT_ACTOR_TYPES.FACULTY,
+    entityId: input.fileId,
+    metadata: {
+      file_id: input.fileId,
+      patient_request_id: input.patientRequestId,
+      purpose: input.purpose,
+      expiry_seconds: input.expirySeconds,
+      actor_role: input.actorRole,
+    },
+    context: input.context,
+    supabase: input.supabase,
+  })
+}

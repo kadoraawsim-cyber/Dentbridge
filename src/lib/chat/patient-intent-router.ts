@@ -1,23 +1,20 @@
-export const PATIENT_CHAT_INTENTS = [
-  'emergency',
-  'medical_advice_or_diagnosis',
-  'request_status',
-  'request_submission',
-  'treatment_guarantee_or_acceptance',
-  'student_supervision',
-  'privacy_or_data_access',
-  'kvkk_or_legal_compliance',
-  'cost_or_fees',
-  'uploads_or_documents',
-  'consent_checkboxes',
-  'student_workspace',
-  'out_of_scope',
-  'general_dentbridge_faq',
-] as const
+import type { Locale } from '@/lib/i18n'
 
-export type PatientChatIntent = (typeof PATIENT_CHAT_INTENTS)[number]
-
-type Locale = 'en' | 'tr'
+export type PatientChatIntent =
+  | 'emergency'
+  | 'medical_advice_or_diagnosis'
+  | 'request_status'
+  | 'request_submission'
+  | 'treatment_guarantee_or_acceptance'
+  | 'student_supervision'
+  | 'privacy_or_data_access'
+  | 'kvkk_or_legal_compliance'
+  | 'cost_or_fees'
+  | 'uploads_or_documents'
+  | 'consent_checkboxes'
+  | 'student_workspace'
+  | 'out_of_scope'
+  | 'general_dentbridge_faq'
 
 const EMERGENCY_RESPONSES: Record<Locale, string> = {
   en: 'DentiBridge is not for urgent or emergency dental/medical situations. If you have severe pain, swelling, bleeding, trauma, difficulty breathing, difficulty swallowing, or signs of spreading infection, please seek urgent medical/dental care or contact emergency services immediately.',

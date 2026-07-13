@@ -18,8 +18,8 @@ DentBridge is a faculty-supported clinical coordination platform built with Next
 
 - `/` is the public landing page.
 - `/patient/request` lets a patient submit a treatment request without an account.
-- The request form writes directly to `patient_requests` and can upload one optional file to the private `patient-uploads` bucket.
-- `/patient/status` lets a patient check the latest request status by phone number using the `get_request_status_by_phone` Supabase RPC.
+- The request form submits through `/api/v1/patient/requests` and can upload one optional file through the server-mediated signed-upload flow.
+- `/patient/status` lets a patient request a one-time code and then view the latest request status through the OTP-protected patient status API.
 - Public FAQ and privacy pages are available at `/faq` and `/privacy`.
 
 ### Admin and faculty flow
@@ -45,6 +45,9 @@ DentBridge is a faculty-supported clinical coordination platform built with Next
 - `/student/requests` shows the student’s own submitted requests and outcomes.
 - `/student/planner` is a working private planner tied to the student account, with optional links to active patients.
 - `/student/exchange` exists as a coming-soon placeholder.
+- Sensitive student, faculty, admin, case, progress, planner, profile, patient
+  request, status, and file mutations are routed through DentBridge API/service
+  boundaries.
 
 ## Authentication
 
@@ -83,12 +86,21 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 OPENAI_API_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+FILE_TICKET_SECRET=
+TWILIO_ACCOUNT_SID=
+TWILIO_API_KEY_SID=
+TWILIO_API_KEY_SECRET=
+TWILIO_VERIFY_SERVICE_SID=
 ```
 
 Notes:
 
 - `OPENAI_API_KEY` is required for the public patient chat route.
-- `SUPABASE_SERVICE_ROLE_KEY` is required for admin invitation routes.
+- `SUPABASE_SERVICE_ROLE_KEY` is required for server-side patient, file,
+  profile, case, planner, audit, consent, patient-status, and invitation workflows.
+- The four `TWILIO_*` variables are server-only and required for SMS patient-status
+  verification through Twilio Verify.
+- `FILE_TICKET_SECRET` is required for signed file upload tickets.
 
 ## Local Development
 
@@ -102,16 +114,26 @@ npm run dev
 Other useful commands:
 
 ```bash
+npm run typecheck
 npm run lint
-npx tsc --noEmit
+npm test
+npm run build
 ```
+
+See [docs/TESTING.md](./docs/TESTING.md) for the Phase 10 test and CI setup.
+See [docs/OBSERVABILITY.md](./docs/OBSERVABILITY.md) for structured logging,
+health checks, and safe production debugging.
 
 ## Important Directories
 
 - `src/app` - routes, pages, and route handlers
 - `src/components` - shared UI components
 - `src/lib` - Supabase clients, roles, chat context, and i18n
+- `src/lib/observability` - structured operational logging, request context,
+  and error-monitoring seam
+- `tests` - focused Vitest tests for lifecycle, security, and patient workflows
 - `supabase/migrations` - checked-in SQL migrations and policy changes
+- `.github/workflows` - CI verification workflow
 - `public` - static assets
 
 ## Deployment Notes

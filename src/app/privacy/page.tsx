@@ -6,6 +6,7 @@ import { ShieldCheck, Clock3 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import PublicDocumentHeader from '@/components/PublicDocumentHeader'
 import PublicFooter from '@/components/PublicFooter'
+import { getLegalDocument } from '@/lib/legal/legal-documents'
 
 type PrivacySection = {
   title: string
@@ -19,6 +20,7 @@ const PRIVACY_EMAIL = 'privacy@dentbridgetr.com'
 export default function PrivacyPolicyPage() {
   const { locale } = useI18n()
   const isTr = locale === 'tr'
+  const documentRevision = getLegalDocument('privacy_policy', locale)
 
   const intro = isTr ? (
     <>
@@ -319,7 +321,9 @@ export default function PrivacyPolicyPage() {
                 gizlilik ve bilgi güvenliği ihtiyaçları doğrultusunda zaman zaman güncellenebilir.
               </p>
               <p>Bu Gizlilik Politikasının en güncel sürümü bu sayfada yayımlanır.</p>
-              <p className="font-semibold text-slate-800">Son güncelleme: 26 Haziran 2026</p>
+              <p className="font-semibold text-slate-800">
+                Son güncelleme: {documentRevision.effectiveDate}
+              </p>
             </>
           ),
         },
@@ -573,7 +577,9 @@ export default function PrivacyPolicyPage() {
                 requirements, workflow changes, or privacy and information security needs.
               </p>
               <p>The latest version of this Privacy Policy will be published on this page.</p>
-              <p className="font-semibold text-slate-800">Last updated: 26 June 2026</p>
+              <p className="font-semibold text-slate-800">
+                Last updated: {documentRevision.effectiveDate}
+              </p>
             </>
           ),
         },

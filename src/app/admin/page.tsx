@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { DashboardClient } from './dashboard-client'
 import { canAccessFacultyPortal } from '@/lib/roles'
+import { assertQuerySucceeded } from '@/lib/data/data-load'
 
 export default async function AdminDashboardPage() {
   const cookieStore = await cookies()
@@ -16,10 +17,11 @@ export default async function AdminDashboardPage() {
     redirect('/admin/login')
   }
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('patient_requests')
     .select('id, full_name, treatment_type, urgency, status, assigned_department, created_at, reviewed_at')
     .order('created_at', { ascending: false })
+  assertQuerySucceeded(error, 'admin.dashboard.requests')
 
   return (
     <DashboardClient

@@ -1,63 +1,28 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import Image from 'next/image'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { portalFetch } from '@/lib/api/portal-fetch'
 import { useI18n } from '@/lib/i18n'
-import LanguageSwitcher from '@/components/LanguageSwitcher'
-import {
-  ArrowLeft,
-  CalendarDays,
-  ChevronLeft,
-  ChevronRight,
-  Clock3,
-  LogOut,
-  Plus,
-  Trash2,
-  Users,
-  X,
-} from 'lucide-react'
-
-type PlannerView = 'month' | 'week' | 'day'
-
-type PlannerEvent = {
-  id: string
-  title: string
-  description: string | null
-  start_at: string
-  end_at: string | null
-  patient_id: string | null
-  language: string | null
-  created_at: string
-  source_kind: string | null
-  source_case_id: string | null
-  linked_appointment_date: string | null
-  linked_appointment_time: string | null
-}
-
-type ActivePatient = {
-  id: string
-  full_name: string
-  treatment_type: string
-  assigned_department: string | null
-  status: string
-}
+import { Plus } from 'lucide-react'
+import { PlannerEventModal } from '@/components/student/planner/PlannerEventModal'
+import { PlannerHeader } from '@/components/student/planner/PlannerHeader'
+import { PlannerHero } from '@/components/student/planner/PlannerHero'
+import { PlannerSidebar } from '@/components/student/planner/PlannerSidebar'
+import { PlannerToolbar } from '@/components/student/planner/PlannerToolbar'
+import type {
+  ActivePatient,
+  PlannerEvent,
+  PlannerFormState,
+  PlannerView,
+} from '@/components/student/planner/types'
 
 interface Props {
   studentEmail: string
   studentFullName: string
   initialEvents: PlannerEvent[]
   initialActivePatients: ActivePatient[]
-}
-
-type PlannerFormState = {
-  title: string
-  description: string
-  startAt: string
-  endAt: string
-  patientId: string
 }
 
 const CASE_APPOINTMENT_SOURCE_KIND = 'case_appointment'
@@ -277,7 +242,7 @@ export function PlannerClient({ studentEmail, studentFullName, initialEvents, in
   const [showModal, setShowModal] = useState(false)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const [editingEventId, setEditingEventId] = useState<string | null>(null)
+  const [editingEventId, setEditingEventId] = useState<number | null>(null)
   const [form, setForm] = useState<PlannerFormState>(() => {
     const range = buildDefaultRange(new Date())
     return {
@@ -394,7 +359,8 @@ export function PlannerClient({ studentEmail, studentFullName, initialEvents, in
     setSaving(true)
     setSaveError('')
 
-    const response = await fetch(
+    const response = await portalFetch(
+      'student',
       editingEventId ? `/api/student/planner/${editingEventId}` : '/api/student/planner',
       {
         method: editingEventId ? 'PATCH' : 'POST',
@@ -445,7 +411,7 @@ export function PlannerClient({ studentEmail, studentFullName, initialEvents, in
     setDeleting(true)
     setSaveError('')
 
-    const response = await fetch(`/api/student/planner/${editingEventId}`, {
+    const response = await portalFetch('student', `/api/student/planner/${editingEventId}`, {
       method: 'DELETE',
     })
 
@@ -479,6 +445,47 @@ export function PlannerClient({ studentEmail, studentFullName, initialEvents, in
     setCurrentDate(startOfDay(nextDate))
     setSelectedDate(startOfDay(nextDate))
   }
+
+  function handleTodayClick() {
+    const today = startOfDay(new Date())
+    setCurrentDate(today)
+    setSelectedDate(today)
+  }
+
+  function handleCloseModal() {
+    setShowModal(false)
+    setEditingEventId(null)
+    setSaveError('')
+  }
+
+  function handleFormChange(values: Partial<PlannerFormState>) {
+    setForm((prev) => ({ ...prev, ...values }))
+  }
+
+  const periodLabel =
+    view === 'month'
+      ? formatDateLabel(currentDate, dateLocale, { month: 'long', year: 'numeric' })
+      : view === 'week'
+        ? `${formatDateLabel(startOfWeek(currentDate), dateLocale, {
+            day: 'numeric',
+            month: 'short',
+          })} - ${formatDateLabel(addDays(startOfWeek(currentDate), 6), dateLocale, {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          })}`
+        : formatDateLabel(selectedDate, dateLocale, {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          })
+
+  const selectedDateLabel = formatDateLabel(selectedDate, dateLocale, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  })
 
   function renderEventPill(event: PlannerEvent) {
     const tone = getEventTone(event)
@@ -785,67 +792,10 @@ export function PlannerClient({ studentEmail, studentFullName, initialEvents, in
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-          <Link href="/" className="flex min-w-0 items-center gap-3">
-            <Image src="/dentbridge-icon.webp" alt="DentBridge" width={36} height={36} className="h-9 w-9 shrink-0 object-contain" />
-            <div className="min-w-0">
-              <p className="truncate text-[15px] font-bold leading-none text-slate-900">DentBridge</p>
-              <p className="truncate text-[10px] uppercase tracking-wider text-slate-400">
-                {t('student.nav.clinicalPlatform')}
-              </p>
-            </div>
-          </Link>
-
-          <div className="flex items-center gap-2">
-            <LanguageSwitcher />
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white shadow-sm ring-2 ring-slate-100">
-              {studentInitials}
-            </div>
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className="hidden items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 sm:inline-flex"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              {t('student.nav.signOut')}
-            </button>
-          </div>
-        </div>
-      </header>
+      <PlannerHeader studentInitials={studentInitials} onSignOut={handleSignOut} />
 
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <Link
-          href="/student/dashboard"
-          className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-slate-400 transition hover:text-slate-800"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {t('student.planner.backToDashboard')}
-        </Link>
-
-        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-teal-100 bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-700">
-              <CalendarDays className="h-3.5 w-3.5" />
-              {t('student.nav.planner')}
-            </div>
-            <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-900">
-              {t('student.planner.pageTitle')}
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-500">
-              {t('student.planner.pageDesc')}
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => openAddModal(selectedDate)}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
-          >
-            <Plus className="h-4 w-4" />
-            {t('student.planner.addEvent')}
-          </button>
-        </div>
+        <PlannerHero onAddEvent={() => openAddModal(selectedDate)} />
 
         {saveSuccess && (
           <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
@@ -854,80 +804,14 @@ export function PlannerClient({ studentEmail, studentFullName, initialEvents, in
         )}
 
           <>
-            <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex flex-wrap items-center gap-2">
-                {(['month', 'week', 'day'] as PlannerView[]).map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => setView(option)}
-                    className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
-                      view === option
-                        ? 'bg-slate-900 text-white'
-                        : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    {option === 'month'
-                      ? t('student.planner.monthView')
-                      : option === 'week'
-                        ? t('student.planner.weekView')
-                        : t('student.planner.dayView')}
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => movePeriod('prev')}
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  {t('student.planner.previous')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const today = startOfDay(new Date())
-                    setCurrentDate(today)
-                    setSelectedDate(today)
-                  }}
-                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
-                >
-                  {t('student.planner.today')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => movePeriod('next')}
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
-                >
-                  {t('student.planner.next')}
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-slate-900">
-                {view === 'month'
-                  ? formatDateLabel(currentDate, dateLocale, { month: 'long', year: 'numeric' })
-                  : view === 'week'
-                    ? `${formatDateLabel(startOfWeek(currentDate), dateLocale, {
-                        day: 'numeric',
-                        month: 'short',
-                      })} - ${formatDateLabel(addDays(startOfWeek(currentDate), 6), dateLocale, {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                      })}`
-                    : formatDateLabel(selectedDate, dateLocale, {
-                        weekday: 'long',
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
-                      })}
-              </h2>
-            </div>
+            <PlannerToolbar
+              view={view}
+              periodLabel={periodLabel}
+              onViewChange={setView}
+              onPrevious={() => movePeriod('prev')}
+              onToday={handleTodayClick}
+              onNext={() => movePeriod('next')}
+            />
 
             {events.length === 0 && (
               <div className="mb-6 rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-8 text-center shadow-sm">
@@ -947,282 +831,37 @@ export function PlannerClient({ studentEmail, studentFullName, initialEvents, in
                 {view === 'day' && renderDayView()}
               </div>
 
-              <aside className="space-y-6">
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    {t('student.planner.selectedDateTitle')}
-                  </p>
-                  <h3 className="mt-2 text-xl font-bold text-slate-900">
-                    {formatDateLabel(selectedDate, dateLocale, {
-                      weekday: 'long',
-                      day: 'numeric',
-                      month: 'long',
-                    })}
-                  </h3>
-
-                  <div className="mt-4 space-y-3">
-                    {selectedDateEvents.length === 0 ? (
-                      <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
-                        {t('student.planner.noEventsForDay')}
-                      </p>
-                    ) : (
-                      selectedDateEvents.map((event) => {
-                        const eventTone = getEventTone(event)
-                        const isPastLinkedAppointment = isLinkedCaseAppointment(event) && isPastEvent(event)
-                        const eventCardClass = isLinkedCaseAppointment(event)
-                          ? eventTone.card
-                          : 'border-slate-100 bg-slate-50'
-
-                        return (
-                          <div key={event.id} className={`rounded-xl border px-4 py-3 ${eventCardClass}`}>
-                            <p className="text-sm font-semibold text-slate-900">{event.title}</p>
-                            <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
-                              <Clock3 className="h-3.5 w-3.5" />
-                              {formatTimeRange(event, dateLocale, t)}
-                            </div>
-                            {isPastLinkedAppointment && (
-                              <span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${eventTone.badge}`}>
-                                {t('student.planner.pastAppointment')}
-                              </span>
-                            )}
-                            <p className="mt-2 text-xs text-slate-500">
-                              {event.patient_id
-                                ? `${t('student.planner.linkedPatient')}: ${patientMap[event.patient_id] ?? event.patient_id}`
-                                : t('student.planner.noLinkedPatient')}
-                            </p>
-                            {isLinkedCaseAppointment(event) && (
-                              <p className="mt-2 text-xs text-slate-500">{t('student.planner.managedFromCaseCard')}</p>
-                            )}
-                          </div>
-                        )
-                      })
-                    )}
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                  <div className="flex items-center gap-2">
-                    <CalendarDays className="h-4 w-4 text-slate-400" />
-                    <h3 className="text-sm font-bold text-slate-900">
-                      {t('student.planner.upcomingTitle')}
-                    </h3>
-                  </div>
-                  <div className="mt-4 space-y-3">
-                    {upcomingEvents.length === 0 ? (
-                      <p className="text-sm text-slate-400">{t('student.planner.noEventsForDay')}</p>
-                    ) : (
-                      upcomingEvents.map((event) => (
-                        isLinkedCaseAppointment(event) ? (
-                          <div
-                            key={event.id}
-                            className={`w-full rounded-xl border px-4 py-3 text-left ${getEventTone(event).card}`}
-                          >
-                            <p className="text-sm font-semibold text-slate-900">{event.title}</p>
-                            <p className="mt-1 text-xs text-slate-500">
-                              {formatUpcomingDateTimeLabel(event, dateLocale)}
-                            </p>
-                            <p className="mt-2 text-xs text-slate-500">{t('student.planner.managedFromCaseCard')}</p>
-                          </div>
-                        ) : (
-                          <button
-                            key={event.id}
-                            type="button"
-                            onClick={() => openEditModal(event)}
-                            className={`w-full rounded-xl border px-4 py-3 text-left transition ${getEventTone(event).card}`}
-                          >
-                            <p className="text-sm font-semibold text-slate-900">{event.title}</p>
-                            <p className="mt-1 text-xs text-slate-500">
-                              {formatUpcomingDateTimeLabel(event, dateLocale)}
-                            </p>
-                          </button>
-                        )
-                      ))
-                    )}
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-slate-400" />
-                    <h3 className="text-sm font-bold text-slate-900">
-                      {t('student.planner.activePatientsTitle')}
-                    </h3>
-                  </div>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-500">
-                    {t('student.planner.activePatientsDesc')}
-                  </p>
-                  <div className="mt-4 space-y-3">
-                    {activePatients.length === 0 ? (
-                      <p className="text-sm text-slate-400">{t('student.planner.noActivePatients')}</p>
-                    ) : (
-                      activePatients.map((patient) => (
-                        <div key={patient.id} className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
-                          <p className="text-sm font-semibold text-slate-900">{patient.full_name}</p>
-                          <p className="mt-1 text-xs text-slate-500">
-                            {patient.assigned_department || patient.treatment_type}
-                          </p>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </aside>
+              <PlannerSidebar
+                selectedDateLabel={selectedDateLabel}
+                selectedDateEvents={selectedDateEvents}
+                upcomingEvents={upcomingEvents}
+                activePatients={activePatients}
+                patientMap={patientMap}
+                dateLocale={dateLocale}
+                isLinkedCaseAppointment={isLinkedCaseAppointment}
+                isPastEvent={isPastEvent}
+                getEventTone={getEventTone}
+                formatTimeRange={formatTimeRange}
+                formatUpcomingDateTimeLabel={formatUpcomingDateTimeLabel}
+                onEditEvent={openEditModal}
+              />
             </div>
           </>
       </section>
 
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-xl rounded-3xl border border-slate-200 bg-white shadow-2xl">
-            <div className="flex items-start justify-between border-b border-slate-100 px-6 py-5">
-              <div>
-                <h2 className="text-xl font-bold text-slate-900">
-                  {isEditing ? t('student.planner.editEvent') : t('student.planner.addModalTitle')}
-                </h2>
-                <p className="mt-1 text-sm text-slate-500">{t('student.planner.addModalDesc')}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowModal(false)
-                  setEditingEventId(null)
-                  setSaveError('')
-                }}
-                className="rounded-full border border-slate-200 p-2 text-slate-500 transition hover:bg-slate-50 hover:text-slate-900"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="space-y-4 px-6 py-5">
-              {saveError && (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {saveError}
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700">
-                  {t('student.planner.titleLabel')} *
-                </label>
-                <input
-                  type="text"
-                  value={form.title}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, title: event.target.value }))
-                  }
-                  placeholder={t('student.planner.titlePlaceholder')}
-                  className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-100"
-                />
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-700">
-                    {t('student.planner.startLabel')}
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={form.startAt}
-                    onChange={(event) =>
-                      setForm((prev) => ({ ...prev, startAt: event.target.value }))
-                    }
-                    className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-100"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-700">
-                    {t('student.planner.endLabel')}
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={form.endAt}
-                    onChange={(event) =>
-                      setForm((prev) => ({ ...prev, endAt: event.target.value }))
-                    }
-                    className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-100"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700">
-                  {t('student.planner.descriptionLabel')}
-                </label>
-                <textarea
-                  value={form.description}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, description: event.target.value }))
-                  }
-                  placeholder={t('student.planner.descriptionPlaceholder')}
-                  className="min-h-[110px] w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-100"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700">
-                  {t('student.planner.patientLabel')}
-                </label>
-                <select
-                  value={form.patientId}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, patientId: event.target.value }))
-                  }
-                  className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-100"
-                >
-                  <option value="">{t('student.planner.patientPlaceholder')}</option>
-                  {activePatients.map((patient) => (
-                    <option key={patient.id} value={patient.id}>
-                      {patient.full_name}
-                      {patient.assigned_department ? ` - ${patient.assigned_department}` : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-5">
-              {isEditing && (
-                <button
-                  type="button"
-                  onClick={handleDeleteEvent}
-                  disabled={saving || deleting}
-                  className="mr-auto inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-60"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  {deleting ? t('student.planner.deletingEvent') : t('student.planner.deleteEvent')}
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  setShowModal(false)
-                  setEditingEventId(null)
-                  setSaveError('')
-                }}
-                disabled={saving || deleting}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
-              >
-                {t('student.planner.cancel')}
-              </button>
-              <button
-                type="button"
-                onClick={handleSubmitEvent}
-                disabled={saving || deleting}
-                className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
-              >
-                {saving
-                  ? isEditing
-                    ? t('student.planner.updatingEvent')
-                    : t('student.planner.savingEvent')
-                  : isEditing
-                    ? t('student.planner.updateEvent')
-                    : t('student.planner.saveEvent')}
-              </button>
-            </div>
-          </div>
-        </div>
+        <PlannerEventModal
+          isEditing={isEditing}
+          form={form}
+          activePatients={activePatients}
+          saveError={saveError}
+          saving={saving}
+          deleting={deleting}
+          onFormChange={handleFormChange}
+          onClose={handleCloseModal}
+          onSubmit={handleSubmitEvent}
+          onDelete={handleDeleteEvent}
+        />
       )}
     </main>
   )

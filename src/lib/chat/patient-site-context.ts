@@ -15,7 +15,7 @@ export type PatientChatPageContext = {
   visibleActions: string[]
 }
 
-export const patientSiteContext = {
+const patientSiteContext = {
   siteName: 'DentBridge',
   assistantName: 'Bridgey',
   overview: [

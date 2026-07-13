@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
-import { inviteUserWithRole } from '@/lib/auth-invitations'
+import { InvitationError, inviteUserWithRole } from '@/lib/auth-invitations'
 import { isAdminRole } from '@/lib/roles'
+import { getClientIp } from '@/lib/api/rate-limit'
+import { createAuditRequestContext } from '@/lib/audit/audit.service'
 
 const fallbackUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'
 const appUrl = (process.env.APP_URL || process.env.NEXT_PUBLIC_SITE_URL || fallbackUrl).replace(/\/$/, '')
@@ -12,7 +14,7 @@ interface InviteRequestBody {
   email?: string
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   const cookieStore = await cookies()
   const supabase = createSupabaseServerClient(cookieStore)
 
@@ -42,11 +44,21 @@ export async function POST(request: NextRequest) {
       role: 'student',
       invitedBy: user.email ?? 'admin',
       redirectTo: INVITE_REDIRECT_TO,
+      context: createAuditRequestContext(request, { ipAddress: getClientIp(request) }),
     })
 
     return NextResponse.json(result)
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to send invitation.'
-    return NextResponse.json({ error: message }, { status: 400 })
+    if (error instanceof InvitationError) {
+      const status = {
+        invalid_request: 400,
+        conflict: 409,
+        rate_limited: 429,
+        unavailable: 503,
+        server_error: 500,
+      }[error.reason]
+      return NextResponse.json({ error: error.reason }, { status })
+    }
+    return NextResponse.json({ error: 'server_error' }, { status: 500 })
   }
 }
