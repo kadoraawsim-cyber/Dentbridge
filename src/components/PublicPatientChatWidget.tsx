@@ -616,7 +616,7 @@ export default function PublicPatientChatWidget() {
                   className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`flex max-w-[92%] items-start gap-2.5 ${
+                    className={`flex w-full min-w-0 max-w-[92%] items-start gap-2.5 ${
                       message.role === 'user' ? 'justify-end' : 'justify-start'
                     }`}
                   >
@@ -624,13 +624,15 @@ export default function PublicPatientChatWidget() {
                       <BridgeyAvatar sizeClass="h-10 w-10" className="mt-0.5 shrink-0" />
                     )}
                     <div
-                      className={`max-w-[88%] rounded-3xl px-4 py-3 text-sm leading-6 shadow-sm ${
+                      className={`w-fit max-w-[88%] rounded-3xl px-4 py-3 text-sm leading-6 shadow-sm ${
                         message.role === 'user'
-                          ? 'rounded-br-xl bg-slate-900 text-white'
-                          : 'rounded-bl-xl border border-slate-200 bg-white text-slate-700'
+                          ? 'min-w-[3rem] rounded-br-xl bg-slate-900 text-white'
+                          : 'min-w-0 rounded-bl-xl border border-slate-200 bg-white text-slate-700'
                       }`}
                     >
-                      <p className="whitespace-pre-wrap break-words">{renderMessageContent(message.content)}</p>
+                      <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">
+                        {renderMessageContent(message.content)}
+                      </p>
                     </div>
                   </div>
                 </div>
