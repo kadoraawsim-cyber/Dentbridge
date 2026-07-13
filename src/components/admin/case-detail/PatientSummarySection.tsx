@@ -45,35 +45,35 @@ export function PatientSummarySection({
         {t('admin.detail.patientProfileTitle')}
       </h3>
 
-      <div className="mb-8 grid grid-cols-2 gap-x-8 gap-y-5">
-        <div>
+      <div className="mb-8 grid gap-y-5 sm:grid-cols-2 sm:gap-x-8">
+        <div className="min-w-0">
           <p className="mb-1 text-xs text-slate-500">{t('admin.detail.ageLabel')}</p>
           <p className="font-medium text-slate-900">{request.age ?? '—'}</p>
         </div>
 
-        <div>
+        <div className="min-w-0">
           <p className="mb-1 text-xs text-slate-500">{t('admin.detail.phoneLabel')}</p>
-          <p className="flex items-center gap-1.5 font-medium text-slate-900">
+          <p className="flex min-w-0 items-center gap-1.5 break-all font-medium text-slate-900">
             <Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" />
             {request.phone}
           </p>
         </div>
 
-        <div>
+        <div className="min-w-0">
           <p className="mb-1 text-xs text-slate-500">{t('admin.detail.langLabel')}</p>
           <p className="font-medium text-slate-900">
             {tLanguage(request.preferred_language)}
           </p>
         </div>
 
-        <div className="col-span-2">
+        <div className="min-w-0 sm:col-span-2">
           <p className="mb-1 text-xs text-slate-500">{t('admin.detail.availabilityLabel')}</p>
-          <p className="font-medium text-slate-900">{tDays(request.preferred_days)}</p>
+          <p className="break-words font-medium text-slate-900">{tDays(request.preferred_days)}</p>
         </div>
 
-        <div className="col-span-2">
+        <div className="min-w-0 sm:col-span-2">
           <p className="mb-1 text-xs text-slate-500">{t('admin.detail.complaintLabel')}</p>
-          <p className="rounded-lg border border-slate-100 bg-slate-50 p-3 font-medium text-slate-900">
+          <p className="break-words rounded-lg border border-slate-100 bg-slate-50 p-3 font-medium text-slate-900">
             {request.complaint_text}
           </p>
         </div>
@@ -84,23 +84,23 @@ export function PatientSummarySection({
         <h3 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-500">
           {t('admin.detail.fullSubmissionTitle')}
         </h3>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-5">
-          <div>
+        <div className="grid gap-y-5 sm:grid-cols-2 sm:gap-x-8">
+          <div className="min-w-0">
             <p className="mb-1 text-xs text-slate-500">{t('admin.detail.fullNameLabel')}</p>
-            <p className="font-medium text-slate-900">{request.full_name}</p>
+            <p className="break-words font-medium text-slate-900">{request.full_name}</p>
           </div>
 
-          <div>
+          <div className="min-w-0">
             <p className="mb-1 text-xs text-slate-500">{t('admin.detail.genderLabel')}</p>
             <p className="font-medium text-slate-900">{tGender(request.gender)}</p>
           </div>
 
-          <div>
+          <div className="min-w-0">
             <p className="mb-1 text-xs text-slate-500">{t('admin.detail.treatmentTypeLabel')}</p>
-            <p className="font-medium text-slate-900">{tTreatmentType(request.treatment_type)}</p>
+            <p className="break-words font-medium text-slate-900">{tTreatmentType(request.treatment_type)}</p>
           </div>
 
-          <div>
+          <div className="min-w-0">
             <p className="mb-1 text-xs text-slate-500">{t('admin.detail.painScoreLabel')}</p>
             <p className="font-medium text-slate-900">
               {request.pain_score !== null && request.pain_score !== undefined
@@ -109,24 +109,24 @@ export function PatientSummarySection({
             </p>
           </div>
 
-          <div>
+          <div className="min-w-0">
             <p className="mb-1 text-xs text-slate-500">{t('admin.detail.symptomDurationLabel')}</p>
-            <p className="font-medium text-slate-900">{tDuration(request.symptom_duration)}</p>
+            <p className="break-words font-medium text-slate-900">{tDuration(request.symptom_duration)}</p>
           </div>
 
-          <div>
+          <div className="min-w-0">
             <p className="mb-1 text-xs text-slate-500">{t('admin.detail.medicalConditionLabel')}</p>
-            <p className="font-medium text-slate-900">{tMedicalCondition(request.medical_condition)}</p>
+            <p className="break-words font-medium text-slate-900">{tMedicalCondition(request.medical_condition)}</p>
           </div>
 
-          <div>
+          <div className="min-w-0">
             <p className="mb-1 text-xs text-slate-500">{t('admin.detail.contactMethodLabel')}</p>
             <p className={`font-medium ${request.contact_method ? 'text-slate-900' : 'text-slate-400'}`}>
               {tContactMethod(request.contact_method)}
             </p>
           </div>
 
-          <div>
+          <div className="min-w-0">
             <p className="mb-1 text-xs text-slate-500">{t('admin.detail.bestContactTimeLabel')}</p>
             <p className={`font-medium ${request.best_contact_time ? 'text-slate-900' : 'text-slate-400'}`}>
               {tContactTime(request.best_contact_time)}
@@ -177,7 +177,7 @@ export function PatientSummarySection({
               type="button"
               onClick={onViewAttachment}
               disabled={!request.attachment_file_id || openingFile}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             >
               {openingFile ? t('admin.detail.openingFile') : t('admin.detail.viewFullScreen')}
             </button>

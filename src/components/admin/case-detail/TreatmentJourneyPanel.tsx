@@ -67,7 +67,7 @@ export function TreatmentJourneyPanel({
       {items.length === 0 ? (
         <p className="text-sm text-slate-400">{t('admin.detail.treatmentJourneyEmpty')}</p>
       ) : (
-        <div className="max-h-[520px] space-y-2.5 overflow-y-auto pr-1">
+        <div className="space-y-2.5 pr-1 md:max-h-[520px] md:overflow-y-auto">
           {items.map((item, index) => {
             const tone = getJourneyTone(item.kind)
             const detailText =

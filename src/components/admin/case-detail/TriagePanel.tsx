@@ -396,7 +396,7 @@ export function TriagePanel({
               placeholder={t('admin.detail.returnToPoolReasonPlaceholder')}
               className="h-11 w-full rounded-lg border border-amber-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-amber-500"
             />
-            <div className="mt-4 flex gap-3">
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row">
               <button
                 type="button"
                 onClick={onCancelReturnToPool}

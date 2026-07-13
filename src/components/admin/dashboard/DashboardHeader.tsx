@@ -36,7 +36,7 @@ export function DashboardHeader({ adminEmail, onSignOut }: DashboardHeaderProps)
   }, [profileMenuOpen])
 
   return (
-    <header className="border-b border-slate-200 bg-white">
+    <header className="dentbridge-safe-header border-b border-slate-200 bg-white">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-3 py-2 sm:px-6 lg:px-8">
         <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-3">
           <Image
@@ -85,7 +85,7 @@ export function DashboardHeader({ adminEmail, onSignOut }: DashboardHeaderProps)
             </button>
 
             {profileMenuOpen && (
-              <div className="absolute right-0 top-full z-20 mt-2 w-52 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+              <div className="absolute right-0 top-full z-20 mt-2 w-52 max-w-[calc(100vw-1.5rem)] rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
                 <Link
                   href="/change-password"
                   onClick={() => setProfileMenuOpen(false)}

@@ -83,7 +83,7 @@ export function StudentRequestsPanel({
               </div>
 
               <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3 sm:justify-end">
                   <span
                     className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
                       req.status === 'approved'
@@ -150,7 +150,7 @@ export function StudentRequestsPanel({
                       placeholder={t('admin.detail.reasonPlaceholder')}
                       className="mt-2 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-slate-900"
                     />
-                    <div className="mt-3 flex gap-2">
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                       <button
                         type="button"
                         onClick={onCancelStudentAction}

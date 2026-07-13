@@ -38,19 +38,19 @@ export function AdminPortalHeader({
   ) : null
 
   return (
-    <header className="border-b border-slate-200 bg-white">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center gap-3">
+    <header className="dentbridge-safe-header border-b border-slate-200 bg-white">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-3 py-2 sm:px-6 sm:py-4 lg:px-8">
+        <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-3">
           <Image
             src="/dentbridge-icon.webp"
             alt="DentBridge icon"
             width={40}
             height={40}
-            className="h-10 w-10 object-contain"
+            className="h-8 w-8 shrink-0 object-contain sm:h-10 sm:w-10"
           />
-          <div>
-            <p className="text-lg font-bold leading-none text-slate-900">DentBridge</p>
-            <p className="text-[11px] uppercase tracking-wide text-slate-500">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-bold leading-none text-slate-900 sm:text-lg">DentBridge</p>
+            <p className="hidden truncate text-[11px] uppercase tracking-wide text-slate-500 sm:block">
               {t('admin.shared.clinicalPlatform')}
             </p>
           </div>
@@ -65,7 +65,7 @@ export function AdminPortalHeader({
           </Link>
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           {emailBeforeSwitcher ? (
             <>
               {emailChip}
@@ -80,10 +80,11 @@ export function AdminPortalHeader({
           <button
             type="button"
             onClick={onSignOut}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+            aria-label={t('admin.shared.signOut')}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 sm:px-3"
           >
-            <LogOut className="h-3.5 w-3.5" />
-            {t('admin.shared.signOut')}
+            <LogOut className="h-3.5 w-3.5 shrink-0" />
+            <span className="hidden sm:inline">{t('admin.shared.signOut')}</span>
           </button>
         </div>
       </div>

@@ -841,10 +841,10 @@ export function CaseDetailClient({
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
+    <main className="min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-slate-50 text-slate-900">
       <AdminPortalHeader adminEmail={adminEmail} onSignOut={handleSignOut} />
 
-      <section className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+      <section className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
         <CaseHeroSection
           request={request}
           assignedDepartment={assignedDepartment}
@@ -860,9 +860,9 @@ export function CaseDetailClient({
           </div>
         )}
 
-        <div className="grid items-start gap-6 md:grid-cols-3">
-          <div className="space-y-6 md:col-span-2">
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="grid min-w-0 items-start gap-6 md:grid-cols-3">
+          <div className="min-w-0 space-y-6 md:col-span-2">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
               <PatientSummarySection
                 request={request}
                 attachmentLabel={attachmentLabel}
@@ -923,7 +923,7 @@ export function CaseDetailClient({
             </div>
           </div>
 
-          <div className="space-y-6">
+          <div className="min-w-0 space-y-6">
             <ReviewRecordCard
               reviewedBy={request.reviewed_by}
               reviewedAt={request.reviewed_at}

@@ -39,8 +39,8 @@ export function CaseHeroSection({
         {t('admin.detail.backToReviewList')}
       </Link>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-4xl font-bold tracking-tight text-slate-900">
+      <div className="flex min-w-0 flex-wrap items-center gap-3">
+        <h1 className="min-w-0 max-w-full break-words text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl lg:text-4xl">
           {t('admin.detail.caseReviewPrefix')} {request.full_name}
         </h1>
         <span
@@ -53,7 +53,7 @@ export function CaseHeroSection({
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-4">
-        <p className="inline-block rounded-md bg-slate-100 px-2 py-1 font-mono text-sm text-slate-700">
+        <p className="inline-block max-w-full break-all rounded-md bg-slate-100 px-2 py-1 font-mono text-sm text-slate-700">
           {t('admin.detail.refLabel')} {request.id.slice(0, 8)}
         </p>
         <span className="flex items-center gap-1.5 text-sm text-slate-500">
@@ -66,22 +66,22 @@ export function CaseHeroSection({
         </span>
       </div>
 
-      <div className="mt-5 flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white/80 p-3 shadow-sm">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600">
+      <div className="mt-5 flex min-w-0 flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white/80 p-3 shadow-sm">
+        <span className="inline-flex max-w-full flex-wrap items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600">
           <span className="text-slate-400">{t('admin.detail.assignDeptLabel')}</span>
-          <span className="font-semibold text-slate-900">{tDepartment(assignedDepartment)}</span>
+          <span className="break-words font-semibold text-slate-900">{tDepartment(assignedDepartment)}</span>
         </span>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-100 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">
+        <span className="inline-flex max-w-full flex-wrap items-center gap-1.5 rounded-full border border-amber-100 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">
           <span className="text-amber-500/80">{t('admin.detail.urgencyLabel')}</span>
-          <span className="font-semibold">{tUrgency(mapDetailToUrgency(urgencyLevel))}</span>
+          <span className="break-words font-semibold">{tUrgency(mapDetailToUrgency(urgencyLevel))}</span>
         </span>
         <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-100 bg-teal-50 px-3 py-1.5 text-xs font-medium text-teal-700">
           <span className="font-semibold">{tStatus(request.status)}</span>
         </span>
         {targetStudentLevel && (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-800">
+          <span className="inline-flex max-w-full flex-wrap items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-800">
             <span className="text-blue-500/80">{t('admin.detail.studentLevelLabel')}</span>
-            <span className="font-semibold">{tStudentLevel(targetStudentLevel)}</span>
+            <span className="break-words font-semibold">{tStudentLevel(targetStudentLevel)}</span>
           </span>
         )}
       </div>

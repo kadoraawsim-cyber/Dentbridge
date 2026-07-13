@@ -676,14 +676,14 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
+    <main className="min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-slate-50 text-slate-900">
       <AdminPortalHeader
         adminEmail={adminEmail}
         onSignOut={handleSignOut}
         emailBeforeSwitcher
       />
 
-      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <section className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-8">
           <Link
             href="/admin"
@@ -693,9 +693,9 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
             {t('admin.requests.backToDashboard')}
           </Link>
 
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+          <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="min-w-0">
+              <h1 className="break-words text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
                 {t('admin.requests.pageTitle')}
               </h1>
               <p className="mt-2 max-w-3xl text-sm text-slate-500">
@@ -715,7 +715,7 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
               </div>
             </div>
 
-            <div className="relative w-full max-w-sm sm:w-auto">
+            <div className="relative w-full max-w-sm shrink-0 sm:w-auto">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
@@ -737,13 +737,13 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
                 key={tab.key}
                 type="button"
                 onClick={() => setWorkflowTab(tab.key)}
-                className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold transition ${
+                className={`inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold transition ${
                   active
                     ? 'border-slate-900 bg-slate-900 text-white'
                     : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:text-slate-900'
                 }`}
               >
-                <span>{tab.label}</span>
+                <span className="min-w-0 truncate">{tab.label}</span>
                 <span
                   className={`rounded-full px-2 py-0.5 text-[10px] ${
                     active ? 'bg-white/15 text-white' : 'bg-slate-100 text-slate-500'
@@ -756,7 +756,7 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
           })}
         </div>
 
-        <div className="mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <div className="mb-6 flex min-w-0 flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
             {t('admin.requests.filterLabel')}
           </span>
@@ -764,7 +764,7 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-8 rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 outline-none focus:border-slate-900"
+            className="h-8 max-w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 outline-none focus:border-slate-900"
           >
             <option value="all">{t('admin.requests.statusAll')}</option>
             <option value="submitted">{t('admin.requests.statusSubmitted')}</option>
@@ -789,7 +789,7 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
           <select
             value={departmentFilter}
             onChange={(e) => setDepartmentFilter(e.target.value)}
-            className="h-8 rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 outline-none focus:border-slate-900"
+            className="h-8 max-w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 outline-none focus:border-slate-900"
           >
             <option value="all">{t('admin.requests.departmentAll')}</option>
             {DEPARTMENT_OPTIONS.map((department) => (
@@ -802,7 +802,7 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
           <select
             value={urgencyFilter}
             onChange={(e) => setUrgencyFilter(e.target.value)}
-            className="h-8 rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 outline-none focus:border-slate-900"
+            className="h-8 max-w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 outline-none focus:border-slate-900"
           >
             <option value="all">{t('admin.requests.urgencyAll')}</option>
             <option value="high">{t('admin.requests.urgencyHighLabel')}</option>
@@ -817,14 +817,14 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="h-8 rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 outline-none focus:border-slate-900"
+            className="h-8 max-w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 outline-none focus:border-slate-900"
           >
             <option value="newest">{t('admin.requests.sortNewest')}</option>
             <option value="oldest">{t('admin.requests.sortOldest')}</option>
             <option value="urgency">{t('admin.requests.sortByUrgency')}</option>
           </select>
 
-          <span className="ml-auto text-xs text-slate-500">
+          <span className="ml-auto min-w-0 text-xs text-slate-500">
             {isFiltered
               ? `${filteredRequests.length} ${t('admin.requests.countOf')} ${requests.length} ${t('admin.requests.countCasesSuffix')}`
               : `${requests.length} ${requests.length === 1 ? t('admin.requests.countCaseSuffix') : t('admin.requests.countCasesSuffix')}`}
@@ -1009,12 +1009,12 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
                     key={request.id}
                     className={`overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm ${getUrgencyBorderClass(request.urgency)}`}
                   >
-                    <div className="p-5">
-                      <div className="mb-3 flex items-start justify-between gap-3">
-                        <span className="rounded-md bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-bold text-slate-500">
-                          #{request.id.slice(0, 8)}
-                        </span>
-                        <div className="flex flex-wrap items-center gap-1.5">
+                      <div className="p-5">
+                        <div className="mb-3 flex min-w-0 items-start justify-between gap-3">
+                          <span className="shrink-0 rounded-md bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-bold text-slate-500">
+                            #{request.id.slice(0, 8)}
+                          </span>
+                          <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">
                           <span
                             className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${getStatusBadgeClass(request.status)}`}
                           >
@@ -1028,8 +1028,8 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
                         </div>
                       </div>
 
-                      <Link href={`/admin/requests/${request.id}`} className="block">
-                        <h3 className="text-lg font-bold tracking-tight text-slate-900">
+                      <Link href={`/admin/requests/${request.id}`} className="block min-w-0">
+                        <h3 className="break-words text-lg font-bold tracking-tight text-slate-900">
                           {request.full_name}
                         </h3>
                       </Link>
@@ -1046,7 +1046,7 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
                         <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
                           {t('admin.requests.reportedIssue')}
                         </p>
-                        <p className="mt-1 text-base font-semibold text-slate-900">
+                        <p className="mt-1 break-words text-base font-semibold text-slate-900">
                           {tTreatment(request.treatment_type)}
                         </p>
                         {request.complaint_text && (
@@ -1106,8 +1106,8 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
                     </div>
 
                     <div className="border-t border-slate-100 px-5 py-4">
-                      <div className="mb-3 flex items-center justify-between text-xs text-slate-500">
-                        <span className="flex items-center gap-1.5">
+                      <div className="mb-3 flex min-w-0 flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+                        <span className="flex min-w-0 items-center gap-1.5 break-all">
                           <Phone className="h-3.5 w-3.5 text-slate-400" />
                           {request.phone}
                         </span>

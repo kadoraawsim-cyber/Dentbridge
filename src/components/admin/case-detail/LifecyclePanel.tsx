@@ -253,7 +253,7 @@ export function LifecyclePanel({
               placeholder={t('admin.detail.reasonPlaceholder')}
               className="h-11 w-full rounded-lg border border-red-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-red-500"
             />
-            <div className="mt-4 flex gap-3">
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row">
               <button
                 type="button"
                 onClick={onDismissCancel}
