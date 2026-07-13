@@ -1,5 +1,13 @@
 # DentBridge Project Status
 
+> **LEGACY / SUPERSEDED (2026-07-14).** This snapshot predates the July 2026
+> production release and is kept for historical reference only (it contains
+> some historical notes, e.g. the `city` field cleanup, not repeated
+> elsewhere). Its route map and environment list are incomplete relative to
+> the current codebase. For current, verified state see
+> [CURRENT_PROJECT_STATUS.md](./CURRENT_PROJECT_STATUS.md) and
+> [PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md) Part II.
+
 Last updated: July 2026
 
 ## Current State
