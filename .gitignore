@@ -33,6 +33,7 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !/.env.example
+!/tests/e2e-workflow/.env.example
 
 # vercel
 .vercel
@@ -45,3 +46,9 @@ supabase/.temp/
 next-env.d.ts
 
 supabase/.branches/
+
+# e2e workflow local artifacts
+tests/e2e-workflow/.auth/
+tests/e2e-workflow/reports/
+tests/e2e-workflow/test-results/
+tests/e2e-workflow/playwright-report/
