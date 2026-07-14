@@ -52,7 +52,7 @@ const TREATMENT_VALUES = new Set([
 ])
 
 const GENDER_VALUES = new Set(['Male', 'Female'])
-const LANGUAGE_VALUES = new Set(['Turkish', 'English', 'Arabic'])
+const LANGUAGE_VALUES = new Set(['Turkish', 'English', 'Arabic', 'Persian'])
 const UNIVERSITY_VALUES = new Set(['İstinye Dental Hospital'])
 const DAY_VALUES = new Set([
   'No Preference',
@@ -192,7 +192,11 @@ function isUuid(value: string): boolean {
   )
 }
 
-function validatePayload(payload: PatientRequestPayload): ValidatedPatientRequest | null {
+type PayloadValidationResult =
+  | { ok: true; data: ValidatedPatientRequest }
+  | { ok: false; field?: 'complaintText' }
+
+function validatePayload(payload: PatientRequestPayload): PayloadValidationResult {
   const fullName = getString(payload.fullName)
   const age = Number(getString(payload.age))
   const gender = getString(payload.gender)
@@ -213,96 +217,106 @@ function validatePayload(payload: PatientRequestPayload): ValidatedPatientReques
   const submissionId = getString(payload.submissionId)
 
   if (!isValidFullName(fullName)) {
-    return null
+    return { ok: false }
   }
   if (!Number.isInteger(age) || age < 1 || age > 120) {
-    return null
+    return { ok: false }
   }
   if (!phone) {
-    return null
+    return { ok: false }
   }
   if (!GENDER_VALUES.has(gender)) {
-    return null
+    return { ok: false }
   }
   if (!UNIVERSITY_VALUES.has(preferredUniversity)) {
-    return null
+    return { ok: false }
   }
   if (!isValidOptionalValue(preferredLanguage, LANGUAGE_VALUES)) {
-    return null
+    return { ok: false }
   }
   if (!TREATMENT_VALUES.has(treatmentType)) {
-    return null
+    return { ok: false }
   }
   if (complaintText.length < 5 || complaintText.length > 5000) {
-    return null
+    return { ok: false, field: 'complaintText' }
   }
   if (!Number.isInteger(painScore) || painScore < 0 || painScore > 10) {
-    return null
+    return { ok: false }
   }
   if (!DURATION_VALUES.has(symptomDuration)) {
-    return null
+    return { ok: false }
   }
   if (!MEDICAL_CONDITION_VALUES.has(medicalCondition)) {
-    return null
+    return { ok: false }
   }
   if (medicalCondition === 'Other' && medicalConditionDetails.length < 2) {
-    return null
+    return { ok: false }
   }
   if (!isValidOptionalValue(preferredDays, DAY_VALUES)) {
-    return null
+    return { ok: false }
   }
   if (!isValidOptionalValue(contactMethod, CONTACT_METHOD_VALUES)) {
-    return null
+    return { ok: false }
   }
   if (!isValidOptionalValue(bestContactTime, CONTACT_TIME_VALUES)) {
-    return null
+    return { ok: false }
   }
   if (payload.kvkkAcknowledgement !== true || payload.explicitConsent !== true) {
-    return null
+    return { ok: false }
   }
   if ((fileId && !fileTicket) || (!fileId && fileTicket)) {
-    return null
+    return { ok: false }
   }
   if (fileId && (!isUuid(fileId) || !fileTicket || fileTicket.length > 256)) {
-    return null
+    return { ok: false }
   }
   if (!isUuid(submissionId)) {
-    return null
+    return { ok: false }
   }
 
   return {
-    fullName,
-    age,
-    gender,
-    phone,
-    preferredLanguage,
-    preferredUniversity,
-    treatmentType,
-    complaintText,
-    urgency: getUrgencyFromPainScore(painScore),
-    preferredDays,
-    painScore,
-    symptomDuration,
-    contactMethod,
-    bestContactTime,
-    medicalCondition:
-      medicalCondition === 'Other' ? `Other: ${medicalConditionDetails}` : medicalCondition,
-    fileId,
-    fileTicket,
-    submissionId,
+    ok: true,
+    data: {
+      fullName,
+      age,
+      gender,
+      phone,
+      preferredLanguage,
+      preferredUniversity,
+      treatmentType,
+      complaintText,
+      urgency: getUrgencyFromPainScore(painScore),
+      preferredDays,
+      painScore,
+      symptomDuration,
+      contactMethod,
+      bestContactTime,
+      medicalCondition:
+        medicalCondition === 'Other' ? `Other: ${medicalConditionDetails}` : medicalCondition,
+      fileId,
+      fileTicket,
+      submissionId,
+    },
   }
 }
 
 function errorResponse(
   code: PublicErrorCode,
   locale: ApiLocale,
-  options?: { status?: number; retryAfterSeconds?: number }
+  options?: { status?: number; retryAfterSeconds?: number; field?: string }
 ): NextResponse {
   const headers: Record<string, string> = { ...SECURITY_HEADERS }
   if (options?.retryAfterSeconds != null) {
     headers['Retry-After'] = String(Math.max(1, options.retryAfterSeconds))
   }
-  return NextResponse.json(toPublicErrorBody(code, locale), {
+  const body: ReturnType<typeof toPublicErrorBody> & { field?: string } = toPublicErrorBody(
+    code,
+    locale
+  )
+  if (options?.field) {
+    body.field = options.field
+  }
+  return NextResponse.json(body, {
     status: options?.status ?? getPublicApiError(code, locale).status,
     headers,
   })
@@ -367,14 +381,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const payload = body as PatientRequestPayload
     const locale = resolveLocale(payload.locale, headerLocale)
     const validated = validatePayload(payload)
-    if (!validated) {
-      return finish(errorResponse('invalid_request', locale), {
-        actorType: 'anonymous',
-        errorCode: 'invalid_request',
-      })
+    if (!validated.ok) {
+      return finish(
+        errorResponse(
+          'invalid_request',
+          locale,
+          validated.field ? { field: validated.field } : undefined
+        ),
+        { actorType: 'anonymous', errorCode: 'invalid_request' }
+      )
     }
+    const data = validated.data
 
-    const phoneLimit = phoneRateLimiter.check(validated.phone)
+    const phoneLimit = phoneRateLimiter.check(data.phone)
     if (!phoneLimit.allowed) {
       return finish(
         errorResponse('rate_limited', locale, {
@@ -392,7 +411,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         admin
       ),
       checkDurableRateLimit(
-        validated.phone,
+        data.phone,
         { scope: 'patient_request_phone', windowSeconds: 60 * 60, max: 5 },
         admin
       ),
@@ -417,29 +436,29 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const result = await submitPatientIntakeAtomic({
-      submissionId: validated.submissionId,
+      submissionId: data.submissionId,
       request: {
-        full_name: validated.fullName,
-        age: validated.age,
-        gender: validated.gender,
-        phone: validated.phone,
-        preferred_language: validated.preferredLanguage,
-        preferred_university: validated.preferredUniversity,
-        treatment_type: validated.treatmentType,
-        complaint_text: validated.complaintText,
-        urgency: validated.urgency,
-        preferred_days: validated.preferredDays,
-        pain_score: validated.painScore,
-        symptom_duration: validated.symptomDuration,
-        contact_method: validated.contactMethod,
-        best_contact_time: validated.bestContactTime,
-        medical_condition: validated.medicalCondition,
+        full_name: data.fullName,
+        age: data.age,
+        gender: data.gender,
+        phone: data.phone,
+        preferred_language: data.preferredLanguage,
+        preferred_university: data.preferredUniversity,
+        treatment_type: data.treatmentType,
+        complaint_text: data.complaintText,
+        urgency: data.urgency,
+        preferred_days: data.preferredDays,
+        pain_score: data.painScore,
+        symptom_duration: data.symptomDuration,
+        contact_method: data.contactMethod,
+        best_contact_time: data.bestContactTime,
+        medical_condition: data.medicalCondition,
         consent_version: PATIENT_REQUEST_CONSENT.version,
         locale,
       },
       consents: getPatientRequestConsentEvidence(locale),
-      fileId: validated.fileId,
-      fileTicket: validated.fileTicket,
+      fileId: data.fileId,
+      fileTicket: data.fileTicket,
       context: auditContext,
       supabase: admin,
     })

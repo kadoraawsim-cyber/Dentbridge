@@ -190,11 +190,13 @@ export type TranslationShape = {
     langTurkish: string
     langEnglish: string
     langArabic: string
+    langPersian: string
     genderMale: string
     genderFemale: string
     treatmentCategory: string
     mainComplaint: string
     mainComplaintPlaceholder: string
+    mainComplaintError: string
     urgency: string
     urgencyPlaceholder: string
     urgencyLow: string
@@ -225,6 +227,7 @@ export type TranslationShape = {
     consentLegalLinksKvkk: string
     consentLegalLinksEnding: string
     errorRequiredFields: string
+    errorMainComplaintSummary: string
     errorConsent: string
     errorFileSize: string
     errorImageTooLarge: string
@@ -1724,12 +1727,14 @@ export const en: TranslationShape = {
     langTurkish: 'Turkish',
     langEnglish: 'English',
     langArabic: 'Arabic',
+    langPersian: 'Persian',
     genderMale: 'Male',
     genderFemale: 'Female',
     treatmentCategory: 'Treatment Category',
     mainComplaint: 'Main Complaint',
     mainComplaintPlaceholder:
       'Describe your symptoms, pain, or dental needs in detail…',
+    mainComplaintError: 'Please enter at least 5 characters in the Main Complaint field.',
     urgency: 'Pain Level / Urgency',
     urgencyPlaceholder: 'Select urgency',
     urgencyLow: 'Low (Routine)',
@@ -1763,6 +1768,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     consentLegalLinksKvkk: 'KVKK / Personal Data Protection Clarification Text',
     consentLegalLinksEnding: ' for details.',
     errorRequiredFields: 'Please complete all required fields.',
+    errorMainComplaintSummary: 'Please review the Main Complaint field below.',
     errorConsent: 'Please confirm both required consent checkboxes before submitting.',
     errorFileSize: 'File size must be 10 MB or less.',
     errorImageTooLarge:

@@ -25,6 +25,10 @@ function normalizePhoneNumber(value: string) {
   return value.replace(/[\s().-]/g, '')
 }
 
+// Must match the trimmed-length rule in src/app/api/v1/patient/requests/route.ts (validatePayload).
+const MAIN_COMPLAINT_MIN_LENGTH = 5
+const MAIN_COMPLAINT_MAX_LENGTH = 5000
+
 const HEIC_EXTENSIONS = new Set(['heic', 'heif'])
 const UNSUPPORTED_CLINICAL_EXTENSIONS = new Set([
   'pdf',
@@ -240,6 +244,7 @@ export default function PatientRequestPage() {
 
   const [treatmentType, setTreatmentType] = useState('')
   const [complaintText, setComplaintText] = useState('')
+  const [complaintError, setComplaintError] = useState('')
   const [preferredDays, setPreferredDays] = useState('')
   const [painScore, setPainScore] = useState('')
   const [symptomDuration, setSymptomDuration] = useState('')
@@ -260,6 +265,7 @@ export default function PatientRequestPage() {
   const [submittedId, setSubmittedId] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
   const stepSectionRefs = useRef<Array<HTMLElement | null>>([])
+  const complaintTextareaRef = useRef<HTMLTextAreaElement | null>(null)
   const submissionGuard = useRef(false)
   const submissionId = useRef('')
   const attachmentRunId = useRef(0)
@@ -320,6 +326,7 @@ export default function PatientRequestPage() {
     setHasTouchedMedicalCondition(false)
     setTreatmentType('')
     setComplaintText('')
+    setComplaintError('')
     setPreferredDays('')
     setKvkkAcknowledgement(false)
     setExplicitConsent(false)
@@ -470,6 +477,27 @@ export default function PatientRequestPage() {
     }
   }
 
+  function isMainComplaintValid(value: string): boolean {
+    const trimmed = value.trim()
+    return (
+      trimmed.length >= MAIN_COMPLAINT_MIN_LENGTH && trimmed.length <= MAIN_COMPLAINT_MAX_LENGTH
+    )
+  }
+
+  function handleComplaintTextChange(value: string) {
+    setComplaintText(value)
+    if (complaintError && isMainComplaintValid(value)) {
+      setComplaintError('')
+    }
+  }
+
+  function focusComplaintField() {
+    const node = complaintTextareaRef.current
+    if (!node) return
+    node.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    node.focus({ preventScroll: true })
+  }
+
   async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
     if (submissionGuard.current) {
@@ -477,6 +505,7 @@ export default function PatientRequestPage() {
     }
     setSubmittedId(null)
     setErrorMessage('')
+    setComplaintError('')
 
     const trimmedFullName = fullName.trim()
     const fullNameWords = trimmedFullName.split(/\s+/).filter(Boolean)
@@ -530,6 +559,13 @@ export default function PatientRequestPage() {
       return
     }
 
+    if (!isMainComplaintValid(complaintText)) {
+      setComplaintError(t('request.mainComplaintError'))
+      setErrorMessage(t('request.errorMainComplaintSummary'))
+      focusComplaintField()
+      return
+    }
+
     if (
       !fullName ||
       !phone ||
@@ -537,7 +573,6 @@ export default function PatientRequestPage() {
       !age ||
       !gender ||
       !treatmentType ||
-      !complaintText ||
       !painScore ||
       !symptomDuration ||
       !medicalCondition ||
@@ -578,7 +613,13 @@ export default function PatientRequestPage() {
       },
       guard: submissionGuard,
       locale,
-      onFailure: (errorCode) => {
+      onFailure: (errorCode, field) => {
+        if (field === 'complaintText') {
+          setComplaintError(t('request.mainComplaintError'))
+          setErrorMessage(t('request.errorMainComplaintSummary'))
+          focusComplaintField()
+          return
+        }
         setErrorMessage(getSubmissionErrorMessage(errorCode))
       },
       onSubmitting: setIsSubmitting,
@@ -655,12 +696,16 @@ export default function PatientRequestPage() {
                 }}
                 treatmentType={treatmentType}
                 complaintText={complaintText}
+                complaintError={complaintError}
+                complaintTextRef={(node) => {
+                  complaintTextareaRef.current = node
+                }}
                 painScore={painScore}
                 symptomDuration={symptomDuration}
                 medicalCondition={medicalCondition}
                 medicalConditionDetails={medicalConditionDetails}
                 onTreatmentTypeChange={setTreatmentType}
-                onComplaintTextChange={setComplaintText}
+                onComplaintTextChange={handleComplaintTextChange}
                 onPainScoreChange={setPainScore}
                 onSymptomDurationChange={setSymptomDuration}
                 onMedicalConditionChange={(value) => {
