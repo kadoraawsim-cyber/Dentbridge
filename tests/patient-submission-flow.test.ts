@@ -141,4 +141,46 @@ describe('patient submission pipeline recovery', () => {
 
     expect(onFailure).toHaveBeenCalledExactlyOnceWith('request_failed')
   })
+
+  it('forwards the field the backend attributes a validation failure to', async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(
+        response(false, { error: 'Invalid.', code: 'invalid_request', field: 'complaintText' })
+      )
+    const onFailure = vi.fn()
+
+    await expect(runPatientSubmission({
+      attachment: null,
+      dependencies: { fetcher, upload: vi.fn() },
+      guard: { current: false },
+      locale: 'en',
+      onFailure,
+      onSubmitting: vi.fn(),
+      onSuccess: vi.fn(),
+      requestPayload: { submissionId: 'submission-1' },
+    })).resolves.toBe('failed')
+
+    expect(onFailure).toHaveBeenCalledExactlyOnceWith('invalid_request', 'complaintText')
+  })
+
+  it('does not pass a field argument when the backend omits one', async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(response(false, { error: 'Invalid.', code: 'invalid_request' }))
+    const onFailure = vi.fn()
+
+    await expect(runPatientSubmission({
+      attachment: null,
+      dependencies: { fetcher, upload: vi.fn() },
+      guard: { current: false },
+      locale: 'en',
+      onFailure,
+      onSubmitting: vi.fn(),
+      onSuccess: vi.fn(),
+      requestPayload: { submissionId: 'submission-1' },
+    })).resolves.toBe('failed')
+
+    expect(onFailure).toHaveBeenCalledExactlyOnceWith('invalid_request')
+  })
 })

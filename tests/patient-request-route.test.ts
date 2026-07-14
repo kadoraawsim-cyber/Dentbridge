@@ -211,4 +211,78 @@ describe('POST /api/v1/patient/requests', () => {
     expect(call.consents[1].document_fingerprint).toMatch(/^sha256:/)
     expect(call.consents[0].document_title).not.toBe(call.consents[1].document_title)
   })
+
+  it.each([
+    ['Turkish', '555 200 0001'],
+    ['English', '555 200 0002'],
+    ['Arabic', '555 200 0003'],
+    ['Persian', '555 200 0004'],
+  ])(
+    'accepts %s as a preferred communication language',
+    async (preferredLanguage, phone) => {
+      const { admin } = createAdminMock()
+      mocks.createSupabaseAdminClient.mockReturnValue(admin)
+
+      // Each case uses its own phone number: the route's in-memory phone rate
+      // limiter is a module-level singleton shared across every test in this
+      // file, so reusing validPayload's phone across successful submissions
+      // would trip PHONE_RATE_LIMIT (max 5/hour) rather than exercising the
+      // language check.
+      const response = await POST(
+        makeJsonRequest({ ...validPayload, preferredLanguage, phone })
+      )
+
+      expect(response.status).toBe(200)
+      const call = mocks.submitPatientIntakeAtomic.mock.calls[0]?.[0]
+      expect(call.request.preferred_language).toBe(preferredLanguage)
+    }
+  )
+
+  it('rejects a preferred language outside the allowed set', async () => {
+    const response = await POST(
+      makeJsonRequest({ ...validPayload, preferredLanguage: 'French' })
+    )
+
+    expect(response.status).toBe(400)
+    expect(await readJson(response)).toEqual({
+      code: 'invalid_request',
+      error: expect.any(String),
+    })
+    expect(mocks.createSupabaseAdminClient).not.toHaveBeenCalled()
+  })
+
+  it('rejects a Main Complaint under the minimum length and reports the field', async () => {
+    const response = await POST(
+      makeJsonRequest({ ...validPayload, complaintText: 'Ouch' })
+    )
+
+    expect(response.status).toBe(400)
+    expect(await readJson(response)).toEqual({
+      code: 'invalid_request',
+      error: expect.any(String),
+      field: 'complaintText',
+    })
+    expect(mocks.createSupabaseAdminClient).not.toHaveBeenCalled()
+  })
+
+  it('accepts a Main Complaint at exactly the minimum length', async () => {
+    const { admin } = createAdminMock()
+    mocks.createSupabaseAdminClient.mockReturnValue(admin)
+
+    const response = await POST(
+      makeJsonRequest({ ...validPayload, complaintText: 'Ouchy', phone: '555 200 0005' })
+    )
+
+    expect(response.status).toBe(200)
+  })
+
+  it('does not attribute an unrelated validation failure to the Main Complaint field', async () => {
+    const response = await POST(
+      makeJsonRequest({ ...validPayload, explicitConsent: false })
+    )
+
+    const body = await readJson(response)
+    expect(body.code).toBe('invalid_request')
+    expect(body.field).toBeUndefined()
+  })
 })

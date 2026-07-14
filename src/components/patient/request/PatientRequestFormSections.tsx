@@ -31,6 +31,7 @@ const LANGUAGE_OPTIONS = [
   { value: 'Turkish', tKey: 'request.langTurkish' },
   { value: 'English', tKey: 'request.langEnglish' },
   { value: 'Arabic', tKey: 'request.langArabic' },
+  { value: 'Persian', tKey: 'request.langPersian' },
 ] as const
 
 const PREFERRED_UNIVERSITY_OPTIONS = [
@@ -284,6 +285,8 @@ interface ClinicalDetailsSectionProps {
   sectionRef: RefCallback<HTMLElement>
   treatmentType: string
   complaintText: string
+  complaintError: string
+  complaintTextRef: RefCallback<HTMLTextAreaElement>
   painScore: string
   symptomDuration: string
   medicalCondition: string
@@ -300,6 +303,8 @@ export function ClinicalDetailsSection({
   sectionRef,
   treatmentType,
   complaintText,
+  complaintError,
+  complaintTextRef,
   painScore,
   symptomDuration,
   medicalCondition,
@@ -352,12 +357,26 @@ export function ClinicalDetailsSection({
           {t('request.mainComplaint')} *
         </label>
         <textarea
+          ref={complaintTextRef}
           value={complaintText}
           onChange={(e) => onComplaintTextChange(e.target.value)}
           placeholder={t('request.mainComplaintPlaceholder')}
           rows={4}
-          className="w-full rounded-xl border border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900"
+          aria-invalid={complaintError ? true : undefined}
+          aria-describedby={complaintError ? 'main-complaint-error' : undefined}
+          className={`w-full rounded-xl border px-3 py-2.5 sm:px-4 sm:py-3 outline-none transition focus:border-slate-900 ${
+            complaintError ? 'border-red-400' : 'border-slate-300'
+          }`}
         />
+        {complaintError && (
+          <p
+            id="main-complaint-error"
+            role="alert"
+            className="mt-1.5 text-xs sm:text-sm text-red-600"
+          >
+            {complaintError}
+          </p>
+        )}
       </div>
 
       <div className="space-y-5">

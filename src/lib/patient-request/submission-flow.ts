@@ -42,13 +42,24 @@ export interface RunPatientSubmissionInput<TAttachment extends PatientAttachment
    * Called with the backend's public error code (e.g. 'rate_limited',
    * 'service_unavailable') when the final submission responds non-OK, or a
    * stage marker ('prepare_failed', 'upload_failed', 'confirm_failed',
-   * 'request_failed') / null when no code is available.
+   * 'request_failed') / null when no code is available. `field` is set only
+   * when the backend attributes the failure to a specific request field
+   * (currently just the Main Complaint length rule).
    */
-  onFailure(errorCode: string | null): void
+  onFailure(errorCode: string | null, field?: string): void
   onSubmitting(value: boolean): void
   onSuccess(): void
   preparedAttachment?: PreparedPatientAttachment | null
   requestPayload: Record<string, unknown>
+}
+
+class PatientSubmissionError extends Error {
+  field?: string
+
+  constructor(code: string, field?: string) {
+    super(code)
+    this.field = field
+  }
 }
 
 export type PatientSubmissionResult = 'submitted' | 'failed' | 'in_flight'
@@ -149,14 +160,22 @@ export async function runPatientSubmission<TAttachment extends PatientAttachment
       }),
     })
     if (!response.ok) {
-      const body = (await response.json().catch(() => null)) as { code?: unknown } | null
-      throw new Error(typeof body?.code === 'string' && body.code ? body.code : 'request_failed')
+      const body = (await response.json().catch(() => null)) as
+        | { code?: unknown; field?: unknown }
+        | null
+      const code = typeof body?.code === 'string' && body.code ? body.code : 'request_failed'
+      const field = typeof body?.field === 'string' ? body.field : undefined
+      throw new PatientSubmissionError(code, field)
     }
 
     input.onSuccess()
     return 'submitted'
   } catch (error) {
-    input.onFailure(error instanceof Error && error.message ? error.message : null)
+    if (error instanceof PatientSubmissionError && error.field) {
+      input.onFailure(error.message, error.field)
+    } else {
+      input.onFailure(error instanceof Error && error.message ? error.message : null)
+    }
     return 'failed'
   } finally {
     input.guard.current = false
