@@ -138,10 +138,21 @@ export function buildCaseTimeline({
   }
 
   if (request.reviewed_at) {
+    // Display-only. reviewed_at holds only the MOST RECENT faculty review
+    // action, and a case reaches internal status 'matched' (in pool) via
+    // several transitions (initial triage release, return to pool, later-stage
+    // release, triage edit) that this data cannot tell apart. The title must
+    // therefore stay neutral — never claim triage completion or a Match — and
+    // the specific transitions are shown by the dedicated stage/request
+    // entries built from their own authoritative timestamps below.
+    const isReleasedToPool = (request.status || '').toLowerCase() === 'matched'
+
     addItem({
       id: `faculty-reviewed-${request.id}-${request.reviewed_at}`,
       kind: 'system',
-      titleKey: 'admin.detail.journeyFacultyReviewed',
+      titleKey: isReleasedToPool
+        ? 'admin.detail.journeyFacultyReviewCompleted'
+        : 'admin.detail.journeyFacultyReviewed',
       occurredAt: request.reviewed_at,
       detail: request.status || null,
       actor: request.reviewed_by,

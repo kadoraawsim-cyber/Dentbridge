@@ -1078,6 +1078,9 @@ export type TranslationShape = {
       treatmentJourneyEmpty: string
       journeyPatientSubmitted: string
       journeyFacultyReviewed: string
+      journeyFacultyReviewCompleted: string
+      journeyReleasedToStudentPool: string
+      journeyStagePrefix: string
       journeyStudentRequested: string
       journeyStudentApproved: string
       journeyStudentRejected: string
@@ -2434,8 +2437,8 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       statPendingLabel: 'Pending Review',
       statPendingDesc: 'Needs faculty assessment',
       statPendingReviewLink: 'Review \u2192',
-      statMatchedLabel: 'Matched Cases',
-      statMatchedDesc: 'Released to student pool',
+      statMatchedLabel: 'In Student Pool',
+      statMatchedDesc: 'Available to eligible students',
       statTotalLabel: 'Total Requests',
       statTotalDesc: 'All time',
       statAvgTriageTimeLabel: 'Avg. Triage Time',
@@ -2482,7 +2485,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       queueTabAll: 'All Cases',
       queueTabNeedsReview: 'Triage',
       queueTabNeedsRouting: 'Pending Assignment',
-      queueTabReleased: 'Routing',
+      queueTabReleased: 'Student Pool',
       queueTabActive: 'Active',
       queueTabClosed: 'Closed',
       filterLabel: 'Filter:',
@@ -2640,11 +2643,14 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       treatmentJourneyEmpty: 'No treatment journey events are available yet.',
       journeyPatientSubmitted: 'Patient submitted request',
       journeyFacultyReviewed: 'Faculty reviewed / case status updated',
+      journeyFacultyReviewCompleted: 'Faculty review completed',
+      journeyReleasedToStudentPool: 'Released to Student Pool',
+      journeyStagePrefix: 'Stage',
       journeyStudentRequested: 'Student requested case',
       journeyStudentApproved: 'Student request approved',
       journeyStudentRejected: 'Student request rejected',
       journeyStudentRevoked: 'Student assignment revoked',
-      journeyStageReleased: 'Department stage released',
+      journeyStageReleased: 'Case released to department pool',
       journeyNextStageReleased: 'Next department stage released',
       journeyStageStudentAssigned: 'Student assigned to stage',
       journeyStageSubmittedReview: 'Stage submitted for faculty review',
@@ -2738,7 +2744,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
     db: {
       statusSubmitted: 'Submitted',
       statusUnderReview: 'Under Review',
-      statusMatched: 'Matched',
+      statusMatched: 'Released to Pool',
       statusStudentApproved: 'Student Assigned',
       statusContacted: 'Contacted',
       statusApptScheduled: 'Appt. Scheduled',
