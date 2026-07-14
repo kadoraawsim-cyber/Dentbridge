@@ -4,8 +4,7 @@
  * Translated label mappers for the admin dashboard (Phase 8 extraction).
  * Moved verbatim from dashboard-client.tsx. These variants intentionally
  * differ from the case-detail labels (e.g. tUrgency falls back to an
- * "unspecified" label and tStatus omits `faculty_review`); do not merge them
- * without a behavior review.
+ * "unspecified" label); do not merge them without a behavior review.
  */
 
 import { useI18n } from '@/lib/i18n'
@@ -37,6 +36,7 @@ export function useDashboardLabels() {
       case 'contacted':            return t('admin.db.statusContacted')
       case 'appointment_scheduled':return t('admin.db.statusApptScheduled')
       case 'in_treatment':         return t('admin.db.statusInTreatment')
+      case 'faculty_review':       return t('admin.db.statusFacultyReview')
       case 'completed':            return t('admin.db.statusCompleted')
       case 'rejected':             return t('admin.db.statusRejected')
       case 'cancelled':            return t('admin.db.statusCancelled')

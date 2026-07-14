@@ -12,6 +12,20 @@ interface TreatmentJourneyPanelProps {
   formatTimeOnly: (value: string | null) => string
 }
 
+// Journey items whose detail is the "Stage N: Department" label built in
+// case-timeline.ts; the leading word is localized here at render time.
+const STAGE_DETAIL_TITLE_KEYS = new Set([
+  'admin.detail.journeyStageReleased',
+  'admin.detail.journeyNextStageReleased',
+  'admin.detail.journeyStageStudentAssigned',
+  'admin.detail.journeyStageSubmittedReview',
+  'admin.detail.journeyStageReviewed',
+])
+
+function localizeStageDetail(detail: string, stagePrefix: string) {
+  return detail.replace(/^Stage (\d+):/, `${stagePrefix} $1:`)
+}
+
 function getJourneyTone(kind: 'system' | 'appointment' | 'progress' | 'closure') {
   switch (kind) {
     case 'appointment':
@@ -71,11 +85,15 @@ export function TreatmentJourneyPanel({
           {items.map((item, index) => {
             const tone = getJourneyTone(item.kind)
             const detailText =
-              (item.titleKey === 'admin.detail.journeyFacultyReviewed' ||
-                item.kind === 'closure') &&
-              item.detail
-                ? tStatus(item.detail)
-                : item.detail
+              item.titleKey === 'admin.detail.journeyFacultyReviewCompleted'
+                ? t('admin.detail.journeyReleasedToStudentPool')
+                : (item.titleKey === 'admin.detail.journeyFacultyReviewed' ||
+                      item.kind === 'closure') &&
+                    item.detail
+                  ? tStatus(item.detail)
+                  : STAGE_DETAIL_TITLE_KEYS.has(item.titleKey) && item.detail
+                    ? localizeStageDetail(item.detail, t('admin.detail.journeyStagePrefix'))
+                    : item.detail
             const kindLabel =
               item.kind === 'appointment'
                 ? t('admin.detail.journeyKindAppointment')
