@@ -38,16 +38,23 @@ export function StudentRequestsPanel({
   const { t } = useI18n()
   const { tStudentReqStatus } = useAdminCaseLabels()
 
+  // The header badge counts PENDING requests only — resolved requests stay
+  // visible below as history but are no longer current faculty work.
+  const pendingCount = studentRequests.filter((request) => request.status === 'pending').length
+
   return (
-    <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div
+      id="student-requests"
+      className="mt-8 scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+    >
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-lg font-bold text-slate-900">{t('admin.detail.studentRequestsTitle')}</h3>
-        {studentRequests.length > 0 && (
-          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-            {studentRequests.length}{' '}
-            {studentRequests.length === 1
-              ? t('admin.detail.studentRequestCountSuffix')
-              : t('admin.detail.studentRequestsCountSuffix')}
+        {pendingCount > 0 && (
+          <span className="rounded-full border border-fuchsia-200 bg-fuchsia-50 px-3 py-1 text-xs font-semibold text-fuchsia-700">
+            {pendingCount}{' '}
+            {pendingCount === 1
+              ? t('admin.detail.studentRequestPendingCountSuffix')
+              : t('admin.detail.studentRequestsPendingCountSuffix')}
           </span>
         )}
       </div>

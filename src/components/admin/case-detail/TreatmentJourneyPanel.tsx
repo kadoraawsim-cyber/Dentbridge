@@ -150,6 +150,9 @@ export function TreatmentJourneyPanel({
                   {detailText && (
                     <p className="mt-1 break-words text-xs leading-snug text-slate-600">{detailText}</p>
                   )}
+                  {item.noteKey && (
+                    <p className="mt-1 text-xs font-semibold text-fuchsia-700">{t(item.noteKey)}</p>
+                  )}
                   {item.actor && (
                     <p className="mt-1 text-xs text-slate-400">
                       {t('admin.detail.journeyActorLabel')} {item.actor}

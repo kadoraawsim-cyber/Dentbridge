@@ -124,13 +124,20 @@ describe('faculty status formatters (internal value in, display label out)', () 
     )
   })
 
-  it('post-approval label is untouched in this phase (student_approved stays Student Assigned)', () => {
-    expect(withLocale('en', () => useDashboardLabels().tStatus('student_approved'))).toBe(
-      'Student Assigned'
+  it('post-approval product status renders Matched in faculty formatters (Phase 2)', () => {
+    expect(withLocale('en', () => useDashboardLabels().tStatus('student_approved'))).toBe('Matched')
+    expect(withLocale('tr', () => useDashboardLabels().tStatus('student_approved'))).toBe(
+      'Eşleştirildi'
     )
-    expect(withLocale('en', () => useAdminCaseLabels().tStatus('student_approved'))).toBe(
-      'Student Assigned'
+    expect(withLocale('en', () => useAdminCaseLabels().tStatus('student_approved'))).toBe('Matched')
+    expect(withLocale('tr', () => useAdminCaseLabels().tStatus('student_approved'))).toBe(
+      'Eşleştirildi'
     )
+  })
+
+  it('operational lifecycle step keeps Student Assigned wording', () => {
+    expect(en.admin.detail.stepStudentAssigned).toBe('Student Assigned')
+    expect(tr.admin.detail.stepStudentAssigned).toBe('Öğrenci Atandı')
   })
 })
 

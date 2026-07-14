@@ -849,6 +849,8 @@ export type TranslationShape = {
       systemsOnline: string
       caseAwaitingReview: string
       casesAwaitingReview: string
+      requestAwaitingApproval: string
+      requestsAwaitingApprovalSuffix: string
       openWorkQueue: string
       exportCsvButton: string
       exportCsvFilename: string
@@ -877,6 +879,10 @@ export type TranslationShape = {
       statPendingReviewLink: string
       statMatchedLabel: string
       statMatchedDesc: string
+      statPendingRequestsLabel: string
+      statPendingRequestsDesc: string
+      recentPendingApprovalOne: string
+      recentPendingApprovalSuffix: string
       statTotalLabel: string
       statTotalDesc: string
       statAvgTriageTimeLabel: string
@@ -922,7 +928,7 @@ export type TranslationShape = {
       searchPlaceholder: string
       queueTabAll: string
       queueTabNeedsReview: string
-      queueTabNeedsRouting: string
+      queueTabStudentRequests: string
       queueTabReleased: string
       queueTabActive: string
       queueTabClosed: string
@@ -948,6 +954,7 @@ export type TranslationShape = {
       urgencyLowLabel: string
       sortNewest: string
       sortOldest: string
+      sortPendingOldest: string
       sortByUrgency: string
       countOf: string
       countCaseSuffix: string
@@ -990,6 +997,10 @@ export type TranslationShape = {
       urgencyLabelMedium: string
       urgencyLabelLow: string
       urgencyLabelUnspecified: string
+      pendingRequestBadgeOne: string
+      pendingRequestBadgeSuffix: string
+      reviewRequestCta: string
+      reviewRequestsCta: string
     }
     detail: {
       backToReviewList: string
@@ -1082,6 +1093,7 @@ export type TranslationShape = {
       journeyReleasedToStudentPool: string
       journeyStagePrefix: string
       journeyStudentRequested: string
+      journeyPendingFacultyApproval: string
       journeyStudentApproved: string
       journeyStudentRejected: string
       journeyStudentRevoked: string
@@ -1151,9 +1163,18 @@ export type TranslationShape = {
       closedCompleted: string
       closedCancelledMsg: string
       closedGenericMsg: string
+      actionBannerTitle: string
+      actionBannerBodyOne: string
+      actionBannerBodySuffix: string
+      actionBannerCtaOne: string
+      actionBannerCtaMany: string
+      matchedSummaryTitle: string
+      matchedStudentLabel: string
+      matchedApprovedAtLabel: string
+      matchedApprovedByLabel: string
       studentRequestsTitle: string
-      studentRequestCountSuffix: string
-      studentRequestsCountSuffix: string
+      studentRequestPendingCountSuffix: string
+      studentRequestsPendingCountSuffix: string
       noStudentRequests: string
       requestedAtLabel: string
       reviewedByAtLabel: string
@@ -2407,6 +2428,8 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       systemsOnline: 'Systems online',
       caseAwaitingReview: '1 case awaiting review',
       casesAwaitingReview: 'cases awaiting review',
+      requestAwaitingApproval: '1 student request awaiting approval',
+      requestsAwaitingApprovalSuffix: 'student requests awaiting approval',
       openWorkQueue: 'Open Work Queue',
       exportCsvButton: 'Export CSV',
       exportCsvFilename: 'dentbridge-patient-requests',
@@ -2439,6 +2462,10 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       statPendingReviewLink: 'Review \u2192',
       statMatchedLabel: 'In Student Pool',
       statMatchedDesc: 'Available to eligible students',
+      statPendingRequestsLabel: 'Pending Student Requests',
+      statPendingRequestsDesc: 'Awaiting faculty approval',
+      recentPendingApprovalOne: '1 Student Awaiting Approval',
+      recentPendingApprovalSuffix: 'Students Awaiting Approval',
       statTotalLabel: 'Total Requests',
       statTotalDesc: 'All time',
       statAvgTriageTimeLabel: 'Avg. Triage Time',
@@ -2484,7 +2511,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       searchPlaceholder: 'Search by name, ID, phone, or issue\u2026',
       queueTabAll: 'All Cases',
       queueTabNeedsReview: 'Triage',
-      queueTabNeedsRouting: 'Pending Assignment',
+      queueTabStudentRequests: 'Student Requests',
       queueTabReleased: 'Student Pool',
       queueTabActive: 'Active',
       queueTabClosed: 'Closed',
@@ -2496,7 +2523,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       statusSubmitted: 'New Request',
       statusUnderReview: 'Under Review',
       statusMatched: 'Released to Pool',
-      statusStudentApproved: 'Student Assigned',
+      statusStudentApproved: 'Matched',
       statusContacted: 'Contacted',
       statusAppointmentScheduled: 'Appointment Scheduled',
       statusInTreatment: 'In Treatment',
@@ -2510,6 +2537,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       urgencyLowLabel: 'Low',
       sortNewest: 'Newest First',
       sortOldest: 'Oldest First',
+      sortPendingOldest: 'Oldest Request First',
       sortByUrgency: 'High Urgency First',
       countOf: 'of',
       countCaseSuffix: 'case',
@@ -2540,7 +2568,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       statusLabelSubmitted: 'New Request',
       statusLabelUnderReview: 'Under Review',
       statusLabelMatched: 'Released to Pool',
-      statusLabelStudentApproved: 'Student Assigned',
+      statusLabelStudentApproved: 'Matched',
       statusLabelContacted: 'Contacted',
       statusLabelAppointmentScheduled: 'Appointment Scheduled',
       statusLabelInTreatment: 'In Treatment',
@@ -2552,6 +2580,10 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       urgencyLabelMedium: 'Medium',
       urgencyLabelLow: 'Low',
       urgencyLabelUnspecified: 'Unspecified',
+      pendingRequestBadgeOne: '1 Pending Student Request',
+      pendingRequestBadgeSuffix: 'Pending Student Requests',
+      reviewRequestCta: 'Review Request',
+      reviewRequestsCta: 'Review Requests',
     },
     detail: {
       backToReviewList: 'Back to Review List',
@@ -2630,8 +2662,8 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       historyTitle: 'Case History / Activity Log',
       historyEmpty: 'No case activity recorded yet.',
       historyCaseReleased: 'Case released to pool',
-      historyStudentSubmitted: 'Student request submitted',
-      historyStudentApproved: 'Student request approved',
+      historyStudentSubmitted: 'Student submitted a case request',
+      historyStudentApproved: 'Patient–student Match approved',
       historyStudentRejected: 'Student request rejected',
       historyStudentRevoked: 'Student assignment revoked',
       historyRejectionUndone: 'Rejection undone',
@@ -2646,13 +2678,14 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       journeyFacultyReviewCompleted: 'Faculty review completed',
       journeyReleasedToStudentPool: 'Released to Student Pool',
       journeyStagePrefix: 'Stage',
-      journeyStudentRequested: 'Student requested case',
-      journeyStudentApproved: 'Student request approved',
+      journeyStudentRequested: 'Student submitted a case request',
+      journeyPendingFacultyApproval: 'Pending faculty approval',
+      journeyStudentApproved: 'Patient–student Match approved',
       journeyStudentRejected: 'Student request rejected',
       journeyStudentRevoked: 'Student assignment revoked',
       journeyStageReleased: 'Case released to department pool',
       journeyNextStageReleased: 'Next department stage released',
-      journeyStageStudentAssigned: 'Student assigned to stage',
+      journeyStageStudentAssigned: 'Student assigned to case',
       journeyStageSubmittedReview: 'Stage submitted for faculty review',
       journeyStageReviewed: 'Faculty reviewed completed stage',
       journeyAppointmentScheduled: 'Appointment scheduled',
@@ -2719,9 +2752,18 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       closedCompleted: 'Treatment completed. This case is closed.',
       closedCancelledMsg: 'This case has been cancelled.',
       closedGenericMsg: 'This case is closed.',
+      actionBannerTitle: 'Faculty Action Required',
+      actionBannerBodyOne: 'A student has requested this case and is waiting for your approval.',
+      actionBannerBodySuffix: 'students have requested this case and are waiting for review.',
+      actionBannerCtaOne: 'Review Student Request',
+      actionBannerCtaMany: 'Review Student Requests',
+      matchedSummaryTitle: 'Matched',
+      matchedStudentLabel: 'Assigned student',
+      matchedApprovedAtLabel: 'Match approved',
+      matchedApprovedByLabel: 'Approved by',
       studentRequestsTitle: 'Student Requests',
-      studentRequestCountSuffix: 'request',
-      studentRequestsCountSuffix: 'requests',
+      studentRequestPendingCountSuffix: 'pending request',
+      studentRequestsPendingCountSuffix: 'pending requests',
       noStudentRequests: 'No students have requested this case yet.',
       requestedAtLabel: 'Requested',
       reviewedByAtLabel: 'Reviewed by',
@@ -2745,7 +2787,7 @@ urgencyHigh: 'High (Urgent / Severe Pain)',
       statusSubmitted: 'Submitted',
       statusUnderReview: 'Under Review',
       statusMatched: 'Released to Pool',
-      statusStudentApproved: 'Student Assigned',
+      statusStudentApproved: 'Matched',
       statusContacted: 'Contacted',
       statusApptScheduled: 'Appt. Scheduled',
       statusInTreatment: 'In Treatment',
