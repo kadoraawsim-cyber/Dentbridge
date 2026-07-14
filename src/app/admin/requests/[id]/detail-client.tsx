@@ -5,9 +5,11 @@ import { supabase } from '@/lib/supabase'
 import { portalFetch } from '@/lib/api/portal-fetch'
 import { buildCaseTimeline } from '@/lib/case-timeline'
 import { useI18n } from '@/lib/i18n'
+import { countPendingRequests } from '@/lib/cases/pending-requests'
 import { AdminPortalHeader } from '@/components/admin/AdminPortalHeader'
 import { ActivityLogPanel } from '@/components/admin/case-detail/ActivityLogPanel'
 import { CaseHeroSection } from '@/components/admin/case-detail/CaseHeroSection'
+import { FacultyActionBanner } from '@/components/admin/case-detail/FacultyActionBanner'
 import { LifecyclePanel } from '@/components/admin/case-detail/LifecyclePanel'
 import { PatientSummarySection } from '@/components/admin/case-detail/PatientSummarySection'
 import { ReviewRecordCard } from '@/components/admin/case-detail/ReviewRecordCard'
@@ -234,6 +236,39 @@ export function CaseDetailClient({
   )
 
   const currentStatus = (request.status || '').toLowerCase()
+
+  // Pending count derives from the studentRequests state, so it (and the
+  // action banner) update through the existing approve/reject state flow and
+  // disappear once the final pending request is resolved.
+  const pendingRequestCount = useMemo(() => countPendingRequests(studentRequests), [studentRequests])
+
+  // Real-Match summary: authoritative assignment metadata already loaded with
+  // the routing stages (student, approving faculty, approval time). Falls back
+  // to the approved request row so the summary appears immediately after an
+  // in-session approval without any extra query.
+  const matchedAssignment = useMemo(() => {
+    const assignedStage = [...routingStages]
+      .reverse()
+      .find((stage) => stage.assigned_at && stage.student_email)
+    if (assignedStage) {
+      return {
+        studentEmail: assignedStage.student_email,
+        approvedAt: assignedStage.assigned_at,
+        approvedBy: assignedStage.assigned_by,
+      }
+    }
+    const approvedRequest = studentRequests.find(
+      (studentRequest) => studentRequest.status === 'approved'
+    )
+    if (approvedRequest) {
+      return {
+        studentEmail: approvedRequest.student_email,
+        approvedAt: approvedRequest.reviewed_at,
+        approvedBy: approvedRequest.reviewed_by,
+      }
+    }
+    return null
+  }, [routingStages, studentRequests])
 
   // Triage phase: faculty can edit department/urgency/notes and approve/reject
   const isTriagePhase = ['submitted', 'under_review'].includes(currentStatus)
@@ -853,6 +888,30 @@ export function CaseDetailClient({
           formatReviewDate={formatReviewDate}
           waitingDays={waitingDays}
         />
+
+        <FacultyActionBanner pendingCount={pendingRequestCount} />
+
+        {matchedAssignment && !['submitted', 'under_review', 'matched'].includes(currentStatus) && (
+          <div className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm">
+            <span className="font-bold text-blue-900">
+              {t('admin.detail.matchedSummaryTitle')}
+            </span>
+            <span className="min-w-0 break-all text-blue-800">
+              <span className="text-blue-500">{t('admin.detail.matchedStudentLabel')}:</span>{' '}
+              <span className="font-semibold">{matchedAssignment.studentEmail}</span>
+            </span>
+            <span className="text-blue-800">
+              <span className="text-blue-500">{t('admin.detail.matchedApprovedAtLabel')}:</span>{' '}
+              <span className="font-semibold">{formatReviewDate(matchedAssignment.approvedAt)}</span>
+            </span>
+            {matchedAssignment.approvedBy && (
+              <span className="min-w-0 break-all text-blue-800">
+                <span className="text-blue-500">{t('admin.detail.matchedApprovedByLabel')}:</span>{' '}
+                <span className="font-semibold">{matchedAssignment.approvedBy}</span>
+              </span>
+            )}
+          </div>
+        )}
 
         {errorMessage && (
           <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">

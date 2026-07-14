@@ -26,9 +26,19 @@ interface Props {
   initialRequests: PatientRequest[]
   adminEmail: string
   currentRole: string | null
+  /** Pending student-request count per case id (server-side aggregate). */
+  pendingRequestCounts: Record<string, number>
+  /** Total pending student-request records across all cases. */
+  totalPendingRequests: number
 }
 
-export function DashboardClient({ initialRequests, adminEmail, currentRole }: Props) {
+export function DashboardClient({
+  initialRequests,
+  adminEmail,
+  currentRole,
+  pendingRequestCounts,
+  totalPendingRequests,
+}: Props) {
   const { t, locale } = useI18n()
   const { formatSubmittedDate, tDepartment, tStatus, tTreatment, tUrgency } =
     useDashboardLabels()
@@ -107,12 +117,13 @@ export function DashboardClient({ initialRequests, adminEmail, currentRole }: Pr
       newToday,
       pendingReview,
       activeTreatments,
+      pendingStudentRequests: totalPendingRequests,
       total: initialRequests.length,
       completed,
       cancelled,
       inTreatment,
     }
-  }, [initialRequests])
+  }, [initialRequests, totalPendingRequests])
 
   const recentRequests = useMemo(() => initialRequests.slice(0, 5), [initialRequests])
 
@@ -237,6 +248,16 @@ export function DashboardClient({ initialRequests, adminEmail, currentRole }: Pr
                   </span>
                 </>
               )}
+              {dashboardStats.pendingStudentRequests > 0 && (
+                <>
+                  <span className="h-1 w-1 shrink-0 rounded-full bg-slate-300" />
+                  <span className="font-semibold text-violet-700">
+                    {dashboardStats.pendingStudentRequests === 1
+                      ? t('admin.dashboard.requestAwaitingApproval')
+                      : `${dashboardStats.pendingStudentRequests} ${t('admin.dashboard.requestsAwaitingApprovalSuffix')}`}
+                  </span>
+                </>
+              )}
             </p>
           </div>
 
@@ -299,7 +320,10 @@ export function DashboardClient({ initialRequests, adminEmail, currentRole }: Pr
         <div className="mt-6 flex w-full flex-col gap-6 sm:mt-8 sm:gap-8 lg:flex-row lg:items-start">
           <div className="min-w-0 flex-1 space-y-6 sm:space-y-8">
             <UrgentQueueSection items={urgentUnreviewedList} />
-            <RecentRequestsSection requests={recentRequests} />
+            <RecentRequestsSection
+              requests={recentRequests}
+              pendingRequestCounts={pendingRequestCounts}
+            />
           </div>
 
           <div className="w-full min-w-0 space-y-4 sm:space-y-6 lg:w-80 lg:shrink-0 xl:w-96">

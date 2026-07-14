@@ -62,6 +62,12 @@ export type CaseTimelineItem = {
   actor: string | null
   appointmentDate: string | null
   appointmentTime: string | null
+  /**
+   * Optional secondary note (translation key). Set only from current
+   * authoritative row state — e.g. a request that is still pending — so the
+   * note disappears once the underlying record is resolved.
+   */
+  noteKey?: string
 }
 
 type BuildCaseTimelineInput = {
@@ -232,6 +238,10 @@ export function buildCaseTimeline({
         actor: studentRequest.student_email,
         appointmentDate: null,
         appointmentTime: null,
+        noteKey:
+          (studentRequest.status || '').toLowerCase() === 'pending'
+            ? 'admin.detail.journeyPendingFacultyApproval'
+            : undefined,
       })
     }
 
@@ -339,5 +349,6 @@ export function buildCaseTimeline({
       actor: item.actor,
       appointmentDate: item.appointmentDate,
       appointmentTime: item.appointmentTime,
+      noteKey: item.noteKey,
     }))
 }

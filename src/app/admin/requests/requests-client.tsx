@@ -8,6 +8,17 @@ import { AlertCircle, ArrowLeft, Phone, Search } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import { AdminPortalHeader } from '@/components/admin/AdminPortalHeader'
 import { getStatusBadgeClass } from '@/components/shared/status-badge'
+import type { CasePendingSummary } from '@/lib/cases/pending-requests'
+import {
+  compareByNewestPendingRequest,
+  compareByOldestPendingRequest,
+  initialSortByForTab,
+  isTriageStatus,
+  matchesWorkflowTab,
+  resolveSortByForTabChange,
+  type SortBy,
+  type WorkflowTab,
+} from './workflow-tabs'
 
 type PatientRequest = {
   id: string
@@ -24,7 +35,6 @@ type PatientRequest = {
   created_at: string | null
 }
 
-type WorkflowTab = 'all' | 'needs_review' | 'needs_routing' | 'released' | 'active' | 'closed'
 type QuickAction =
   | 'save_draft'
   | 'approve'
@@ -49,18 +59,13 @@ type FeedbackState = {
 interface Props {
   initialRequests: PatientRequest[]
   adminEmail: string
+  /** Per-case pending student-request summary (server-side aggregate). */
+  pendingByCase: Record<string, CasePendingSummary>
+  /** Tab resolved server-side from ?tab= so SSR and hydration agree. */
+  initialTab: WorkflowTab
 }
 
 const URGENCY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 }
-const TRIAGE_STATUSES = ['submitted', 'under_review']
-const ACTIVE_STATUSES = [
-  'student_approved',
-  'contacted',
-  'appointment_scheduled',
-  'in_treatment',
-  'faculty_review',
-]
-const CLOSED_STATUSES = ['completed', 'rejected', 'cancelled']
 const DEPARTMENT_OPTIONS = [
   'Endodontics',
   'Oral & Maxillofacial Surgery',
@@ -116,10 +121,6 @@ function keywordRoutingHint(treatmentType: string, assignedDepartment: string | 
   return 'Oral Radiology'
 }
 
-function isTriageStatus(status: string | null): boolean {
-  return TRIAGE_STATUSES.includes((status || '').toLowerCase())
-}
-
 function normalizeUrgency(urgency: string | null | undefined): DraftUrgency {
   switch ((urgency || '').toLowerCase()) {
     case 'high':
@@ -139,32 +140,6 @@ function toApiUrgency(urgency: DraftUrgency): 'High' | 'Medium' | 'Low' {
       return 'Low'
     default:
       return 'Medium'
-  }
-}
-
-function isNeedsRouting(request: PatientRequest): boolean {
-  return (
-    isTriageStatus(request.status) &&
-    (!request.assigned_department || !(request.urgency || '').trim())
-  )
-}
-
-function matchesWorkflowTab(request: PatientRequest, tab: WorkflowTab): boolean {
-  const status = (request.status || '').toLowerCase()
-
-  switch (tab) {
-    case 'needs_review':
-      return TRIAGE_STATUSES.includes(status)
-    case 'needs_routing':
-      return isNeedsRouting(request)
-    case 'released':
-      return status === 'matched'
-    case 'active':
-      return ACTIVE_STATUSES.includes(status)
-    case 'closed':
-      return CLOSED_STATUSES.includes(status)
-    default:
-      return true
   }
 }
 
@@ -189,18 +164,18 @@ function getNextStatusForAction(action: QuickAction): PatientRequest['status'] {
   }
 }
 
-export function RequestsClient({ initialRequests, adminEmail }: Props) {
+export function RequestsClient({ initialRequests, adminEmail, pendingByCase, initialTab }: Props) {
   const { t, locale } = useI18n()
   const dateLocale = locale === 'tr' ? 'tr-TR' : 'en-GB'
   const [now, setNow] = useState<number | null>(null)
 
   const [requests, setRequests] = useState(initialRequests)
   const [searchTerm, setSearchTerm] = useState('')
-  const [workflowTab, setWorkflowTab] = useState<WorkflowTab>('all')
+  const [workflowTab, setWorkflowTab] = useState<WorkflowTab>(initialTab)
   const [statusFilter, setStatusFilter] = useState('all')
   const [departmentFilter, setDepartmentFilter] = useState('all')
   const [urgencyFilter, setUrgencyFilter] = useState('all')
-  const [sortBy, setSortBy] = useState('newest')
+  const [sortBy, setSortBy] = useState<SortBy>(() => initialSortByForTab(initialTab))
   const [drafts, setDrafts] = useState<Record<string, RequestDraft>>({})
   const [feedbackById, setFeedbackById] = useState<Record<string, FeedbackState>>({})
   const [savingId, setSavingId] = useState<string | null>(null)
@@ -209,6 +184,27 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
     () => Object.fromEntries(requests.map((request) => [request.id, request])),
     [requests]
   )
+
+  function pendingCountFor(requestId: string): number {
+    return pendingByCase[requestId]?.count ?? 0
+  }
+
+  function handleTabChange(tab: WorkflowTab) {
+    const previousTab = workflowTab
+    setWorkflowTab(tab)
+    setSortBy((current) => resolveSortByForTabChange(current, previousTab, tab))
+
+    // Keep the selected tab deep-linkable (?tab=…) and refresh-safe without
+    // triggering a navigation; the server resolves the same param on load.
+    const params = new URLSearchParams(window.location.search)
+    if (tab === 'all') {
+      params.delete('tab')
+    } else {
+      params.set('tab', tab)
+    }
+    const query = params.toString()
+    window.history.replaceState(null, '', query ? `?${query}` : window.location.pathname)
+  }
 
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
@@ -543,7 +539,11 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
         request.complaint_text?.toLowerCase().includes(query) ||
         effectiveDepartment.includes(query)
 
-      const matchesWorkflow = matchesWorkflowTab(request, workflowTab)
+      const matchesWorkflow = matchesWorkflowTab(
+        request,
+        workflowTab,
+        pendingByCase[request.id]?.count ?? 0
+      )
       const matchesStatus =
         statusFilter === 'all' || (request.status || '').toLowerCase() === statusFilter
       const matchesUrgency =
@@ -554,51 +554,80 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
       return matchesSearch && matchesWorkflow && matchesStatus && matchesUrgency && matchesDepartment
     })
 
-    if (sortBy === 'oldest') {
-      result = [...result].sort(
-        (a, b) =>
-          new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
-      )
-    } else if (sortBy === 'urgency') {
+    if (sortBy === 'urgency') {
+      // Urgency ordering is universal and unchanged by tab, so it is checked
+      // first and wins regardless of workflowTab.
       result = [...result].sort(
         (a, b) =>
           (URGENCY_ORDER[(a.urgency || '').toLowerCase()] ?? 3) -
           (URGENCY_ORDER[(b.urgency || '').toLowerCase()] ?? 3)
       )
+    } else if (workflowTab === 'student_requests' && sortBy === 'pending_oldest') {
+      // The case whose oldest pending student request has waited longest first.
+      result = [...result].sort((a, b) =>
+        compareByOldestPendingRequest(
+          { id: a.id, oldestPendingAt: pendingByCase[a.id]?.oldestCreatedAt ?? null },
+          { id: b.id, oldestPendingAt: pendingByCase[b.id]?.oldestCreatedAt ?? null }
+        )
+      )
+    } else if (workflowTab === 'student_requests' && sortBy === 'newest') {
+      // Inside this tab, "Newest First" must reflect request recency, not
+      // patient case submission time — otherwise the visible label would lie.
+      result = [...result].sort((a, b) =>
+        compareByNewestPendingRequest(
+          { id: a.id, newestPendingAt: pendingByCase[a.id]?.newestCreatedAt ?? null },
+          { id: b.id, newestPendingAt: pendingByCase[b.id]?.newestCreatedAt ?? null }
+        )
+      )
+    } else if (sortBy === 'oldest') {
+      result = [...result].sort(
+        (a, b) =>
+          new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
+      )
     }
+    // sortBy === 'newest' outside Student Requests: no explicit sort needed —
+    // `requests` already arrives newest-case-first from the page query, and
+    // in-place updates (setRequests(current => current.map(...))) preserve
+    // that order.
 
     return result
-  }, [requests, searchTerm, workflowTab, statusFilter, urgencyFilter, departmentFilter, sortBy])
+  }, [requests, searchTerm, workflowTab, statusFilter, urgencyFilter, departmentFilter, sortBy, pendingByCase])
 
   const queueStats = useMemo(
     () => ({
-      pending: requests.filter((request) => TRIAGE_STATUSES.includes((request.status || '').toLowerCase()))
-        .length,
+      pending: requests.filter((request) => isTriageStatus(request.status)).length,
       urgent: requests.filter(
         (request) =>
-          (request.urgency || '').toLowerCase() === 'high' &&
-          TRIAGE_STATUSES.includes((request.status || '').toLowerCase())
+          (request.urgency || '').toLowerCase() === 'high' && isTriageStatus(request.status)
       ).length,
     }),
     [requests]
   )
 
-  const tabCounts = useMemo(
-    () => ({
+  // Tab badge counts and visible rows share matchesWorkflowTab, so a tab's
+  // count always equals the rows it shows. The student_requests count is a
+  // count of unique CASES with at least one pending request (the per-row
+  // badge shows the exact request count).
+  const tabCounts = useMemo(() => {
+    const countFor = (tab: WorkflowTab) =>
+      requests.filter((request) =>
+        matchesWorkflowTab(request, tab, pendingByCase[request.id]?.count ?? 0)
+      ).length
+
+    return {
       all: requests.length,
-      needs_review: requests.filter((request) => matchesWorkflowTab(request, 'needs_review')).length,
-      needs_routing: requests.filter((request) => matchesWorkflowTab(request, 'needs_routing')).length,
-      released: requests.filter((request) => matchesWorkflowTab(request, 'released')).length,
-      active: requests.filter((request) => matchesWorkflowTab(request, 'active')).length,
-      closed: requests.filter((request) => matchesWorkflowTab(request, 'closed')).length,
-    }),
-    [requests]
-  )
+      needs_review: countFor('needs_review'),
+      student_requests: countFor('student_requests'),
+      released: countFor('released'),
+      active: countFor('active'),
+      closed: countFor('closed'),
+    }
+  }, [requests, pendingByCase])
 
   const workflowTabs: Array<{ key: WorkflowTab; label: string; count: number }> = [
     { key: 'all', label: t('admin.requests.queueTabAll'), count: tabCounts.all },
     { key: 'needs_review', label: t('admin.requests.queueTabNeedsReview'), count: tabCounts.needs_review },
-    { key: 'needs_routing', label: t('admin.requests.queueTabNeedsRouting'), count: tabCounts.needs_routing },
+    { key: 'student_requests', label: t('admin.requests.queueTabStudentRequests'), count: tabCounts.student_requests },
     { key: 'released', label: t('admin.requests.queueTabReleased'), count: tabCounts.released },
     { key: 'active', label: t('admin.requests.queueTabActive'), count: tabCounts.active },
     { key: 'closed', label: t('admin.requests.queueTabClosed'), count: tabCounts.closed },
@@ -611,13 +640,30 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
     departmentFilter !== 'all' ||
     urgencyFilter !== 'all'
 
+  function pendingBadgeLabel(count: number): string {
+    return count === 1
+      ? t('admin.requests.pendingRequestBadgeOne')
+      : `${count} ${t('admin.requests.pendingRequestBadgeSuffix')}`
+  }
+
   function renderQuickActions(request: PatientRequest, compact = false) {
     const draft = getDraft(request)
     const actionOptions = getQuickActionOptions(request)
     const feedback = feedbackById[request.id]
+    const pendingCount = pendingCountFor(request.id)
 
     return (
       <div className={`space-y-2 ${compact ? '' : 'min-w-[220px]'}`}>
+        {pendingCount > 0 && (
+          <Link
+            href={`/admin/requests/${request.id}#student-requests`}
+            className="inline-flex h-9 w-full items-center justify-center rounded-lg bg-fuchsia-600 px-3 text-xs font-semibold text-white transition hover:bg-fuchsia-700"
+          >
+            {pendingCount === 1
+              ? t('admin.requests.reviewRequestCta')
+              : t('admin.requests.reviewRequestsCta')}
+          </Link>
+        )}
         {actionOptions.length > 0 ? (
           <>
             <div>
@@ -736,7 +782,7 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
               <button
                 key={tab.key}
                 type="button"
-                onClick={() => setWorkflowTab(tab.key)}
+                onClick={() => handleTabChange(tab.key)}
                 className={`inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold transition ${
                   active
                     ? 'border-slate-900 bg-slate-900 text-white'
@@ -816,11 +862,14 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
 
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
+            onChange={(e) => setSortBy(e.target.value as SortBy)}
             className="h-8 max-w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 outline-none focus:border-slate-900"
           >
             <option value="newest">{t('admin.requests.sortNewest')}</option>
             <option value="oldest">{t('admin.requests.sortOldest')}</option>
+            {workflowTab === 'student_requests' && (
+              <option value="pending_oldest">{t('admin.requests.sortPendingOldest')}</option>
+            )}
             <option value="urgency">{t('admin.requests.sortByUrgency')}</option>
           </select>
 
@@ -965,6 +1014,13 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
                               >
                                 {getStatusLabel(request.status)}
                               </span>
+                              {pendingCountFor(request.id) > 0 && (
+                                <div>
+                                  <span className="inline-flex rounded-full border border-fuchsia-200 bg-fuchsia-50 px-2.5 py-0.5 text-[11px] font-semibold text-fuchsia-700">
+                                    {pendingBadgeLabel(pendingCountFor(request.id))}
+                                  </span>
+                                </div>
+                              )}
                               <div>
                                 <span
                                   className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${getUrgencyBadgeClass(request.urgency)}`}
@@ -1020,6 +1076,11 @@ export function RequestsClient({ initialRequests, adminEmail }: Props) {
                           >
                             {getStatusLabel(request.status)}
                           </span>
+                          {pendingCountFor(request.id) > 0 && (
+                            <span className="inline-flex rounded-full border border-fuchsia-200 bg-fuchsia-50 px-2.5 py-0.5 text-[11px] font-semibold text-fuchsia-700">
+                              {pendingBadgeLabel(pendingCountFor(request.id))}
+                            </span>
+                          )}
                           <span
                             className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${getUrgencyBadgeClass(request.urgency)}`}
                           >

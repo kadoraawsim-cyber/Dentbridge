@@ -21,6 +21,8 @@ export type DashboardStats = {
   newToday: number
   pendingReview: number
   activeTreatments: number
+  /** Total pending student-request RECORDS (not unique cases). */
+  pendingStudentRequests: number
   total: number
   completed: number
   cancelled: number

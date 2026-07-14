@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Activity, Clock, Inbox, ShieldCheck } from 'lucide-react'
+import { Activity, Clock, Inbox, ShieldCheck, UserCheck } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import type { DashboardStats } from './types'
 
@@ -17,7 +17,7 @@ export function AdminStatsCards({ stats, avgTriageTimeLabel }: AdminStatsCardsPr
   return (
     <>
       {/* ── Stats ──────────────────────────────────────────────────────── */}
-      <div className="grid w-full grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="grid w-full grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-6">
         <div className="min-w-0 rounded-xl sm:rounded-2xl border border-slate-200 bg-white p-3 sm:p-6 shadow-sm">
           <div className="mb-1.5 sm:mb-3 flex items-center gap-1.5 sm:gap-2">
             <Inbox className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-slate-400" />
@@ -74,6 +74,30 @@ export function AdminStatsCards({ stats, avgTriageTimeLabel }: AdminStatsCardsPr
           </div>
           <div className="mt-0.5 sm:mt-2 truncate text-[10px] sm:text-sm text-slate-500">{t('admin.dashboard.statMatchedDesc')}</div>
         </div>
+
+        <Link
+          href="/admin/requests?tab=student_requests"
+          className={`min-w-0 rounded-xl sm:rounded-2xl border bg-white p-3 sm:p-6 shadow-sm transition hover:border-fuchsia-300 ${
+            stats.pendingStudentRequests > 0 ? 'border-fuchsia-200' : 'border-slate-200'
+          }`}
+        >
+          <div className="mb-1.5 sm:mb-3 flex items-center gap-1.5 sm:gap-2">
+            <UserCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-fuchsia-500" />
+            <span className="truncate text-[9px] sm:text-xs font-semibold uppercase tracking-wider text-slate-500">
+              {t('admin.dashboard.statPendingRequestsLabel')}
+            </span>
+          </div>
+          <div
+            className={`truncate text-xl sm:text-5xl font-bold tracking-tight ${
+              stats.pendingStudentRequests > 0 ? 'text-fuchsia-700' : 'text-slate-400'
+            }`}
+          >
+            {stats.pendingStudentRequests}
+          </div>
+          <div className="mt-0.5 sm:mt-2 truncate text-[10px] sm:text-sm text-slate-500">
+            {t('admin.dashboard.statPendingRequestsDesc')}
+          </div>
+        </Link>
 
         <div className="min-w-0 rounded-xl sm:rounded-2xl border border-slate-200 bg-white p-3 sm:p-6 shadow-sm">
           <div className="mb-1.5 sm:mb-3 flex items-center gap-1.5 sm:gap-2">

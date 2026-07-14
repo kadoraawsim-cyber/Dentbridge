@@ -9,12 +9,27 @@ import type { PatientRequest } from './types'
 
 interface RecentRequestsSectionProps {
   requests: PatientRequest[]
+  /** Pending student-request count per case id; drives the action badge. */
+  pendingRequestCounts: Record<string, number>
 }
 
 /** Recent requests: mobile card list plus desktop table. */
-export function RecentRequestsSection({ requests }: RecentRequestsSectionProps) {
+export function RecentRequestsSection({
+  requests,
+  pendingRequestCounts,
+}: RecentRequestsSectionProps) {
   const { t } = useI18n()
   const { relativeTime, tStatus, tTreatment, tUrgency } = useDashboardLabels()
+
+  // Faculty-action badge shown ALONGSIDE the lifecycle badge, never replacing
+  // it: the case remains Released to Pool while approval is outstanding.
+  function pendingApprovalLabel(caseId: string): string | null {
+    const count = pendingRequestCounts[caseId] ?? 0
+    if (count <= 0) return null
+    return count === 1
+      ? t('admin.dashboard.recentPendingApprovalOne')
+      : `${count} ${t('admin.dashboard.recentPendingApprovalSuffix')}`
+  }
 
   return (
     <div className="w-full">
@@ -79,6 +94,12 @@ export function RecentRequestsSection({ requests }: RecentRequestsSectionProps) 
                   >
                     {tStatus(r.status)}
                   </span>
+
+                  {pendingApprovalLabel(r.id) && (
+                    <span className="inline-flex rounded-full border border-fuchsia-200 bg-fuchsia-50 px-2 py-0.5 sm:px-2.5 sm:py-1 text-[9px] sm:text-[10px] font-semibold text-fuchsia-700">
+                      {pendingApprovalLabel(r.id)}
+                    </span>
+                  )}
                 </div>
               </Link>
             ))
@@ -136,13 +157,20 @@ export function RecentRequestsSection({ requests }: RecentRequestsSectionProps) 
                     </td>
 
                     <td className="px-5 py-4">
-                      <span
-                        className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${getStatusBadgeClass(
-                          r.status
-                        )}`}
-                      >
-                        {tStatus(r.status)}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span
+                          className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${getStatusBadgeClass(
+                            r.status
+                          )}`}
+                        >
+                          {tStatus(r.status)}
+                        </span>
+                        {pendingApprovalLabel(r.id) && (
+                          <span className="inline-flex whitespace-nowrap rounded-full border border-fuchsia-200 bg-fuchsia-50 px-2.5 py-0.5 text-[10px] font-semibold text-fuchsia-700">
+                            {pendingApprovalLabel(r.id)}
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     <td className="px-5 py-4 text-right">
